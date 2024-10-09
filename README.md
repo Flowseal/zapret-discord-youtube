@@ -23,7 +23,16 @@
 - Не прогружается видео на ютубе? В файле, который открываете, в строчке с `--filter-tcp=443`: поменяйте `--dpi-desync-fooling=md5sig` на `--dpi-desync-fooling=badseq` (https://github.com/Flowseal/zapret-discord-youtube/issues/46)
 - Попробуйте обновить бинарники с оригинального репозитория
 
-### Дополнительные адреса заблокированных сайтов можно добавить в список list-general.txt (для `*discord_youtube`). После добавления сервис нужно перезапустить
+### Хочу удалить, но остался файл WinDivert?
+Для удаления оставшегося драйвера WinDivert, откройте cmd от имени администратора и пропишите следующее:
+```
+sc stop WinDivert
+sc delete WinDivert
+```
+
+Возможно, драйвер у вас будет записан по-другому. Для уточнения названия пропишите `driverquery | find "Divert"` в cmd.
+
+### Дополнительные адреса заблокированных сайтов можно добавить в список list-general.txt (для `*discord_youtube`) и в список list-discord (для файлов без `youtube` в названии). После добавления сервис нужно перезапустить
 
 ### Оригинальный репозиторий
 Credits to https://github.com/bol-van/zapret/tree/master/binaries/win64/zapret-winws
