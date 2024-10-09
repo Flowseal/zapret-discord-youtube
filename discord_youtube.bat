@@ -1,3 +1,17 @@
+@echo off
+chcp 65001 >nul
+:: 65001 - UTF-8
+
+:: Path check
+set scriptPath=%~dp0
+set "path_no_spaces=%scriptPath: =%"
+if not "%scriptPath%"=="%path_no_spaces%" (
+    echo Путь содержит пробелы. 
+    echo Пожалуйста, переместите скрипт в директорию без пробелов.
+    pause
+    exit /b
+)
+
 set BIN=%~dp0bin\
 
 start "zapret: discord" /min "%BIN%winws.exe" ^
