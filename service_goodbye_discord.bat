@@ -2,16 +2,6 @@
 chcp 65001 >nul
 :: 65001 - UTF-8
 
-:: Path check
-set scriptPath=%~dp0
-set "path_no_spaces=%scriptPath: =%"
-if not "%scriptPath%"=="%path_no_spaces%" (
-    echo Путь содержит пробелы. 
-    echo Пожалуйста, переместите скрипт в директорию без пробелов.
-    pause
-    exit /b
-)
-
 :: Admin rights check
 echo Данный файл должен быть запущен с правами администратора (ПКМ -> Запустить от имени администратора).
 echo Нажмите любую клавишу, чтобы продолжить создание сервиса.
@@ -25,10 +15,10 @@ set ARGS=--wf-tcp=443 --wf-udp=443,50000-65535 ^
 
 set SRVCNAME=zapret
 
-net stop "%SRVCNAME%"
-sc delete "%SRVCNAME%"
-sc create "%SRVCNAME%" binPath= "%BIN%winws.exe %ARGS%" DisplayName= "zapret DPI bypass : winws1" start= auto depend= "GoodbyeDPI"
-sc description "%SRVCNAME%" "zapret DPI bypass software"
-sc start "%SRVCNAME%"
+net stop %SRVCNAME%
+sc delete %SRVCNAME%
+sc create %SRVCNAME% binPath= "\"%BIN%winws.exe\" %ARGS%" DisplayName= "zapret DPI bypass : %SRVCNAME%" start= auto depend= "GoodbyeDPI"
+sc description %SRVCNAME% "zapret DPI bypass software"
+sc start %SRVCNAME%
 
 pause
