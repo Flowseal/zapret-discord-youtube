@@ -13,13 +13,9 @@ if not "%scriptPath%"=="%path_no_spaces%" (
 )
 
 :: Admin rights check
-net session >nul 2>&1
-if %errorLevel% neq 0 (
-    echo Скрипт запущен без прав администратора. 
-    echo Запустите от имени администратора.
-    pause
-    exit /b
-)
+echo Данный файл должен быть запущен с правами администратора (ПКМ -> Запустить от имени администратора).
+echo Нажмите любую клавишу, чтобы продолжить создание сервиса.
+pause
 
 set SRVCNAME=zapret
 
