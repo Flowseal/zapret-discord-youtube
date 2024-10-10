@@ -65,7 +65,7 @@ sc delete WinDivert
 
 If you like the project, leave a :star: (top right) and become a [stargazer](https://github.com/Flowseal/zapret-discrord-youtube/stargazers)!
 
-[![Stargazers repo roster for @yokoffing/Betterfox](https://reporoster.com/stars/dark/Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discrord-youtube/stargazers)
+[![Stargazers repo roster for @Flowseal/zapret-discord-youtube](https://reporoster.com/stars/dark/Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discrord-youtube/stargazers)
 
 ## Credit
 * Many thanks to [bol-van](https://github.com/bol-van/), creator of original [zapret](https://github.com/bol-van/zapret/) repository.
