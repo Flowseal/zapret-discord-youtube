@@ -20,8 +20,11 @@
 - Не работает сервис? Проверьте, чтобы в пути до файла **не было пробелов** и русских символов. Также отключите программы, которые могут мешать созданию сервиса *(Антивирусы, клинеры с доп. защитой)*
 - Не работает вместе с VPN? Отключите функцию **TUN** (Tunneling) в настройках VPN
 - Не работает `service_goodbye_discord`? Удостовертесь, что сервис goodbyedpi запущен и имеет название GoodbyeDPI. После снова запустите `service_goodbye_discord.bat` и перезапустите устройство
-- Не прогружается видео на ютубе? В файле, который открываете, в строчке с `--filter-tcp=443`: поменяйте `--dpi-desync-fooling=md5sig` на `--dpi-desync-fooling=badseq` (https://github.com/Flowseal/zapret-discord-youtube/issues/46)
+- Не прогружается видео на ютубе? Попробуйте поставить **`Kyber`** и **`QUIC`** в default (`chrome://flags/`). Также в файле, который открываете, в строчке с `--filter-tcp=443`: попробуйте поменять `--dpi-desync-fooling=md5sig` на `--dpi-desync-fooling=badseq` (https://github.com/Flowseal/zapret-discord-youtube/issues/46)
 - Попробуйте обновить бинарники с оригинального репозитория
+##
+- Не работает **YouTube**? Попробуйте найти ответ здесь - https://github.com/Flowseal/zapret-discord-youtube/issues/90
+- Не работает **Discord**? Попробуйте найти ответ здесь - https://github.com/Flowseal/zapret-discord-youtube/issues/92
 
 ### Хочу удалить, но остался файл WinDivert?
 Для удаления оставшегося драйвера WinDivert, откройте cmd от имени администратора и пропишите следующее:
