@@ -5,6 +5,7 @@ ntc.party
 rutracker.org
 nnmclub.to
 
+# Unsorted
 googlevideo.com
 youtu.be
 youtube.com
