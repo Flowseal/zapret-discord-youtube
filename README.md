@@ -68,6 +68,3 @@ If you like the project, leave a :star: (top right) and become a [stargazer](htt
 
 * Many thanks to [bol-van](https://github.com/bol-van/), creator of original [zapret](https://github.com/bol-van/zapret/) repository.
 * Appreciation goes to [Flowseal](https://github.com/Flowseal/) for making it possible to use [zapret](https://github.com/bol-van/zapret/tree/master/binaries/win64/zapret-winws) on Windows.
-* [burnedoutman](https://github.com/burnedoutman) for contributing in [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube/) improvements.
-* [70sh1](https://github.com/70sh1) for contributing in [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube/) improvements.
-* [prettyleaf](https://github.com/prettyleaf) for contributing in [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube/) improvements.
