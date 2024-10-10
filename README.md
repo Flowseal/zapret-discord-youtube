@@ -59,7 +59,7 @@ If you like the project, leave a :star: (top right) and become a [stargazer](htt
 
 [![Stargazers repo roster for @Flowseal/zapret-discord-youtube](https://reporoster.com/stars/dark/Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discrord-youtube/stargazers)
 
-## Credit
+## Credits & Contributors
 <p align="left">
   <a href="https://github.com/Flowseal/zapret-discord-youtube/graphs/contributors">
     <img src="https://contrib.rocks/image?repo=Flowseal/zapret-discord-youtube" />
@@ -67,4 +67,3 @@ If you like the project, leave a :star: (top right) and become a [stargazer](htt
 </p>
 
 * Many thanks to [bol-van](https://github.com/bol-van/), creator of original [zapret](https://github.com/bol-van/zapret/) repository.
-* Appreciation goes to [Flowseal](https://github.com/Flowseal/) for making it possible to use [zapret](https://github.com/bol-van/zapret/tree/master/binaries/win64/zapret-winws) on Windows.
