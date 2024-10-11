@@ -1,7 +1,7 @@
 # Zapret (обход блокировки Discord'а и Youtube'а)
 > [!CAUTION]  
 > В сети появились правдоподобные копии аккаунтов, которые распространяют вредоносов под видом Zapret. \
-> Отличить оригинал от фейка вы всегда можете по количеству [звёзд](https://github.com/Flowseal/zapret-discrord-youtube/stargazers) у репозитория.
+> Отличить оригинал от фейка вы всегда можете по количеству [⭐ звёзд](https://github.com/Flowseal/zapret-discord-youtube/stargazers) (в правом верхнем углу) у репозитория.
 
 ## Guides
 ### Windows
@@ -58,9 +58,9 @@ sc delete WinDivert
 
 ## Support
 
-If you like the project, leave a :star: (top right) and become a [stargazer](https://github.com/Flowseal/zapret-discrord-youtube/stargazers)!
+If you like the project, leave a :star: (top right) and become a [stargazer](https://github.com/Flowseal/zapret-discord-youtube/stargazers)!
 
-[![Stargazers repo roster for @Flowseal/zapret-discord-youtube](https://reporoster.com/stars/dark/Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discrord-youtube/stargazers)
+[![Stargazers repo roster for @Flowseal/zapret-discord-youtube](https://reporoster.com/stars/dark/Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discord-youtube/stargazers)
 
 ## Credits & Contributors
 <p align="left">
