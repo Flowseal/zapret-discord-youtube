@@ -1,6 +1,8 @@
 googlevideo.com
 youtu.be
 youtube.com
+youtubei.googleapis.com
+i.ytimg.com
 ytimg.com
 ggpht.com
 youtubekids.com
