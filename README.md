@@ -1,4 +1,7 @@
 # Zapret (обход блокировки Discord'а и Youtube'а)
+> [!CAUTION]  
+> В сети появились правдоподобные копии аккаунтов, которые распространяют вредоносов под видом Zapret. \
+> Скачивайте только с проверенных источников: [Flowseal/zapret](https://github.com/Flowseal/zapret-discord-youtube/) и [bol-van/zapret](https://github.com/bol-van/zapret/).
 
 ## Guides
 ### Windows
@@ -30,7 +33,7 @@
 - Не работает **YouTube**? Попробуйте найти ответ здесь - https://github.com/Flowseal/zapret-discord-youtube/issues/90
 - Не работает **Discord**? Попробуйте найти ответ здесь - https://github.com/Flowseal/zapret-discord-youtube/issues/92
 
-### Хочу удалить, но остался файл WinDivert?
+### Остановка и удаление обхода
 Для удаления оставшегося драйвера WinDivert, откройте cmd от имени администратора и пропишите следующее:
 ```
 sc stop WinDivert
@@ -39,7 +42,7 @@ sc delete WinDivert
 > [!NOTE]  
 > Возможно, драйвер у вас будет записан по-другому. Для уточнения названия пропишите `driverquery | find "Divert"` в cmd.
 
-### Добавление дополнительных адресов заблокированных сайтов: 
+### Добавление дополнительных адресов заблокированных сайтов 
 - Список можно дополнить используя `list-general.txt` (для `*discord_youtube`) и в список `list-discord` (для файлов без `youtube` в названии).
 > [!IMPORTANT]  
 > После добавления сервис нужно перезапустить.
