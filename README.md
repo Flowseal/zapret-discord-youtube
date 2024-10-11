@@ -1,7 +1,7 @@
 # Zapret (обход блокировки Discord'а и Youtube'а)
 > [!CAUTION]  
 > В сети появились правдоподобные копии аккаунтов, которые распространяют вредоносов под видом Zapret. \
-> Скачивайте только с проверенных источников: [Flowseal/zapret](https://github.com/Flowseal/zapret-discord-youtube/) и [bol-van/zapret](https://github.com/bol-van/zapret/).
+> Отличить оригинал от фейка вы всегда можете по количеству [звёзд](https://github.com/Flowseal/zapret-discrord-youtube/stargazers) у репозитория.
 
 ## Guides
 ### Windows
