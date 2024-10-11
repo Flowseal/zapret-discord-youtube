@@ -6,15 +6,8 @@ discordapp.com
 discord.gg
 media.discordapp.net
 images-ext-1.discordapp.net
-www.discord.com
-www.discord.app
 discord.app
-*.discord.com
-*.discord.gg
-*.discordapp.com
-*.discordapp.net
 discord.media
-*.discord.media
 discordcdn.com
 discord.dev
 discord.new
