@@ -26,4 +26,4 @@ discord.co
 discord-attachments-uploads-prd.storage.googleapis.com
 7tv.app
 7tv.io
-7tv.gg
+10tv.app
