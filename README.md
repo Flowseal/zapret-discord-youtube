@@ -10,41 +10,46 @@
 
 Запустите **от имени администратора** то, что вам нужно:
 - **`discord.bat`** - запустить обход дискорда.
-- **`discord_youtube.bat`** - запустить обход дискорда и ютуба.
+- **`general.bat`** - запустить обход дискорда и ютуба.
 ###
 - **`service_discord.bat`** - запустить обход дискорда и поставить на автозапуск (в сервисах).
-- **`service_discord_youtube.bat`** - запустить обход дискорда и ютуба и поставить на автозапуск (в сервисах).
+- **`service_general.bat`** - запустить обход дискорда и ютуба и поставить на автозапуск (в сервисах).
 ###
 - **`service_goodbye_discord.bat`** - запустить, если вы используете **СЕРВИС goodbyedpi**, и хотите, чтобы zapret обходил **только discord**.
   * **ВНИМАНИЕ**: Запускать ПОСЛЕ создания сервиса goodbyedpi. Первый раз goodbyedpi может вылететь - просто перезапустите устройство!
 ###
 - **`service_remove.bat`** - остановить и удалить сервисы выше
 
-### Решение проблем
-- Проверьте, запускаете ли вы файлы от имени администратора.
-- Не работают bat файлы? Попробуйте выполнить очистку от драйвера WinDivert, как написано **[ЗДЕСЬ](#остановка-и-удаление-обхода)**
-- Не работает сервис? Проверьте, чтобы в пути до файла **не было пробелов** и русских символов.
+## Решение проблем
+
+- Проверьте, запускаете ли вы файлы от **ИМЕНИ АДМИНИСТРАТОРА**
+- Не запускаются bat файлы? Попробуйте запустить **`service_remove.bat`** от **ИМЕНИ АДМИНИСТРАТОРА**
   * Также отключите программы, которые могут мешать созданию сервиса *(Антивирусы, клинеры с доп. защитой)*.
-- Не работает вместе с VPN? Отключите функцию **TUN** (Tunneling) в настройках VPN.
-- Не работает `service_goodbye_discord`? Удостовертесь, что сервис goodbyedpi запущен и имеет название GoodbyeDPI. После снова запустите `service_goodbye_discord.bat` и перезапустите устройство.
-- Не прогружается видео на ютубе? Попробуйте поставить **`Kyber`** и **`QUIC`** в default (`chrome://flags/`).
-  * Также в файле, который открываете, в строчке с `--filter-tcp=443`: попробуйте поменять `--dpi-desync-fooling=md5sig` на `--dpi-desync-fooling=badseq`.
-  * https://github.com/Flowseal/zapret-discord-youtube/issues/46
+- <p style="text-align: left;">
+    <img src="https://cdn-icons-png.flaticon.com/16/3670/3670147.png" alt="discord" style="vertical-align: middle;"/>
+    Не работает <strong>Youtube</strong>? Попробуйте найти ответ здесь - 
+    <a href="https://github.com/Flowseal/zapret-discord-youtube/discussions/251">Обсуждение YouTube</a>
+  </p>
+- <p style="text-align: left;">
+    <img src="https://cdn-icons-png.flaticon.com/16/906/906361.png" alt="discord" style="vertical-align: middle;"/>
+    Не работает <strong>Discord</strong>? Попробуйте найти ответ здесь - 
+    <a href="https://github.com/Flowseal/zapret-discord-youtube/discussions/252">Обсуждение Discord</a>
+  </p>
+##
+- Не работает вместе с **VPN**? Отключите функцию **TUN** (Tunneling) в настройках VPN.
+- Не работает **`service_goodbye_discord`**? Удостовертесь, что сервис goodbyedpi запущен и имеет название GoodbyeDPI. После снова запустите `service_goodbye_discord.bat` и перезапустите устройство.
 - Попробуйте обновить бинарники с оригинального репозитория.
-- Не работает **YouTube**? Попробуйте найти ответ здесь - https://github.com/Flowseal/zapret-discord-youtube/issues/90
-- Не работает **Discord**? Попробуйте найти ответ здесь - https://github.com/Flowseal/zapret-discord-youtube/issues/92
 
 ### Остановка и удаление обхода
-Для удаления оставшегося драйвера WinDivert, откройте cmd от имени администратора и пропишите следующее:
+Для этого запустите **`service_remove.bat`**.
+- Если WinDivert так и не удалился, узнайте его название с помощью команды `driverquery | find "Divert"` в cmd, а затем удалите данными командами (заместо WinDivert введите название, которые вы узнали):
 ```
 sc stop WinDivert
 sc delete WinDivert
 ```
-> [!NOTE]  
-> Возможно, драйвер у вас будет записан по-другому. Для уточнения названия пропишите `driverquery | find "Divert"` в cmd.
 
 ### Добавление дополнительных адресов заблокированных сайтов 
-- Список можно дополнить используя `list-general.txt` (для `*discord_youtube`) и в список `list-discord` (для файлов без `youtube` в названии).
+- Список можно дополнить используя `list-general.txt` (для файлов `general`) и в список `list-discord` (для файлов `discord`).
 > [!IMPORTANT]  
 > После добавления сервис нужно перезапустить.
 
