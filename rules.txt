@@ -1,0 +1,7 @@
+!impostor and !loopback and
+ ((outbound and (((tcp.DstPort == 80) or (tcp.DstPort == 443)) or ((udp.DstPort == 443) or 
+				(udp.DstPort >= 50000 and udp.DstPort <= 65535 and udp.PayloadLength == 74 and udp.Payload32[0] == 0x00010046
+																	))) and 
+ (((ip.DstAddr < 127.0.0.1 or ip.DstAddr > 127.255.255.255) and (ip.DstAddr < 10.0.0.0 or ip.DstAddr > 10.255.255.255) and (ip.DstAddr < 192.168.0.0 or ip.DstAddr > 192.168.255.255) and (ip.DstAddr < 172.16.0.0 or ip.DstAddr > 172.31.255.255) and (ip.DstAddr < 169.254.0.0 or ip.DstAddr > 169.254.255.255)) or ((ipv6.DstAddr > ::1) and (ipv6.DstAddr < 2001::0 or ipv6.DstAddr >= 2001:1::0) and (ipv6.DstAddr < fc00::0 or ipv6.DstAddr >= fe00::0) and (ipv6.DstAddr < fe80::0 or ipv6.DstAddr >= fec0::0) and (ipv6.DstAddr < ff00::0 or ipv6.DstAddr >= ffff::0))))
+  or
+  (inbound and tcp and (tcp.Ack and tcp.Syn or tcp.Rst or tcp.Fin) and ((tcp.SrcPort == 80) or (tcp.SrcPort == 443)) and (((ip.SrcAddr < 127.0.0.1 or ip.SrcAddr > 127.255.255.255) and (ip.SrcAddr < 10.0.0.0 or ip.SrcAddr > 10.255.255.255) and (ip.SrcAddr < 192.168.0.0 or ip.SrcAddr > 192.168.255.255) and (ip.SrcAddr < 172.16.0.0 or ip.SrcAddr > 172.31.255.255) and (ip.SrcAddr < 169.254.0.0 or ip.SrcAddr > 169.254.255.255)) or ((ipv6.SrcAddr > ::1) and (ipv6.SrcAddr < 2001::0 or ipv6.SrcAddr >= 2001:1::0) and (ipv6.SrcAddr < fc00::0 or ipv6.SrcAddr >= fe00::0) and (ipv6.SrcAddr < fe80::0 or ipv6.SrcAddr >= fec0::0) and (ipv6.SrcAddr < ff00::0 or ipv6.SrcAddr >= ffff::0)))))
