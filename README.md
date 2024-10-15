@@ -66,7 +66,13 @@ sc delete WinDivert
 
 If you like the project, leave a :star: (top right) and become a [stargazer](https://github.com/Flowseal/zapret-discord-youtube/stargazers)!
 
-[![Stargazers](https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date)](https://star-history.com/#Flowseal/zapret-discord-youtube&Date)
+<a href="https://star-history.com/#Flowseal/zapret-discord-youtube&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date" />
+ </picture>
+</a>
 
 ## Credits & Contributors
 <p align="left">
