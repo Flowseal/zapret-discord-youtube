@@ -37,9 +37,10 @@ if not defined selectedFile (
     goto :eof
 )
 
-:: Парсим аргументы
+:: Парсим аргументы (mergeargs: 2=start wf|1=wf argument|0=default)
 set "args="
 set "capture=0"
+set "mergeargs=0"
 set QUOTE="
 
 for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
@@ -60,6 +61,10 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
             set "arg=%%i"
 
             if not "!arg!"=="^" (
+                if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
+                    set "mergeargs=0"
+                )
+
                 if "!arg:~0,1!" EQU "!QUOTE!" (
                     set "arg=!arg:~1,-1!"
 
@@ -74,8 +79,18 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                         set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
                     )
                 )
+                
+                if !mergeargs!==1 (
+                    set "temp_args=!temp_args!,!arg!"
+                ) else (
+                    set "temp_args=!temp_args! !arg!"
+                )
 
-                set "temp_args=!temp_args! !arg!"
+                if "!arg:~0,4!" EQU "--wf" (
+                    set "mergeargs=2"
+                ) else if !mergeargs!==2 (
+                    set "mergeargs=1"
+                )
             )
         )
 
