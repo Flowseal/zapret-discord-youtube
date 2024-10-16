@@ -1,11 +1,11 @@
 # Zapret (обход блокировки Discord'а и Youtube'а)
-> [!CAUTION]  
+> [!CAUTION]
 > В сети появились правдоподобные копии аккаунтов, которые распространяют вредоносное ПО под видом Zapret. \
 > Отличить оригинал от фейка вы всегда можете по количеству [⭐ звёзд](https://github.com/Flowseal/zapret-discord-youtube/stargazers) (в правом верхнем углу) у репозитория.
 
 ## Guides
 ### Windows
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > Если всё еще не скачан, то скачайте последний [релиз](https://github.com/Flowseal/zapret-discord-youtube/releases), разархивируйте в отдельную папку.
 
 Запустите **от имени администратора** то, что вам нужно:
@@ -27,30 +27,30 @@
   * Также отключите программы, которые могут мешать созданию сервиса *(Антивирусы, клинеры с доп. защитой)*.
 - <p style="text-align: left;">
     <img src="https://cdn-icons-png.flaticon.com/16/3670/3670147.png" alt="discord" style="vertical-align: middle;"/>
-    Не работает <strong>Youtube</strong>? Попробуйте найти ответ здесь - 
+    Не работает <strong>Youtube</strong>? Попробуйте найти ответ здесь -
     <a href="https://github.com/Flowseal/zapret-discord-youtube/discussions/251">Обсуждение YouTube</a>
   </p>
 - <p style="text-align: left;">
     <img src="https://cdn-icons-png.flaticon.com/16/906/906361.png" alt="discord" style="vertical-align: middle;"/>
-    Не работает <strong>Discord</strong>? Попробуйте найти ответ здесь - 
+    Не работает <strong>Discord</strong>? Попробуйте найти ответ здесь -
     <a href="https://github.com/Flowseal/zapret-discord-youtube/discussions/252">Обсуждение Discord</a>
   </p>
 ##
 - Не работает вместе с **VPN**? Отключите функцию **TUN** (Tunneling) в настройках VPN.
-- Не работает **`service_goodbye_discord`**? Удостовертесь, что сервис goodbyedpi запущен и имеет название GoodbyeDPI. После снова запустите `service_goodbye_discord.bat` и перезапустите устройство.
+- Не работает **`service_goodbye_discord`**? Удостоверьтесь, что сервис goodbyedpi запущен и имеет название GoodbyeDPI. После снова запустите `service_goodbye_discord.bat` и перезапустите устройство.
 - Попробуйте обновить бинарники с оригинального репозитория.
 
 ### Остановка и удаление обхода
 Для этого запустите **`service_remove.bat`**.
-- Если WinDivert так и не удалился, узнайте его название с помощью команды `driverquery | find "Divert"` в cmd, а затем удалите данными командами (заместо WinDivert введите название, которые вы узнали):
+- Если WinDivert так и не удалился, узнайте его название с помощью команды `driverquery | find "Divert"` в cmd, а затем удалите данными командами (вместо WinDivert введите название, которые вы узнали):
 ```
 sc stop WinDivert
 sc delete WinDivert
 ```
 
-### Добавление дополнительных адресов заблокированных сайтов 
+### Добавление дополнительных адресов заблокированных сайтов
 - Список можно дополнить используя `list-general.txt` (для файлов `general`) и в список `list-discord` (для файлов `discord`).
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > После добавления сервис нужно перезапустить.
 
 ## Linux

@@ -79,7 +79,7 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                         set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
                     )
                 )
-                
+
                 if !mergeargs!==1 (
                     set "temp_args=!temp_args!,!arg!"
                 ) else (
@@ -108,7 +108,7 @@ set SRVCNAME=zapret
 
 net stop %SRVCNAME%
 sc delete %SRVCNAME%
-sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "zpret" start= auto
+sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "%SRVCNAME%" start= auto
 sc description %SRVCNAME% "zapret DPI bypass software"
 sc start %SRVCNAME%
 
