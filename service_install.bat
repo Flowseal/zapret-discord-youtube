@@ -61,7 +61,6 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
             set "arg=%%i"
 
             if not "!arg!"=="^" (
-                echo arg: !arg!
                 if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
                     set "mergeargs=0"
                 )
