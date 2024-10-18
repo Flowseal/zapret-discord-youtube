@@ -61,6 +61,7 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
             set "arg=%%i"
 
             if not "!arg!"=="^" (
+                echo arg: !arg!
                 if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
                     set "mergeargs=0"
                 )
@@ -87,6 +88,10 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                 )
 
                 if "!arg:~0,4!" EQU "--wf" (
+                    set "mergeargs=2"
+                ) else if "!arg!" EQU "--dpi-desync" (
+                    set "mergeargs=2"
+                ) else if "!arg!" EQU "--dpi-desync-fooling" (
                     set "mergeargs=2"
                 ) else if !mergeargs!==2 (
                     set "mergeargs=1"
