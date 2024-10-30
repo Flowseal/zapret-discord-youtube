@@ -1,1 +1,1 @@
-# Linux-related configs and docs will be here made during this week.
+# Linux-related configs and docs will be here maybe during this week.
