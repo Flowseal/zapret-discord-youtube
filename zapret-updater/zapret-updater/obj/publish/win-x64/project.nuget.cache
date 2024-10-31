@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "dgSpecHash": "U22ctKGB6ew=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\dvinogradov\\source\\repos\\zapret-updater\\zapret-updater\\zapret-updater.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\lexical.fileprovider\\0.14.4\\lexical.fileprovider.0.14.4.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\lexical.fileprovider.abstractions\\0.14.4\\lexical.fileprovider.abstractions.0.14.4.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\lexical.fileprovider.sharpcompress\\0.14.4\\lexical.fileprovider.sharpcompress.0.14.4.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\microsoft.extensions.fileproviders.abstractions\\2.2.0\\microsoft.extensions.fileproviders.abstractions.2.2.0.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\microsoft.extensions.primitives\\2.2.0\\microsoft.extensions.primitives.2.2.0.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.8\\microsoft.net.illink.tasks.8.0.8.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\sharpcompress\\0.38.0\\sharpcompress.0.38.0.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\system.memory\\4.5.1\\system.memory.4.5.1.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\4.5.1\\system.runtime.compilerservices.unsafe.4.5.1.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\zstdsharp.port\\0.8.1\\zstdsharp.port.0.8.1.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.8\\microsoft.netcore.app.runtime.win-x64.8.0.8.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.8\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.8.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.8\\microsoft.aspnetcore.app.runtime.win-x64.8.0.8.nupkg.sha512",
+    "C:\\Users\\dvinogradov\\.nuget\\packages\\microsoft.netcore.app.crossgen2.win-x64\\8.0.8\\microsoft.netcore.app.crossgen2.win-x64.8.0.8.nupkg.sha512"
+  ],
+  "logs": []
+}

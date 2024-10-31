@@ -1,0 +1,2 @@
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x64\zapret-updater.pdb
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x64\zapret-updater.exe

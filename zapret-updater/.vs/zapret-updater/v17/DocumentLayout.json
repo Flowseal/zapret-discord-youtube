@@ -1,0 +1,41 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\dvinogradov\\Documents\\GitHub\\zapret-discord-youtube\\zapret-updater\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{134159D5-5EEE-4D47-AE66-FAC51BAC8328}|zapret-updater\\zapret-updater.csproj|c:\\users\\dvinogradov\\documents\\github\\zapret-discord-youtube\\zapret-updater\\zapret-updater\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{134159D5-5EEE-4D47-AE66-FAC51BAC8328}|zapret-updater\\zapret-updater.csproj|solutionrelative:zapret-updater\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\dvinogradov\\Documents\\GitHub\\zapret-discord-youtube\\zapret-updater\\zapret-updater\\Program.cs",
+              "RelativeDocumentMoniker": "zapret-updater\\Program.cs",
+              "ToolTip": "C:\\Users\\dvinogradov\\Documents\\GitHub\\zapret-discord-youtube\\zapret-updater\\zapret-updater\\Program.cs",
+              "RelativeToolTip": "zapret-updater\\Program.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAvwCkAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-10-31T09:04:29.899Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\dvinogradov\\Documents\\GitHub\\zapret-discord-youtube\\zapret-updater\\zapret-updater\\zapret-updater.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\dvinogradov\\Documents\\GitHub\\zapret-discord-youtube\\zapret-updater\\zapret-updater\\zapret-updater.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\dvinogradov\\Documents\\GitHub\\zapret-discord-youtube\\zapret-updater\\zapret-updater\\zapret-updater.csproj",
+        "projectName": "zapret-updater",
+        "projectPath": "C:\\Users\\dvinogradov\\Documents\\GitHub\\zapret-discord-youtube\\zapret-updater\\zapret-updater\\zapret-updater.csproj",
+        "packagesPath": "C:\\Users\\dvinogradov\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\dvinogradov\\Documents\\GitHub\\zapret-discord-youtube\\zapret-updater\\zapret-updater\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\dvinogradov\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Lexical.FileProvider.SharpCompress": {
+              "target": "Package",
+              "version": "[0.14.4, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.3, )"
+            },
+            "SharpCompress": {
+              "target": "Package",
+              "version": "[0.38.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.400/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>zapret-updater</id>
+    <version>1.0.0</version>
+    <authors>zapret-updater</authors>
+    <description>Package Description</description>
+    <repository type="git" />
+    <dependencies>
+      <group targetFramework="net8.0">
+        <dependency id="Lexical.FileProvider.SharpCompress" version="0.14.4" exclude="Build,Analyzers" />
+        <dependency id="Newtonsoft.Json" version="13.0.3" exclude="Build,Analyzers" />
+        <dependency id="SharpCompress" version="0.38.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Debug\net8.0\zapret-updater.runtimeconfig.json" target="lib\net8.0\zapret-updater.runtimeconfig.json" />
+    <file src="C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Debug\net8.0\zapret-updater.dll" target="lib\net8.0\zapret-updater.dll" />
+  </files>
+</package>

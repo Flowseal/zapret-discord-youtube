@@ -1,0 +1,13 @@
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\zapret-updater.exe
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\zapret-updater.deps.json
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\zapret-updater.runtimeconfig.json
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\zapret-updater.pdb
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\Lexical.FileProvider.dll
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\Lexical.FileProvider.Abstractions.dll
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\Lexical.FileProvider.SharpCompress.dll
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\Microsoft.Extensions.FileProviders.Abstractions.dll
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\Microsoft.Extensions.Primitives.dll
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\Newtonsoft.Json.dll
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\SharpCompress.dll
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\ZstdSharp.dll
+C:\Users\dvinogradov\source\repos\zapret-updater\zapret-updater\bin\Release\net8.0\publish\win-x86\zapret-updater.dll
