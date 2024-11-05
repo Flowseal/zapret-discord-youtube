@@ -1,2 +1,2 @@
-# Linux-related configs and docs will be here maybe during this week.
+# Linux-related configs and docs
 Не горю желанием переписывать `.sh` файлы под каждый конфиг, так что просто принял решение делать конфиги, внося необходимые изменения под каждый конфиг.
