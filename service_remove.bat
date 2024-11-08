@@ -2,10 +2,13 @@
 chcp 65001 >nul
 :: 65001 - UTF-8
 
-:: Admin rights check
-echo Предупреждение: Данный файл должен быть запущен с правами администратора (ПКМ - Запустить от имени администратора).
-echo Нажмите любую клавишу, чтобы продолжить удаление и остановку сервиса.
-pause
+set "arg=%1"
+if "%arg%" == "admin" (
+    echo Скрипт запущен с правами администратора
+) else (
+    powershell -Command "Start-Process -FilePath '%~f0' -ArgumentList 'admin' -Verb RunAs"
+    exit /b
+)
 
 set SRVCNAME=zapret
 

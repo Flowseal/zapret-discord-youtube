@@ -2,10 +2,13 @@
 chcp 65001 >nul
 :: 65001 - UTF-8
 
-:: Admin rights check
-echo Предупреждение: Данный сервис работает ТОЛЬКО ВМЕСТЕ С СЕРВИСОМ GoodbyeDPI
-echo Нажмите любую клавишу, чтобы продолжить создание сервиса.
-pause
+set "arg=%1"
+if "%arg%" == "admin" (
+    echo Скрипт запущен с правами администратора
+) else (
+    powershell -Command "Start-Process -FilePath '%~f0' -ArgumentList 'admin' -Verb RunAs"
+    exit /b
+)
 
 :: Admin rights check
 echo Данный файл должен быть запущен с правами администратора (ПКМ - Запустить от имени администратора).
