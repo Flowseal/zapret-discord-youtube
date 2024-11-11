@@ -4,16 +4,14 @@ chcp 65001 >nul
 
 set "arg=%1"
 if "%arg%" == "admin" (
-    echo Скрипт запущен с правами администратора
+    echo Restarted with admin rights
 ) else (
-    powershell -Command "Start-Process -FilePath '%~f0' -ArgumentList 'admin' -Verb RunAs"
+    powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/k \"%~f0 admin\"' -Verb RunAs"
     exit /b
 )
 
-:: Admin rights check
-echo Данный файл должен быть запущен с правами администратора (ПКМ - Запустить от имени администратора).
-echo Нажмите любую клавишу, чтобы продолжить создание сервиса.
-pause
+call check_updates.bat soft
+echo:
 
 set BIN=%~dp0bin\
 set ARGS=--wf-tcp=443 --wf-udp=443,50000-50100 ^
@@ -28,5 +26,3 @@ sc delete %SRVCNAME%
 sc create %SRVCNAME% binPath= "\"%BIN%winws.exe\" %ARGS%" DisplayName= "zapret DPI bypass : %SRVCNAME%" start= auto depend= "GoodbyeDPI"
 sc description %SRVCNAME% "zapret DPI bypass software"
 sc start %SRVCNAME%
-
-pause

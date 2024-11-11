@@ -5,41 +5,43 @@ chcp 65001 >nul
 
 set "arg=%1"
 if "%arg%" == "admin" (
-    echo Скрипт запущен с правами администратора
+    echo Restarted with admin rights
 ) else (
-    powershell -Command "Start-Process -FilePath '%~f0' -ArgumentList 'admin' -Verb RunAs"
+    powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/k \"%~f0 admin\"' -Verb RunAs"
     exit /b
 )
 
 cd /d "%~dp0"
+call check_updates.bat soft
+echo:
 
 set BIN_PATH=%~dp0bin\
 
-:: Поиск .bat файлов в текущей категории, исключая файлы, которые начинаются с "service"
+:: Searching for .bat files in current folder, except files that start with "service"
 set "count=0"
 for %%f in (*.bat) do (
     set "filename=%%~nxf"
-    if /i not "!filename:~0,7!"=="service" (
+    if /i not "!filename:~0,7!"=="service" if /i not "!filename:~0,13!"=="check_updates" (
         set /a count+=1
         echo !count!. %%f
         set "file!count!=%%f"
     )
 )
 
-:: Выбираем файл
+:: Choosing file
 set "choice="
-set /p "choice=Введите номер файла: "
+set /p "choice=Input file index (number): "
 
 if "!choice!"=="" goto :eof
 
 set "selectedFile=!file%choice%!"
 if not defined selectedFile (
-    echo Неверный выбор, завершение.
+    echo Wrong choice, exiting..
     pause
     goto :eof
 )
 
-:: Парсим аргументы (mergeargs: 2=start wf|1=wf argument|0=default)
+:: Parsing args (mergeargs: 2=start wf|1=wf argument|0=default)
 set "args="
 set "capture=0"
 set "mergeargs=0"
@@ -106,7 +108,7 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
     )
 )
 
-:: Экзекьютим сервис со спаршенными аргументами
+:: Creating service with parsed args
 set ARGS=%args%
 echo Final args: !ARGS!
 
@@ -117,5 +119,3 @@ sc delete %SRVCNAME%
 sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "zapret" start= auto
 sc description %SRVCNAME% "zapret DPI bypass software"
 sc start %SRVCNAME%
-
-pause

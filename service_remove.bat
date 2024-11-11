@@ -4,9 +4,9 @@ chcp 65001 >nul
 
 set "arg=%1"
 if "%arg%" == "admin" (
-    echo Скрипт запущен с правами администратора
+    echo Restarted with admin rights
 ) else (
-    powershell -Command "Start-Process -FilePath '%~f0' -ArgumentList 'admin' -Verb RunAs"
+    powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/k \"%~f0 admin\"' -Verb RunAs"
     exit /b
 )
 
@@ -19,5 +19,3 @@ net stop "WinDivert"
 sc delete "WinDivert"
 net stop "WinDivert14"
 sc delete "WinDivert14"
-
-pause

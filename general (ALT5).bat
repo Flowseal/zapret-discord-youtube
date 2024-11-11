@@ -4,6 +4,8 @@ chcp 65001 >nul
 :: NOT RECOMMENDED
 
 cd /d "%~dp0"
+call check_updates.bat soft
+echo:
 
 set BIN=%~dp0bin\
 
