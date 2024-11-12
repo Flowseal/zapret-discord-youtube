@@ -6,7 +6,7 @@ set "arg=%1"
 if "%arg%" == "admin" (
     echo Restarted with admin rights
 ) else (
-    powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/k \"%~f0 admin\"' -Verb RunAs"
+    powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/k \"\"%~f0\" admin\"' -Verb RunAs"
     exit /b
 )
 
