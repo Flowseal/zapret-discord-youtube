@@ -23,10 +23,10 @@ SOFTWARE.
 
 ---
 
-This repository contains binary files originating from the project by **bol-van**,  
+This repository contains binary files originating from the project by bol-van,  
 available at: https://github.com/bol-van/zapret/ (licensed under the MIT License).
 
-This repository also includes and depends on **WinDivert**  
+This repository also includes and depends on WinDivert  
 (https://github.com/basil00/WinDivert), which is licensed under your choice of:
 
 1. The GNU Lesser General Public License (LGPL) Version 3, or  
