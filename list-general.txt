@@ -27,6 +27,7 @@ discord.dev
 discord.new
 discord.gift
 discordstatus.com
+discordapp.io
 dis.gd
 discord.co
 discord-attachments-uploads-prd.storage.googleapis.com
