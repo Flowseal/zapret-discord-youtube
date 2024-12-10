@@ -51,7 +51,7 @@ if "%~1"=="soft" (
 set "NEW_VERSION="
 for /f "delims=" %%A in ('powershell -command "(Invoke-WebRequest -Uri %GITHUB_URL% -Headers @{\"Cache-Control\"=\"no-cache\"} -TimeoutSec 5).Content" 2^>nul') do set "NEW_VERSION=%%A"
 if not defined NEW_VERSION (
-    echo Erorr reading new version
+    echo Error reading new version
     goto :EOF
 )
 
