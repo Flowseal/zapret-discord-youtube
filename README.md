@@ -68,8 +68,8 @@ sc delete WinDivert
 ## Linux
 В оригинальном репозитории [zapret](https://github.com/bol-van/zapret/) имеется достаточно информации для того, чтобы начать пользоваться обходом блокировок, но и стоит понимать, что нажатием одной кнопки ничего не заработает. \
 Достаточно следовать следующим инструкциям и всё внимательно читать:
-- [zapret/docs/quick_start.txt](https://github.com/bol-van/zapret/blob/master/docs/quick_start.md)
-- [zapret/docs/readme.txt](https://github.com/bol-van/zapret/blob/master/docs/readme.md)
+- [zapret/blob/master/docs/quick_start.md](https://github.com/bol-van/zapret/blob/master/docs/quick_start.md)
+- [zapret/blob/master/docs/readme.md](https://github.com/bol-van/zapret/blob/master/docs/readme.md)
   * https://github.com/Flowseal/zapret-discord-youtube/issues/7
 > [!WARNING]
 > Если вы открываете Issue *(в этом репозитории)* с проблемой в использовании на **Linux**, то, как бы это не звучало, это ошибка. Все вопросы по работе на Linux нужно открывать в **[ОРИГИНАЛЬНОМ](https://github.com/bol-van/zapret/)** репозитории. Следовательно, задавайте вопросы [тут](https://github.com/bol-van/zapret/issues/).
