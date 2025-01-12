@@ -4,6 +4,7 @@ chcp 65001 >nul
 :: NOT RECOMMENDED
 
 cd /d "%~dp0"
+call service_status.bat zapret
 call check_updates.bat soft
 echo:
 
