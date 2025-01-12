@@ -41,7 +41,7 @@ if not defined selectedFile (
     goto :eof
 )
 
-:: Parsing args (mergeargs: 2=start wf|1=wf argument|0=default)
+:: Parsing args (mergeargs: 2=start param|1=params args|0=default)
 set "args="
 set "capture=0"
 set "mergeargs=0"
@@ -90,11 +90,7 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                     set "temp_args=!temp_args! !arg!"
                 )
 
-                if "!arg:~0,4!" EQU "--wf" (
-                    set "mergeargs=2"
-                ) else if "!arg!" EQU "--dpi-desync" (
-                    set "mergeargs=2"
-                ) else if "!arg!" EQU "--dpi-desync-fooling" (
+                if "!arg:~0,2!" EQU "--" (
                     set "mergeargs=2"
                 ) else if !mergeargs!==2 (
                     set "mergeargs=1"
