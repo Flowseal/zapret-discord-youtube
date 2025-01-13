@@ -2,7 +2,7 @@
 
 ## Описание
 
-Это некоммерческая, более *user-friendly* сборка [Zapret](https://github.com/bol-van/zapret). Здесь используются оригинальные бинарники, проверить которые вы можете с помощью хэшей/контрольных сумм.
+Это *некоммерческая*, более *user-friendly* сборка [Zapret](https://github.com/bol-van/zapret). Сборка использует бинарники [оригинального репозитория](https://github.com/bol-van/zapret), проверить которые вы можете с помощью хэшей/контрольных сумм.
 
 > [!CAUTION]
 > Многие антивирусные программы в данный момент жалуются на **`HackTool/RiskTool`** и **`WinDivert`** - это нормальное поведение, так как программа изменяет сетевые пакеты.
@@ -18,7 +18,8 @@
 ### Windows
 
 > [!IMPORTANT]
-> Рекомендуется загружать последний [релиз](https://github.com/Flowseal/zapret-discord-youtube/releases/latest).
+> Рекомендуется загружать [последний релиз](https://github.com/Flowseal/zapret-discord-youtube/releases/latest) (zip/rar)
+> и распаковывать по пути, который не содержит кириллицы, пробелов и спец. символов.
 
 Запустите **от имени администратора** (ПКМ по выбранному файлу > "Запуск от имени администратора") выбранный bat-файл:
 
@@ -34,6 +35,10 @@
 
 - [**`service_remove.bat`**](./service_remove.bat) - остановка и удаление службы обхода
 
+- [**`service_status.bat`**](./service_status.bat) - проверка состояния службы обхода
+
+- [**`check_updates.bat`**](./check_updates.bat) - проверка обновлений
+
 ### Linux
 
 Данная сборка является решением для **Windows**. Информацию для использования на ОС Linux вы можете найти в документации оригинального [Zapret](https://github.com/bol-van/zapret) - [Быстрая настройка Linux/OpenWrt](https://github.com/bol-van/zapret/blob/master/docs/quick_start.md).
@@ -43,7 +48,11 @@
 
 ## Возможные проблемы и их решения
 
-### bat-файлы запускаются, но сервис(-ы) не работает(-ют)
+### bat-файлы запускаются, но ресурс(-ы) не работает(-ют)
+
+> [!IMPORTANT]
+> **Zapret не имеет функционала VPN!**
+> Следовательно, если ресурс блокирует доступ с вашего IP, Zapret с этим не поможет.
 
 **Решения:**
 
@@ -53,7 +62,7 @@
 
 - При неработе [**Discord**](https://discord.com) ![Discord logo](https://cdn-icons-png.flaticon.com/16/906/906361.png) - см. [Обход для Discord](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
 
-- Обновите бинарники с оригинального репозитория
+- Обновите бинарники с [оригинального репозитория](https://github.com/bol-van/zapret)
 
 ### bat-файлы не запускаются
 
@@ -84,6 +93,10 @@ sc stop WinDivert
 
 sc delete WinDivert
 ```
+
+### Не нашли своей проблемы
+
+* Создайте её [тут](https://github.com/Flowseal/zapret-discord-youtube/issues)
 
 ## Добавление адресов прочих заблокированных ресурсов
 
