@@ -133,4 +133,6 @@ sc delete WinDivert
 
 [![Contributors](https://contrib.rocks/image?repo=Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discord-youtube/graphs/contributors)
 
-Отдельное спасибо разработчику оригинального [Zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van).
+Отдельные благодарности:
+- разработчику оригинального [Zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van)
+- разработчику [порта для Linux](https://github.com/Flowseal/zapret-discord-youtube/discussions/697) - [Sergeydigl3](https://github.com/Sergeydigl3).
