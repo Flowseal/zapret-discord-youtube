@@ -43,6 +43,8 @@
 
 Данная сборка является решением для **Windows**. Информацию для использования на ОС Linux вы можете найти в документации оригинального [Zapret](https://github.com/bol-van/zapret) - [Быстрая настройка Linux/OpenWrt](https://github.com/bol-van/zapret/blob/master/docs/quick_start.md).
 
+Также вы можете найти "порт" от энтузиаста [Sergeydigl3](https://github.com/Sergeydigl3): [#697](https://github.com/Flowseal/zapret-discord-youtube/issues/697)
+
 > [!WARNING]
 > Следовательно, не открывайте проблему (issue), связанную с использованием на ОС Linux, в этом репозитории!
 
@@ -63,6 +65,10 @@
 - При неработе [**Discord**](https://discord.com) ![Discord logo](https://cdn-icons-png.flaticon.com/16/906/906361.png) - см. [Обход для Discord](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
 
 - Обновите бинарники с [оригинального репозитория](https://github.com/bol-van/zapret)
+
+- Обратитесь к документации по использованию из оригинального репозитория [**тут**](https://github.com/bol-van/zapret/blob/master/docs/quick_start_windows.md)
+
+- См. [#765](https://github.com/Flowseal/zapret-discord-youtube/issues/765)
 
 ### bat-файлы не запускаются
 
