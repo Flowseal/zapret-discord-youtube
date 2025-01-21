@@ -34,3 +34,9 @@ discord-attachments-uploads-prd.storage.googleapis.com
 7tv.io
 10tv.app
 cloudflare-ech.com
+twitter.com
+t.co
+twimg.com
+video.twimg.com
+abd.twimg.com
+x.com
