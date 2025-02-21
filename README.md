@@ -49,11 +49,11 @@
 
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
 
-- См. #252
+- См. [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
 
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
 
-- См. #251
+- См. [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
 
 ### Обход не работает
 
@@ -67,11 +67,11 @@
 
 - Обновите файлы в папке [`bin`](./bin), взяв новые из [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws)
 
-- См. #765
+- См. [#765](https://github.com/Flowseal/zapret-discord-youtube/issues/765)
 
 ### Файлы не запускаются
 
-- См. #522
+- См. [#522](https://github.com/Flowseal/zapret-discord-youtube/issues/522)
 
 ### Требуется цифровая подпись драйвера WinDivert (Windows 7)
 
