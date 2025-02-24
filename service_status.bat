@@ -1,5 +1,6 @@
 @echo off
-chcp 65001 >nul
+chcp 65001 > nul
+:: 65001 - UTF-8
 
 if "%~1"=="" (
     call :test_service zapret
