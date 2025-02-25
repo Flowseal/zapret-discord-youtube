@@ -27,7 +27,8 @@ gateway.discord.gg
 images-ext-1.discordapp.net
 images-ext-2.discordapp.net
 latency.discord.media
-media.discordapp.net
+discord-activities.com
+discordactivities.com
 ptb.discord.com
 stable.dl2.discordapp.net
 status.discord.com

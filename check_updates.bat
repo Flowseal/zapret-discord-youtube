@@ -1,7 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-chcp 65001 > nul
-:: 65001 - UTF-8
+chcp 437 > nul
 
 :: Set current version and URLs
 set "LOCAL_VERSION=1.6.3"
