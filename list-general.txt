@@ -18,7 +18,8 @@ discord.media
 discord.new
 discord.store
 discord.status
-discord.activities.com
+discord-activities.com
+discordactivities.com
 discordapp.com
 discordapp.net
 discordcdn.com
