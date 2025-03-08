@@ -1,5 +1,3 @@
-canary.discord.com
-cdn.discordapp.com
 cloudflare-ech.com
 dis.gd
 discord-attachments-uploads-prd.storage.googleapis.com
@@ -15,7 +13,6 @@ discord.media
 discord.new
 discord.status
 discord.store
-discord.activities.com
 discordapp.com
 discordapp.net
 discordcdn.com
@@ -23,13 +20,6 @@ discordmerch.com
 discordpartygames.com
 discordsays.com
 discordsez.com
-gateway.discord.gg
-images-ext-1.discordapp.net
-images-ext-2.discordapp.net
-latency.discord.media
 discord-activities.com
 discordactivities.com
-ptb.discord.com
 stable.dl2.discordapp.net
-status.discord.com
-updates.discord.com
