@@ -118,7 +118,5 @@ sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "zap
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
 
-echo Service launched!
-
 pause
 endlocal
