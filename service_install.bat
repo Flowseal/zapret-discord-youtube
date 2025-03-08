@@ -1,23 +1,27 @@
 @echo off
 setlocal EnableDelayedExpansion
-chcp 65001 >nul
+chcp 65001 > nul
 :: 65001 - UTF-8
 
-set "arg=%1"
-if "%arg%" == "admin" (
-    echo Restarted with admin rights
+:: Admin rights check
+if "%1"=="admin" (
+    echo Started with admin rights
 ) else (
+    echo Requesting admin rights...
     powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/k \"\"%~f0\" admin\"' -Verb RunAs"
     exit /b
 )
 
+:: Main
 cd /d "%~dp0"
+set BIN_PATH=%~dp0bin\
+
+:: Checking for updates
 call check_updates.bat soft
 echo:
 
-set BIN_PATH=%~dp0bin\
-
 :: Searching for .bat files in current folder, except files that start with "service"
+echo Pick one of the options:
 set "count=0"
 for %%f in (*.bat) do (
     set "filename=%%~nxf"
@@ -31,12 +35,11 @@ for %%f in (*.bat) do (
 :: Choosing file
 set "choice="
 set /p "choice=Input file index (number): "
-
 if "!choice!"=="" goto :eof
 
 set "selectedFile=!file%choice%!"
 if not defined selectedFile (
-    echo Wrong choice, exiting..
+    echo Wrong choice, exiting...
     pause
     goto :eof
 )
@@ -107,11 +110,13 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
 :: Creating service with parsed args
 set ARGS=%args%
 echo Final args: !ARGS!
-
 set SRVCNAME=zapret
 
-net stop %SRVCNAME%
-sc delete %SRVCNAME%
+net stop %SRVCNAME% >nul 2>&1
+sc delete %SRVCNAME% >nul 2>&1
 sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "zapret" start= auto
-sc description %SRVCNAME% "zapret DPI bypass software"
+sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
+
+pause
+endlocal
