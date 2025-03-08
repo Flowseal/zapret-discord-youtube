@@ -20,7 +20,5 @@ sc delete "WinDivert"
 net stop "WinDivert14"
 sc delete "WinDivert14"
 
-echo Services have been stopped
-
 pause
 endlocal
