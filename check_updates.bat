@@ -14,6 +14,7 @@ for /f "delims=" %%A in ('powershell -command "(Invoke-WebRequest -Uri \"%GITHUB
 :: Error handling
 if not defined GITHUB_VERSION (
     echo Error: Failed to fetch the latest version. Check your internet connection
+    goto :EOF
 )
 
 :: Version comparison
