@@ -1,8 +1,6 @@
 10tv.app
 7tv.app
 7tv.io
-canary.discord.com
-cdn.discordapp.com
 cloudflare-ech.com
 dis.gd
 discord-attachments-uploads-prd.storage.googleapis.com
@@ -27,18 +25,10 @@ discordmerch.com
 discordpartygames.com
 discordsays.com
 discordsez.com
-gateway.discord.gg
 ggpht.com
 googlevideo.com
-images-ext-1.discordapp.net
-images-ext-2.discordapp.net
 jnn-pa.googleapis.com
-latency.discord.media
-media.discordapp.net
-ptb.discord.com
 stable.dl2.discordapp.net
-status.discord.com
-updates.discord.com
 wide-youtube.l.google.com
 youtube-nocookie.com
 youtube-ui.l.google.com
