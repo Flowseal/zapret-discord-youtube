@@ -30,7 +30,7 @@ if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
 
     if /i "!CHOICE!"=="y" (
         echo Opening the download page...
-        start "" "%GITHUB_DOWNLOAD_URL%%GITHUB_VERSION%.zip"
+        start "" "%GITHUB_DOWNLOAD_URL%%GITHUB_VERSION%.rar"
     )
 )
 if not "%1"=="soft" pause
