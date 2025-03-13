@@ -108,17 +108,37 @@ for %%F in ("*") do if /I not "%%~nxF"=="%SCRIPT_NAME%" del /q "%%F"
 for /f "delims=" %%A in ("%TMP_DIR%") do set "TMP_PATH=%%~fA"
 for /d %%D in ("*") do if /I not "%%~fD"=="%TMP_PATH%" rd /s /q "%%D"
 
-:: Copying the new version to the current destination
-xcopy "%TMP_DIR%\*" "." /s /e /h /y >nul
-if not %ERRORLEVEL% == 0 (
+:: Copying everything from extracted folder except new version of update script
+robocopy "%TMP_DIR%" "." /s /e /xf "%SCRIPT_NAME%" > nul
+if %ERRORLEVEL% geq 8 (
     echo Error: Failed to copy new version files
     exit /b 1
 )
 
+:: Create script to update the current script file after completion
+if exist "%TMP_DIR%\%SCRIPT_NAME%" (
+    copy /y "%TMP_DIR%\%SCRIPT_NAME%" "%TEMP%" > nul
+
+    set "SCRIPT_PATH=%~f0"
+    (
+        echo @echo off
+        echo timeout /t 1 ^> nul
+        echo move /y "%TEMP%\%SCRIPT_NAME%" "!SCRIPT_PATH!" ^> nul
+    ) > "%TEMP%\replace_script.cmd"
+
+    set "AFTER_SCRIPT=%TEMP%\replace_script.cmd"
+)
+
+:: Deleting extracted folder
 rd /s /q "%TMP_DIR%"
 if not %ERRORLEVEL% == 0 (
     echo Error: Failed to delete temp folder %TMP_DIR%
     exit /b 1
+)
+
+:: Running replace script to delay updating the current script
+if defined AFTER_SCRIPT (
+    start /b cmd /c "%AFTER_SCRIPT%"
 )
 
 echo The latest version has been successfully installed
