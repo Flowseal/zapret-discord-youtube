@@ -36,8 +36,9 @@ if not defined NEW_VERSION (
     )
 
     :: Ask for confirmation of the update
-    set /p "CHOICE=New version available !NEW_VERSION!, want to upgrade (Y/N)? "
-    set "CHOICE=!CHOICE:~0,1!"
+    set /p "CHOICE=New version available !NEW_VERSION!, want to update? (y/n, default: y): "
+    
+    if "!CHOICE!"=="" set "CHOICE=y"
     
     if /i not "!CHOICE!"=="y" (
         echo Keeping local version
