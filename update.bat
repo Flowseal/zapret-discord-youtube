@@ -19,10 +19,6 @@ if not defined NEW_VERSION (
     :: Check local version
     for /f "tokens=2 delims==" %%A in ('findstr "LOCAL_VERSION=" "!VERSION_FILE!"') do set LOCAL_VERSION=%%A
 
-    if not defined LOCAL_VERSION (
-        for /f "tokens=2 delims==" %%A in ('findstr "CURRENT_VERSION=" "!VERSION_FILE!"') do set LOCAL_VERSION=%%A
-    )
-
     set LOCAL_VERSION=!LOCAL_VERSION:"=!
 
     :: Get actual version
