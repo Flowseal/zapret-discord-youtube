@@ -4,7 +4,7 @@
 
 *"Plug & Play"* обход блокировок <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=15 /> Discord и <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=15 /> YouTube для Windows
 
-Альтернатива [bol-van](https://github.com/bol-van)[/zapret-win-bundle](https://github.com/bol-van/zapret-win-bundle)[/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws)
+Альтернатива https://github.com/bol-van/zapret-win-bundle
 </div>
 
 > [!CAUTION]
