@@ -40,3 +40,8 @@ youtu.be
 yt-video-upload.l.google.com
 ytimg.com
 ytimg.l.google.com
+frankerfacez.com
+cdn.frankerfacez.com
+betterttv.net
+betterttv.com
+cdn.betterttv.net
