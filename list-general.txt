@@ -1,6 +1,3 @@
-10tv.app
-7tv.app
-7tv.io
 cloudflare-ech.com
 dis.gd
 discord-attachments-uploads-prd.storage.googleapis.com
@@ -40,6 +37,8 @@ youtu.be
 yt-video-upload.l.google.com
 ytimg.com
 ytimg.l.google.com
-frankerfacez.com
+frankerfacez.com
+ffzap.com
 betterttv.net
-betterttv.com
+7tv.app
+7tv.io
