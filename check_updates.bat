@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 chcp 437 > nul
 
 :: Set current version and URLs
-set "LOCAL_VERSION=1.6.4"
+set "LOCAL_VERSION=1.6.5"
 set "GITHUB_VERSION_URL=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/version.txt"
 set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/"
 set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest/download/zapret-discord-youtube-"
