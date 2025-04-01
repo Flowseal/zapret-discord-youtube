@@ -42,3 +42,10 @@ ffzap.com
 betterttv.net
 7tv.app
 7tv.io
+cloudflare.com
+1.1.1.1
+1.0.0.1
+static-cloudflare.top
+cloudflare-dns.com
+cloudflare-ech.com
+cloudflare-ipfs.com
