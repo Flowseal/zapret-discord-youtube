@@ -2,13 +2,21 @@
 chcp 65001 > nul
 :: 65001 - UTF-8
 
+
+
 if "%~1"=="" (
+    echo "Services status check..."
     call :test_service zapret
     call :test_service WinDivert
+    echo "Services status check complete!"
     pause
 ) else (
+    echo "%~1 service status check check..."
     call :test_service "%~1" "soft"
+    echo "%~1 service status check complete!"
 )
+
+
 
 exit /b
 
