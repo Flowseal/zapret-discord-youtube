@@ -11,7 +11,7 @@ if "%~1"=="" (
     echo "Services status check complete!"
     pause
 ) else (
-    echo "%~1 service status check check..."
+    echo "%~1 service status check..."
     call :test_service "%~1" "soft"
     echo "%~1 service status check complete!"
 )
