@@ -2,8 +2,6 @@
 chcp 65001 > nul
 :: 65001 - UTF-8
 
-
-
 if "%~1"=="" (
     echo Checking already running service instances, see services.msc for more info
     call :test_service zapret
@@ -13,8 +11,6 @@ if "%~1"=="" (
 ) else (
     call :test_service "%~1" "soft"
 )
-
-
 
 exit /b
 
