@@ -5,7 +5,7 @@ chcp 65001 > nul
 
 
 if "%~1"=="" (
-    echo Checking of already running service instances (see services.msc for more info)
+    echo Checking already running service instances, see services.msc for more info
     call :test_service zapret
     call :test_service WinDivert
     echo Services status check complete!
