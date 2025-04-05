@@ -37,9 +37,14 @@ if not errorlevel 1 (
 call service\service_status.bat zapret
 call updater\check_updates.bat soft
 
-:: Запуск winws.exe
-start "zapret" /min cmd /c ""%BIN%winws.exe" @"%PARAMS%"" 
+:: Получаем имя профиля из параметра
+for %%F in ("%~1") do set "PROFILE_NAME=%%~nF"
+set "PROFILE_NAME=!PROFILE_NAME:winws-params-=!"
+set "PROFILE_NAME=!PROFILE_NAME:config-=!"
+set "PROFILE_NAME=!PROFILE_NAME:.txt=!"
+set "PROFILE_NAME=!PROFILE_NAME:-= !"
 
-
+:: Запуск winws.exe с названием окна
+start "zapret: !PROFILE_NAME!" /min "%BIN%winws.exe" @"%PARAMS%"
 
 exit /b 0
