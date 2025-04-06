@@ -6,7 +6,7 @@ if "%1"=="admin" (
     echo Started with admin rights
 ) else (
     echo Requesting admin rights...
-    powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/k \"\"%~f0\" admin\"' -Verb RunAs"
+    powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/c \"\"%~f0\" admin\"' -Verb RunAs"
     exit /b
 )
 
