@@ -15,6 +15,7 @@ if "%1"=="admin" (
 :: Main
 cd /d "%~dp0"
 set BIN_PATH=%~dp0bin\
+set LISTS_PATH=%~dp0lists\
 
 :: Checking for updates
 call check_updates.bat soft
@@ -82,6 +83,8 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                         set "arg=\!QUOTE!@%~dp0!arg:~1!\!QUOTE!"
                     ) else if "!arg:~0,5!"=="%%BIN%%" (
                         set "arg=\!QUOTE!!BIN_PATH!!arg:~5!\!QUOTE!"
+                    ) else if "!arg:~0,7!"=="%%LISTS%%" (
+                        set "arg=\!QUOTE!!LISTS_PATH!!arg:~7!\!QUOTE!"
                     ) else (
                         set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
                     )
