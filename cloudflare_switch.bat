@@ -11,8 +11,8 @@ if "%1"=="admin" (
     exit /b
 )
 
-set LISTS=%~dp0lists\
-set FILE=%LISTS%ipset-cloudflare.txt
+set "LISTS=%~dp0lists\"
+set "FILE=%LISTS%ipset-cloudflare.txt"
 
 if not exist "%FILE%" (
     echo Error! ipset-cloudflare.txt not found, path: %FILE%
