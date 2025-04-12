@@ -14,8 +14,8 @@ if "%1"=="admin" (
 
 :: Main
 cd /d "%~dp0"
-set BIN_PATH=%~dp0bin\
-set LISTS_PATH=%~dp0lists\
+set "BIN_PATH=%~dp0bin\"
+set "LISTS_PATH=%~dp0lists\"
 
 :: Checking for updates
 call check_updates.bat soft

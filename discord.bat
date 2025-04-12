@@ -7,8 +7,8 @@ call service_status.bat zapret
 call check_updates.bat soft
 echo:
 
-set BIN=%~dp0bin\
-set LISTS=%~dp0lists\
+set "BIN=%~dp0bin\"
+set "LISTS=%~dp0lists\"
 
 start "zapret: discord" /min "%BIN%winws.exe" --wf-tcp=443 --wf-udp=443,50000-50100 ^
 --filter-udp=443 --hostlist="%LISTS%list-discord.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
