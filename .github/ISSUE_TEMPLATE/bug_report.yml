@@ -1,7 +1,7 @@
 name: 🐛 Баг
 title: '[баг] '
-description: Report a bug
-labels: ['type: bug', 'status: needs triage']
+description: Сообщить об ошибке
+labels: ['type: баг', 'status: нуждается в сортировке']
 
 body:
   - type: markdown
@@ -9,9 +9,6 @@ body:
       value: |
         ## Перед написанием Issue
         1. Проверьте что в [Issues](http://github.com/flowseal/zapret-discord-youtube/issues?q=is%3Aissue) нет Issue подобного вашему.
-        2. Make sure `rustc` and all relevant Tauri packages are up to date.
-        3. Make sure it's an issue with Tauri and not something else you are using.
-        4. Remember to follow our community guidelines and be friendly.
 
   - type: textarea
     id: description
@@ -56,3 +53,4 @@ body:
     id: additions
     attributes:
       label: Дополнительные детали
+      description: Дополнительные детали о которых нам нужно знать
