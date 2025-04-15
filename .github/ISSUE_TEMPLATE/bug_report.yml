@@ -4,11 +4,14 @@ description: Сообщить об ошибке
 labels: ['type: баг', 'status: нуждается в сортировке']
 
 body:
-  - type: markdown
+  - type: checkboxes
+    id: checklist
     attributes:
-      value: |
-        ## Перед написанием Issue
-        1. Проверьте что в [Issues](http://github.com/flowseal/zapret-discord-youtube/issues?q=is%3Aissue) нет Issue подобного вашему.
+      label: ⚠️ Чеклист
+      description: Перед созданием нового Issue, удостоверьтесь что выполнили следующие пункты
+      options:
+        - label: Я искал решение проблемы в [README](https://github.com/Flowseal/zapret-discord-youtube/blob/main/README.md) и среди [Issues](https://github.com/Flowseal/zapret-discord-youtube/issues)
+        - label: Я скачал ``zapret-discord-youtube`` из [релизов официального репозитория](https://github.com/Flowseal/zapret-discord-youtube/releases)
 
   - type: textarea
     id: description
@@ -16,6 +19,15 @@ body:
       label: Опишите вашу проблему
       description: Чётко опишите проблему с которой вы столкнулись
       placeholder: Описание проблемы
+    validations:
+      required: true
+
+  - type: textarea
+    id: version
+    attributes:
+      label: Версия zapret-discord-youtube
+      description: Версия zapret-discord-youtube на которой вы словили проблему
+      placeholder: Версия
     validations:
       required: true
 
@@ -29,12 +41,6 @@ body:
         на других компьютерах
 
   - type: textarea
-    id: expected-behavior
-    attributes:
-      label: Ожидаемое поведение
-      description: Какое поведение программы вы ожидаете?
-
-  - type: textarea
     id: bat-name
     attributes:
       label: Какой .bat файл вы используете?
@@ -46,8 +52,6 @@ body:
     attributes:
       label: Использовали ли вы другие .bat?
       description: Пробовали ли вы использовать другой .bat для устранения проблемы? Если использовали, то какие?
-    validations:
-      required: true
 
   - type: textarea
     id: additions
