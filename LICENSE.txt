@@ -2,6 +2,7 @@ MIT License
 
 Copyright (c) 2016-2025 bol-van
 Copyright (c) 2024-2025 Flowseal
+Copyright (c) 2025-2025 Solution_Lop
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ---
-
-This repository contains binary files originating from the project by bol-van,  
-available at: https://github.com/bol-van/zapret/ (licensed under the MIT License).
-
-This repository also includes and depends on WinDivert  
-(https://github.com/basil00/WinDivert), which is licensed under your choice of:
-
 1. The GNU Lesser General Public License (LGPL) Version 3, or  
 2. The GNU General Public License (GPL) Version 2.
 
