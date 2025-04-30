@@ -39,13 +39,7 @@
 
 - [**`cloudflare_switch.bat`**](./cloudflare_switch.bat) - включение/выключение обхода Cloudflare *(на деле перетирает список `ipset-cloudflare`, перезапуск после изменения не нужен)*
 
-- [**`service_install.bat`**](./service_install.bat) - установка на автозапуск (как службы Windows: `zapret`, `WinDivert`), можно выбрать любую стратегию (название файла стратегии **НЕ** должно начинаться со слова `service`)
-
-- [**`service_remove.bat`**](./service_remove.bat) - остановка и удаление служб `zapret` и `WinDivert`
-
-- [**`service_status.bat`**](./service_status.bat) - проверка состояния служб `zapret` и `WinDivert`
-
-- [**`check_updates.bat`**](./check_updates.bat) - проверка обновлений
+- [**`service.bat`**](./service.bat) - Установка на автозапуск (`Install Service`), удаление из автозапуска (`Remove Services`), проверка сервисов, диагностика, проверка обновлений
 
 ## ☑️Распространенные проблемы
 
