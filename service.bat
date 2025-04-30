@@ -1,5 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
+set "LOCAL_VERSION=1.7.0"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -30,7 +31,7 @@ echo 1. Install Service
 echo 2. Remove Services
 echo 3. Check Service Status
 echo 4. Run Diagnostics
-echo 5. Check updates
+echo 5. Check Updates
 echo 0. Exit
 set /p menu_choice=Enter choice (0-5): 
 
@@ -70,7 +71,7 @@ set "ServiceStatus=%ServiceStatus: =%"
 
 if "%ServiceStatus%"=="RUNNING" (
     if "%~2"=="soft" (
-        echo "%ServiceName%" is ALREADY RUNNING as service, use "service_remove.bat" first if you want to run standalone bat.
+        echo "%ServiceName%" is ALREADY RUNNING as service, use "service.bat" and choose "Remove Services" first if you want to run standalone bat.
         pause
         exit /b
     ) else (
@@ -116,7 +117,7 @@ echo Pick one of the options:
 set "count=0"
 for %%f in (*.bat) do (
     set "filename=%%~nxf"
-    if /i not "!filename:~0,7!"=="service" if /i not "!filename:~0,13!"=="check_updates" if /i not "!filename:~0,17!"=="cloudflare_switch" (
+    if /i not "!filename:~0,7!"=="service" if /i not "!filename:~0,17!"=="cloudflare_switch" (
         set /a count+=1
         echo !count!. %%f
         set "file!count!=%%f"
@@ -232,7 +233,6 @@ goto menu
 chcp 437 > nul
 
 :: Set current version and URLs
-set "LOCAL_VERSION=1.7.0"
 set "GITHUB_VERSION_URL=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/version.txt"
 set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/"
 set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest/download/zapret-discord-youtube-"
