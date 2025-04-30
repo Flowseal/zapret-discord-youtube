@@ -33,7 +33,7 @@ echo 3. Check Service Status
 echo 4. Run Diagnostics
 echo 5. Check Updates
 echo 0. Exit
-set /p menu_choice=Enter choice (0-5): 
+set /p menu_choice=Enter choice (0-5):
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -183,7 +183,7 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                         set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
                     )
                 )
-                
+
                 if !mergeargs!==1 (
                     set "temp_args=!temp_args!,!arg!"
                 ) else if !mergeargs!==3 (
@@ -253,7 +253,7 @@ if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
 ) else (
     echo New version available: %GITHUB_VERSION%
     echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
-    
+
     set "CHOICE="
     set /p "CHOICE=Do you want to automatically download the new version? (Y/N) (default: Y) "
     if "!CHOICE!"=="" set "CHOICE=Y"
@@ -265,7 +265,7 @@ if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     )
 )
 
-if "%1"=="soft" exit /b 
+if "%1"=="soft" exit /b
 pause
 goto menu
 
@@ -282,7 +282,7 @@ if !errorlevel!==0 (
     call :PrintRed "https://github.com/Flowseal/zapret-discord-youtube/issues/417"
 ) else (
     call :PrintGreen "Adguard check passed"
-) 
+)
 echo:
 
 :: Killer
