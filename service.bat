@@ -242,8 +242,9 @@ for /f "delims=" %%A in ('powershell -command "(Invoke-WebRequest -Uri \"%GITHUB
 
 :: Error handling
 if not defined GITHUB_VERSION (
-    echo Error: Failed to fetch the latest version. Check your internet connection
+    echo Warning: failed to fetch the latest version. Check your internet connection. This warning does not affect the operation of zapret
     pause
+    if "%1"=="soft" exit /b 
     goto menu
 )
 
