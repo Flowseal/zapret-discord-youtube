@@ -1,9 +1,10 @@
 <div align="center">
 
-# <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=28 /> <a href="https://github.com/Flowseal/">Flowseal</a><a href="https://github.com/Flowseal/zapret-discord-youtube">/zapret-discord-youtube</a> <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=28 />
+# <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=28 /> <a href="https://github.com/Goah5/">Goah5</a><a href="https://github.com/Goah5/zapret-discord-youtube-eve">/zapret-discord-youtube</a> <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=28 />
 
 *"Plug & Play"* обход блокировок <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=15 /> Discord и <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=15 /> YouTube и EVE Online для Windows
 
+Оригинал https://github.com/Flowseal/zapret-discord-youtube
 Альтернатива https://github.com/bol-van/zapret-win-bundle
 </div>
 
@@ -25,7 +26,7 @@
 
 ## ⚙️Использование
 
-1. Загрузите архив (zip/rar) со [страницы последнего релиза](https://github.com/Flowseal/zapret-discord-youtube/releases/latest)
+1. Загрузите архив (zip/rar) со [страницы последнего релиза](https://github.com/Goah5/zapret-discord-youtube-eve/releases/latest)
 
 2. Распакуйте содержимое архива по пути, который не содержит кириллицу/спец. символы
 
@@ -45,11 +46,11 @@
 
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
 
-- См. [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
+- См. [#252](https://github.com/Goah5/zapret-discord-youtube-eve/discussions/252)
 
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
 
-- См. [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
+- См. [#251](https://github.com/Goah5/zapret-discord-youtube-eve/discussions/251)
 
 ### Обход не работает
 
@@ -63,11 +64,11 @@
 
 - Обновите файлы в папке [`bin`](./bin), взяв новые из [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws)
 
-- См. [#765](https://github.com/Flowseal/zapret-discord-youtube/issues/765)
+- См. [#765](https://github.com/Goah5/zapret-discord-youtube-eve/issues/765)
 
 ### Файлы не запускаются
 
-- См. [#522](https://github.com/Flowseal/zapret-discord-youtube/issues/522)
+- См. [#522](https://github.com/Goah5/zapret-discord-youtube-eve/issues/522)
 
 ### Требуется цифровая подпись драйвера WinDivert (Windows 7)
 
@@ -95,7 +96,7 @@ sc delete {название, которые вы узнали в шаге 1}
 
 ### Не нашли своей проблемы
 
-* Создайте её [тут](https://github.com/Flowseal/zapret-discord-youtube/issues)
+* Создайте её [тут](https://github.com/Goah5/zapret-discord-youtube-eve/issues)
 
 ## 🗒️Добавление адресов прочих заблокированных ресурсов
 
@@ -112,20 +113,20 @@ sc delete {название, которые вы узнали в шаге 1}
 
 Также, вы можете материально поддержать разработчика zapret [тут](https://github.com/bol-van/zapret/issues/590#issuecomment-2408866758)
 
-<a href="https://star-history.com/#Flowseal/zapret-discord-youtube&Date">
+<a href="https://star-history.com/#Goah5/zapret-discord-youtube-eve&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Goah5/zapret-discord-youtube-eve&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Goah5/zapret-discord-youtube-eve&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Goah5/zapret-discord-youtube-eve&type=Date" />
  </picture>
 </a>
 
 ## ⚖️Лицензирование
 
-Проект распространяется на условиях лицензии [MIT](https://github.com/Flowseal/zapret-discord-youtube/blob/main/LICENSE.txt)
+Проект распространяется на условиях лицензии [MIT](https://github.com/Goah5/zapret-discord-youtube-eve/blob/main/LICENSE.txt)
 
 ## 🩷Благодарность участникам проекта
 
-[![Contributors](https://contrib.rocks/image?repo=Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discord-youtube/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=Goah5/zapret-discord-youtube-eve)](https://github.com/Goah5/zapret-discord-youtube-eve/graphs/contributors)
 
 💖 Отдельная благодарность разработчику [zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van)
