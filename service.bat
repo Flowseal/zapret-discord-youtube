@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-set "LOCAL_VERSION=1.7.2.eve.1"
+set "LOCAL_VERSION=1.7.2b.eve.1"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -242,8 +242,9 @@ for /f "delims=" %%A in ('powershell -command "(Invoke-WebRequest -Uri \"%GITHUB
 
 :: Error handling
 if not defined GITHUB_VERSION (
-    echo Error: Failed to fetch the latest version. Check your internet connection
+    echo Warning: failed to fetch the latest version. Check your internet connection. This warning does not affect the operation of zapret
     pause
+    if "%1"=="soft" exit /b 
     goto menu
 )
 
