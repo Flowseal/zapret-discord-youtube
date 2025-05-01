@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
-set "LOCAL_VERSION=1.7.2"
+set "LOCAL_VERSION=1.7.2b"
 
 :: External commands
 if "%~1"=="status_zapret" (
