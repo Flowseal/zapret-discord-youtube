@@ -1,3 +1,7 @@
+x.com
+twitter.com
+t.co
+twimg.com
 cloudflare-ech.com
 dis.gd
 discord-attachments-uploads-prd.storage.googleapis.com
