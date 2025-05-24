@@ -1,3 +1,4 @@
+soundcloud.cloud
 soundcloud.com
 sndcdn.com
 cloudflare-ech.com
