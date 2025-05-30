@@ -26,11 +26,6 @@ SOFTWARE.
 This repository contains binary files originating from the project by bol-van,  
 available at: https://github.com/bol-van/zapret/ (licensed under the MIT License).
 
-This repository also includes and depends on WinDivert  
-(https://github.com/basil00/WinDivert), which is licensed under your choice of:
-
-1. The GNU Lesser General Public License (LGPL) Version 3, or  
-2. The GNU General Public License (GPL) Version 2.
 
 Binary distributions of WinDivert are included in this project as-is, without modification.  
 The corresponding source code and license terms for WinDivert are available at  
