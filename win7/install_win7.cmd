@@ -41,7 +41,7 @@ sc stop windivert >nul 2>&1
 sc delete windivert >nul 2>&1
 copy WinDivert64.sys ..\bin
 copy WinDivert.dll ..\bin
-echo Готово
+echo Ready
 
 :ex
 pause
