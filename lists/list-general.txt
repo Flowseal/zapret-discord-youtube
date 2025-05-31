@@ -12,7 +12,6 @@ discord.gg
 discord.media
 discord.new
 discord.store
-discord.status
 discord-activities.com
 discordactivities.com
 discordapp.com
@@ -42,3 +41,14 @@ ffzap.com
 betterttv.net
 7tv.app
 7tv.io
+soundcloud.cloud
+soundcloud.com
+sndcdn.com
+maven.neoforged.net
+cdn.battleye.com
+akamaized.net
+t.co
+tweetdeck.com
+twimg.com
+twitter.com
+x.com

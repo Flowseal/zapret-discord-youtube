@@ -38,6 +38,14 @@ if %ERRORLEVEL%==0 (
         echo 104.24.0.0/14
         echo 172.64.0.0/13
         echo 131.0.72.0/22
+        echo 2400:cb00::/32
+        echo 2606:4700::/32
+        echo 2803:f800::/32
+        echo 2405:b500::/32
+        echo 2405:8100::/32
+        echo 2a06:98c0::/29
+        echo 2c0f:f248::/32
+
     )
 ) else (
     echo Disabling cloudflare bypass...
