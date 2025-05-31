@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 chcp 65001 > nul
 :: 65001 - UTF-8
 
@@ -12,7 +13,6 @@ if "%1"=="admin" (
     exit /b
 )
 
-setlocal enabledelayedexpansion
 if [%1] == [install] goto :install
 
 if %PROCESSOR_ARCHITECTURE%==AMD64 (
