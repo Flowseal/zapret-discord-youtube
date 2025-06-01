@@ -11,7 +11,6 @@ discord.gifts
 discord.gg
 discord.media
 discord.new
-discord.status
 discord.store
 discordapp.com
 discordapp.net

@@ -12,7 +12,6 @@ discord.gg
 discord.media
 discord.new
 discord.store
-discord.status
 discord-activities.com
 discordactivities.com
 discordapp.com
