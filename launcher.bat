@@ -65,5 +65,3 @@ if !valid! equ 0 (
 :: Запуск выбранного файла
 echo Запускаем файл: !file%choice%!
 call "!file%choice%!"
-
-endlocal
