@@ -4,6 +4,8 @@ discord-attachments-uploads-prd.storage.googleapis.com
 discord.app
 discord.co
 discord.com
+discordapp.com
+cdn.discordapp.com
 discord.design
 discord.dev
 discord.gift
