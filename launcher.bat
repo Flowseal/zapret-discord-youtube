@@ -3,49 +3,29 @@ chcp 65001 > nul
 setlocal enabledelayedexpansion
 
 :: Создаем временный файл для сортировки
-set "tempfile=%temp%\%~n0_temp.txt"
-if exist "%tempfile%" del "%tempfile%"
-
-:: Счетчик файлов
-set count=0
-
-:: Собираем файлы с приоритетной сортировкой
+:: Searching for .bat files in current folder, except files that start with "service"
+echo Pick one of the options:
+set "count=0"
 for %%f in (*.bat) do (
     if /i not "%%~nxf"=="launcher.bat" (
-        set "name=%%f"
-        set "sortkey=5_%%f"  :: По умолчанию - группа 5
-        
-        :: Определяем приоритетные группы
-        if /i "!name!"=="general.bat" set "sortkey=1_!name!"
-        if /i "!name!" neq "general.bat" (
-            echo "!name!" | findstr /i /c:"general (ALT" >nul && set "sortkey=2_!name!"
-            echo "!name!" | findstr /i /c:"general (МГТС" >nul && set "sortkey=3_!name!"
-            if "!sortkey:~0,1!"=="5" (
-                echo "!name!" | findstr /i "general" >nul && set "sortkey=4_!name!"
-            )
-        )
-        
-        :: Записываем во временный файл
-        echo !sortkey!>>"%tempfile%"
+        set "filename=%%~nxf"
+            set /a count+=1
+            echo !count!. %%f
+            set "file!count!=%%f"
     )
 )
 
-:: Проверяем наличие файлов
-if not exist "%tempfile%" (
-    echo В директории нет других BAT-файлов.
-    pause
-    exit /b
-)
+:: Choosing file
+:input
+set "choice="
+set /p "choice=Input file index (number): "
+if "!choice!"=="" goto :eof
 
-:: Сортируем и выводим список
-for /f "tokens=1* delims=_" %%a in ('sort "%tempfile%"') do (
-    set /a count+=1
-    set "file!count!=%%b"
-    echo [!count!] %%b
+set "selectedFile=!file%choice%!"
+if not defined selectedFile (
+    echo Invalid choice, try again...
+    goto input
 )
-
-:: Удаляем временный файл
-del "%tempfile%" >nul 2>&1
 
 :: Блок ввода номера
 :input
