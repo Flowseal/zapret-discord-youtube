@@ -22,7 +22,9 @@ discordmerch.com
 discordpartygames.com
 discordsays.com
 discordsez.com
-ggpht.com
+yt3.ggpht.com
+yt4.ggpht.com
+yt3.googleusercontent.com
 googlevideo.com
 jnn-pa.googleapis.com
 stable.dl2.discordapp.net
