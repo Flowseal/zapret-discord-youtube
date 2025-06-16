@@ -35,8 +35,9 @@ echo 3. Check Service Status
 echo 4. Run Diagnostics
 echo 5. Check Updates
 echo 6. Switch ipset (%IPsetStatus%)
+echo 7. Update ipset list
 echo 0. Exit
-set /p menu_choice=Enter choice (0-6): 
+set /p menu_choice=Enter choice (0-7): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -44,6 +45,7 @@ if "%menu_choice%"=="3" goto service_status
 if "%menu_choice%"=="4" goto service_diagnostics
 if "%menu_choice%"=="5" goto service_check_updates
 if "%menu_choice%"=="6" goto ipset_switch
+if "%menu_choice%"=="7" goto ipset_update
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -446,6 +448,33 @@ if !errorlevel!==0 (
 pause
 goto menu
 
+
+:: IPSET UPDATE =======================
+:ipset_update
+chcp 437 > nul
+cls
+
+set "listFile=%~dp0lists\ipset-all.txt"
+set "url=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/lists/ipset-all.txt"
+
+echo Updating ipset-all...
+
+if exist "%SystemRoot%\System32\curl.exe" (
+    curl -L -o "%listFile%" "%url%"
+) else (
+    powershell -Command ^
+        "$url = '%url%';" ^
+        "$out = '%listFile%';" ^
+        "$dir = Split-Path -Parent $out;" ^
+        "if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null };" ^
+        "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
+        "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
+)
+
+echo Finished
+
+pause
+goto menu
 
 :: Utility functions
 
