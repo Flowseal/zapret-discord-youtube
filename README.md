@@ -103,7 +103,7 @@ sc delete {название, которые вы узнали в шаге 1}
 - [`list-general.txt`](./list-general.txt) для файлов `general *.bat`
 - [`list-discord.txt`](./list-discord.txt) для файла [`discord.bat`](./discord.bat)
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > После обновления списка адресов zapret необходимо перезапустить.
 
 ## ⭐Поддержка проекта
