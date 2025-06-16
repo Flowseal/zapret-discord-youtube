@@ -25,6 +25,8 @@ if "%1"=="admin" (
 :: MENU ================================
 :menu
 cls
+call :ipset_switch_status
+
 set "menu_choice=null"
 echo =======================
 echo 1. Install Service
@@ -32,14 +34,16 @@ echo 2. Remove Services
 echo 3. Check Service Status
 echo 4. Run Diagnostics
 echo 5. Check Updates
+echo 6. Switch ipset (%IPsetStatus%)
 echo 0. Exit
-set /p menu_choice=Enter choice (0-5):
+set /p menu_choice=Enter choice (0-6): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
 if "%menu_choice%"=="3" goto service_status
 if "%menu_choice%"=="4" goto service_diagnostics
 if "%menu_choice%"=="5" goto service_check_updates
+if "%menu_choice%"=="6" goto ipset_switch
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -117,7 +121,7 @@ echo Pick one of the options:
 set "count=0"
 for %%f in (*.bat) do (
     set "filename=%%~nxf"
-    if /i not "!filename:~0,7!"=="service" if /i not "!filename:~0,17!"=="cloudflare_switch" (
+    if /i not "!filename:~0,7!"=="service" (
         set /a count+=1
         echo !count!. %%f
         set "file!count!=%%f"
@@ -231,6 +235,7 @@ goto menu
 :: CHECK UPDATES =======================
 :service_check_updates
 chcp 437 > nul
+cls
 
 :: Set current version and URLs
 set "GITHUB_VERSION_URL=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/version.txt"
@@ -390,6 +395,57 @@ echo:
 
 pause
 goto menu
+
+
+:: IPSET SWITCH =======================
+:ipset_switch_status
+chcp 437 > nul
+
+findstr /R "^0\.0\.0\.0/32$" "%~dp0lists\ipset-all.txt" >nul
+if !errorlevel!==0 (
+    set "IPsetStatus=load"
+) else (
+    set "IPsetStatus=unload"
+)
+exit /b
+
+
+:ipset_switch
+chcp 437 > nul
+cls
+
+set "listFile=%~dp0lists\ipset-all.txt"
+set "backupFile=%listFile%.backup"
+
+findstr /R "^0\.0\.0\.0/32$" "%listFile%" >nul
+if !errorlevel!==0 (
+    echo Enabling ipset based bypass...
+
+    if exist "%backupFile%" (
+        del /f /q "%listFile%"
+        ren "%backupFile%" "ipset-all.txt"
+    ) else (
+        echo Error: no backup to restore. Download list from repoistory
+    )
+
+) else (
+    echo Disabling ipset based bypass...
+
+    if not exist "%backupFile%" (
+        ren "%listFile%" "ipset-all.txt.backup"
+    ) else (
+        del /f /q "%backupFile%"
+        ren "%listFile%" "ipset-all.txt.backup"
+    )
+
+    >"%listFile%" (
+        echo 0.0.0.0/32
+    )
+)
+
+pause
+goto menu
+
 
 :: Utility functions
 

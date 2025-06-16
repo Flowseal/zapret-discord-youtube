@@ -37,7 +37,7 @@
 
 - [**`general.bat`**](./general.bat) - запуск со стратегией для обхода блокировок <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=15 /> Discord и <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=12 /> YouTube
 
-- [**`cloudflare_switch.bat`**](./cloudflare_switch.bat) - включение/выключение обхода Cloudflare *(на деле перетирает список `ipset-cloudflare`, перезапуск после изменения не нужен)*
+- [**`cloudflare_switch.bat`**](./cloudflare_switch.bat) - включение/выключение обхода Cloudflare *(на деле перетирает список `ipset-all`, перезапуск после изменения не нужен)*
 
 - [**`service.bat`**](./service.bat) - установка на автозапуск (`Install Service`), удаление из автозапуска (`Remove Services`), проверка сервисов, диагностика, проверка обновлений
 
