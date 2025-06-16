@@ -1,2 +1,2 @@
 #!/bin/bash
-cat ipsets/ipset-*.txt | sort > ipset-all-1.txt
+cat ipsets/*.txt | sort > ipset-all.txt
