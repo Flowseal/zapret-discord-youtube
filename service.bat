@@ -38,7 +38,7 @@ set "menu_choice=null"
 echo =======================
 echo 1. Install Service
 echo 2. Remove Services
-echo 3. Check Service Status
+echo 3. Check Status
 echo 4. Run Diagnostics
 echo 5. Check Updates
 echo 6. Switch Game Filter (%GameFilterStatus%)
@@ -62,16 +62,16 @@ goto menu
 :: STATUS ==============================
 :service_status
 cls
-chcp 65001 > nul
+chcp 437 > nul
 echo Checking services and tasks...
 call :test_service zapret
 call :test_service WinDivert
 
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
 if !errorlevel!==0 (
-    echo Bypass is ACTIVE
+    call :PrintGreen "Bypass is ACTIVE"
 ) else (
-    echo Bypass NOT FOUND
+    call :PrintRed "Bypass NOT FOUND"
 )
 
 pause
@@ -93,7 +93,7 @@ if "%ServiceStatus%"=="RUNNING" (
         echo "%ServiceName%" service is RUNNING.
     )
 ) else if not "%~2"=="soft" (
-    echo "%ServiceName%" is NOT running.
+    echo "%ServiceName%" service is NOT running.
 )
 
 exit /b
