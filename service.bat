@@ -197,6 +197,8 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                     ) else (
                         set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
                     )
+                ) else if "!arg:~0,12!" EQU "%%GameFilter%%" (
+                    set "arg=%GameFilter%"
                 )
 
                 if !mergeargs!==1 (
