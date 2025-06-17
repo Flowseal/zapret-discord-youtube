@@ -1,5 +1,4 @@
 @echo off
-setlocal EnableDelayedExpansion
 set "LOCAL_VERSION=1.7.2b"
 
 :: External commands
@@ -13,6 +12,12 @@ if "%~1"=="check_updates" (
     exit /b
 )
 
+if "%~1"=="load_game_filter" (
+    call :game_switch_status
+    exit /b
+)
+
+
 if "%1"=="admin" (
     echo Started with admin rights
 ) else (
@@ -23,9 +28,11 @@ if "%1"=="admin" (
 
 
 :: MENU ================================
+setlocal EnableDelayedExpansion
 :menu
 cls
 call :ipset_switch_status
+call :game_switch_status
 
 set "menu_choice=null"
 echo =======================
@@ -34,18 +41,20 @@ echo 2. Remove Services
 echo 3. Check Service Status
 echo 4. Run Diagnostics
 echo 5. Check Updates
-echo 6. Switch ipset (%IPsetStatus%)
-echo 7. Update ipset list
+echo 6. Switch Game Filter (%GameFilterStatus%)
+echo 7. Switch ipset (%IPsetStatus%)
+echo 8. Update ipset list
 echo 0. Exit
-set /p menu_choice=Enter choice (0-7): 
+set /p menu_choice=Enter choice (0-8): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
 if "%menu_choice%"=="3" goto service_status
 if "%menu_choice%"=="4" goto service_diagnostics
 if "%menu_choice%"=="5" goto service_check_updates
-if "%menu_choice%"=="6" goto ipset_switch
-if "%menu_choice%"=="7" goto ipset_update
+if "%menu_choice%"=="6" goto game_switch
+if "%menu_choice%"=="7" goto ipset_switch
+if "%menu_choice%"=="8" goto ipset_update
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -258,20 +267,25 @@ if not defined GITHUB_VERSION (
 :: Version comparison
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     echo Latest version installed: %LOCAL_VERSION%
-) else (
-    echo New version available: %GITHUB_VERSION%
-    echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
+    
+    if "%1"=="soft" exit /b
+    pause
+    goto menu
+) 
 
-    set "CHOICE="
-    set /p "CHOICE=Do you want to automatically download the new version? (Y/N) (default: Y) "
-    if "!CHOICE!"=="" set "CHOICE=Y"
-    if "!CHOICE!"=="y" set "CHOICE=Y"
+echo New version available: %GITHUB_VERSION%
+echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
 
-    if /i "!CHOICE!"=="Y" (
-        echo Opening the download page...
-        start "" "%GITHUB_DOWNLOAD_URL%%GITHUB_VERSION%.rar"
-    )
+set "CHOICE="
+set /p "CHOICE=Do you want to automatically download the new version? (Y/N) (default: Y) "
+if "%CHOICE%"=="" set "CHOICE=Y"
+if /i "%CHOICE%"=="y" set "CHOICE=Y"
+
+if /i "%CHOICE%"=="Y" (
+    echo Opening the download page...
+    start "" "%GITHUB_DOWNLOAD_URL%%GITHUB_VERSION%.rar"
 )
+
 
 if "%1"=="soft" exit /b
 pause
@@ -399,15 +413,47 @@ pause
 goto menu
 
 
+:: GAME SWITCH ========================
+:game_switch_status
+chcp 437 > nul
+
+set "gameFlagFile=%~dp0bin\game_filter.enabled"
+
+if exist "%gameFlagFile%" (
+    set "GameFilterStatus=enabled"
+    set "GameFilter=1024-65535"
+) else (
+    set "GameFilterStatus=disabled"
+    set "GameFilter=0"
+)
+exit /b
+
+
+:game_switch
+chcp 437 > nul
+cls
+
+if not exist "%gameFlagFile%" (
+    echo Enabling game filter...
+    echo ENABLED > "%gameFlagFile%"
+) else (
+    echo Disabling game filter...
+    del /f /q "%gameFlagFile%"
+)
+
+pause
+goto menu
+
+
 :: IPSET SWITCH =======================
 :ipset_switch_status
 chcp 437 > nul
 
 findstr /R "^0\.0\.0\.0/32$" "%~dp0lists\ipset-all.txt" >nul
 if !errorlevel!==0 (
-    set "IPsetStatus=load"
+    set "IPsetStatus=empty"
 ) else (
-    set "IPsetStatus=unload"
+    set "IPsetStatus=loaded"
 )
 exit /b
 
@@ -427,7 +473,7 @@ if !errorlevel!==0 (
         del /f /q "%listFile%"
         ren "%backupFile%" "ipset-all.txt"
     ) else (
-        echo Error: no backup to restore. Download list from repoistory
+        echo Error: no backup to restore. Update list from service menu by yourself
     )
 
 ) else (
