@@ -16,6 +16,7 @@ discord.status
 discord-activities.com
 discordactivities.com
 discordapp.com
+cdn.discordapp.com
 discordapp.net
 discordcdn.com
 discordmerch.com
