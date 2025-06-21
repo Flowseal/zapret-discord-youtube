@@ -1,5 +1,25 @@
 @echo off
+@chcp 65001 >nul
 set "LOCAL_VERSION=1.8.1"
+:: Обработка аргументов
+if "%~1"=="" goto help
+
+if /i "%~1"=="install" goto service_install
+if /i "%~1"=="remove" goto service_remove
+if /i "%~1"=="status" goto service_status
+if /i "%~1"=="diagnostics" goto service_diagnostics
+if /i "%~1"=="updates" goto service_check_updates
+if /i "%~1"=="game" goto game_switch
+if /i "%~1"=="ipset" goto ipset_switch
+if /i "%~1"=="ipset_update" goto ipset_update
+if /i "%~1"=="status_zapret" call :test_service zapret soft & exit /b
+if /i "%~1"=="check_updates" call :service_check_updates soft & exit /b
+if /i "%~1"=="load_game_filter" call :game_switch_status & exit /b
+
+:help
+echo Использование: service.bat [install^|remove^|status^|diagnostics^|updates^|game^|ipset^|ipset_update]
+echo Дополнительно: status_zapret, check_updates, load_game_filter
+exit /b
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -66,16 +86,24 @@ chcp 437 > nul
 echo Checking services and tasks...
 call :test_service zapret
 call :test_service WinDivert
-
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+setlocal enabledelayedexpansion
 if !errorlevel!==0 (
     call :PrintGreen "Bypass is ACTIVE"
 ) else (
     call :PrintRed "Bypass NOT FOUND"
 )
-
 pause
-goto menu
+exit /k
+
+:: --- Подпрограммы ---
+:PrintGreen
+echo [32m%~1[0m
+exit /b
+
+:PrintRed
+echo [31m%~1[0m
+exit /b
 
 :test_service
 set "ServiceName=%~1"
@@ -95,7 +123,6 @@ if "%ServiceStatus%"=="RUNNING" (
 ) else if not "%~2"=="soft" (
     echo "%ServiceName%" service is NOT running.
 )
-
 exit /b
 
 
@@ -114,13 +141,15 @@ net stop "WinDivert14"
 sc delete "WinDivert14"
 
 pause
-goto menu
 
 
 :: INSTALL =============================
 :service_install
 cls
 chcp 65001 > nul
+
+:: Включаем поддержку !variable!
+setlocal enabledelayedexpansion
 
 :: Main
 cd /d "%~dp0"
@@ -139,6 +168,8 @@ for %%f in (*.bat) do (
     )
 )
 
+endlocal
+
 :: Choosing file
 set "choice="
 set /p "choice=Input file index (number): "
@@ -148,7 +179,6 @@ set "selectedFile=!file%choice%!"
 if not defined selectedFile (
     echo Invalid choice, exiting...
     pause
-    goto menu
 )
 
 :: Args that should be followed by value
@@ -242,7 +272,6 @@ sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
 
 pause
-goto menu
 
 
 :: CHECK UPDATES =======================
@@ -263,7 +292,6 @@ if not defined GITHUB_VERSION (
     echo Warning: failed to fetch the latest version. Check your internet connection. This warning does not affect the operation of zapret
     pause
     if "%1"=="soft" exit /b 
-    goto menu
 )
 
 :: Version comparison
@@ -272,7 +300,6 @@ if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     
     if "%1"=="soft" exit /b
     pause
-    goto menu
 ) 
 
 echo New version available: %GITHUB_VERSION%
@@ -291,7 +318,6 @@ if /i "%CHOICE%"=="Y" (
 
 if "%1"=="soft" exit /b
 pause
-goto menu
 
 
 :: DIAGNOSTICS =========================
@@ -412,7 +438,6 @@ if /i "!CHOICE!"=="Y" (
 echo:
 
 pause
-goto menu
 
 
 :: GAME SWITCH ========================
@@ -446,7 +471,6 @@ if not exist "%gameFlagFile%" (
 )
 
 pause
-goto menu
 
 
 :: IPSET SWITCH =======================
@@ -496,7 +520,6 @@ if !errorlevel!==0 (
 )
 
 pause
-goto menu
 
 
 :: IPSET UPDATE =======================
@@ -524,7 +547,6 @@ if exist "%SystemRoot%\System32\curl.exe" (
 echo Finished
 
 pause
-goto menu
 
 :: Utility functions
 

@@ -1,0 +1,107 @@
+<html>
+<head>
+   <title>Zapret GUI</title>
+   <meta http-equiv="X-UA-Compatible" content="IE=9"/>
+   <meta charset="UTF-8">
+   <script language="JavaScript" src="src/js/window.js"></script>
+   
+   <HTA:APPLICATION 
+      BORDER="thin"
+      BORDERSTYLE="normal"
+      ICON="src/fav.ico"
+      WINDOWSTATE="normal"
+      INNERBORDER="no"
+      MAXIMIZEBUTTON="no"
+      MINIMIZEBUTTON="yes"
+      SINGLEINSTANCE="yes"
+      RESIZE="no"
+      CONTEXTMENU="no"
+      SYSMENU="yes"
+      SCROLL="no"
+      SELECTION="no"
+      VERSION="1.0" 
+   >
+   <link rel="stylesheet" href="src/css/style.css">
+</head>
+
+<body>
+   <div id="pages">
+      
+      <div name="Page 1">
+         <div class="button" onclick="setPage(3);">Настройки запрета</div>
+         <div class="button" onclick="setPage(4);">Включить определенный сервис</div>
+         <div class="button" onclick="setPage(5);">Помощь</div>
+         <div class="button fixed right" onclick="setPage(2);">Настройки</div>
+      </div>
+
+      <div name="Page 2">
+         <div class="button" onclick="txt({'message': 'ipset-all.txt'},{'message': ''}, 1);">Редактировать конфигурационный файл для доменов (ipset-all.txt)</div>
+         <div class="button" onclick="txt({'message': 'list-general.txt'},{'message': ''}, 1);">Редактировать конфигурационный файл для IP и подсетей (list-general.txt)</div>
+                  <div class="button" onclick="shell({'message': 'service.bat'},{'message': 'game'}, 1);">Игровой фильтр (enabled)</div>
+         <div class="button" onclick="shell({'message': 'service.bat'},{'message': 'ipset'}, 1);">Ipset (loaded)</div>
+         <div class="button" onclick="shell({'message': 'service.bat'},{'message': 'ipset_update'}, 1);">Обновить ipset</div>
+
+         <div class="backButton button" onclick="setPage(1);">Назад</div>
+      </div>
+
+      <div name="Page 3">
+         <div class="button" onclick="shell({'message': 'service.bat'},{'message': 'install'}, 1);">Установить сервис</div>
+         <div class="button" onclick="shell({'message': 'service.bat'},{'message': 'remove'}, 1);">Удалить сервис</div>
+         <div class="button" onclick="shell({'message': 'service.bat'},{'message': 'status'}, 1);">Статус сервиса</div>
+         <div class="button" onclick="shell({'message': 'service.bat'},{'message': 'diagnostics'}, 1);">Запустить диагностику</div>
+         <div class="button" onclick="shell({'message': 'service.bat'},{'message': 'updates'}, 1);">Проверка обновлений</div>
+         <div class="backButton button" onclick="setPage(1);">Назад</div>
+      </div>
+
+      <div name="Page 4">
+         <div class="button" onclick="shellDefinite({'message': 'general.bat'},{'message': ''}, 1);">general</div>
+         <div class="button" onclick="shellDefinite({'message': 'general(ALT).bat'},{'message': ''}, 1);">general (ALT)</div>
+         <div class="button" onclick="shellDefinite({'message': 'general(ALT2).bat'},{'message': ''}, 1);">general (ALT2)</div>
+         <div class="button" onclick="shellDefinite({'message': 'general(ALT3).bat'},{'message': ''}, 1);">general (ALT3)</div>
+         <div class="button" onclick="shellDefinite({'message': 'general(ALT4).bat'},{'message': ''}, 1);">general (ALT4)</div>
+         <div class="button" onclick="shellDefinite({'message': 'general(ALT5).bat'},{'message': ''}, 1);">general (ALT5)</div>
+         <div class="button" onclick="shellDefinite({'message': 'general(ALT6).bat'},{'message': ''}, 1);">general (ALT6)</div>
+         <div class="button" onclick="shellDefinite({'message': 'general(FAKE TLS ALT).bat'},{'message': ''}, 1);">general(FAKE TLS ALT)</div>
+         <div class="button" onclick="shellDefinite({'message': 'general(FAKE TLS AUTO ALT).bat'},{'message': ''}, 1);">general(FAKE TLS AUTO ALT)</div>
+         <div class="button" onclick="shellDefinite({'message': 'general(FAKE TLS AUTO ALT2).bat'},{'message': ''}, 1);">general(FAKE TLS AUTO ALT2)</div>
+         <div class="backButton button" onclick="setPage(1);">Назад</div>
+      </div>
+
+      <div name="Page 5">
+<div style="text-align:center;">
+  <p><em>“Plug & Play”</em> — обход блокировок,<br>
+  <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png"  height="11"> <strong>Discord</strong> и
+  <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png"  height="11"> <strong>YouTube</strong> для Windows</p>
+</div>
+<h3>Краткие описания функций</h3>
+
+<ul>
+  <li><h4><strong><code>Настройки запрета</code></strong></h4>
+    <ul>
+      <li><strong><code>Установить сервис</code></strong> — установить стратегию в автозапуск</li>
+      <li><strong><code>Удалить сервис</code></strong> — удалить службы</li>
+      <li><strong><code>Статус сервиса</code></strong> — проверить статус обхода</li>
+      <li><strong><code>Запустить диагностику</code></strong> — диагностика ошибок + очистка кэша Discord</li>
+      <li><strong><code>Проверка обновлений</code></strong> — проверить обновления</li>
+      <li><strong><code>Игровой фильтр</code></strong> — режим для игр<br>
+        После выбора — перезапустите компьютер
+      </li>
+      <li><strong><code>Ipset</code></strong> — вкл/выкл список сервисов из <code>ipset-all.txt</code></li>
+      <li><strong><code>Обновить ipset list</code></strong> — обновить список <code>ipset-all.txt</code></li>
+    </ul>
+  </li>
+  <li><h4><strong><code>Включить определенный сервис</code></strong></h4>
+    Запуск определенной стратегии обхода.<br>
+    Пробуйте разные (ALT, МГТС и др.), пока не найдете работающий вариант.
+  </li>
+</ul>
+
+</body>
+</html>
+         <div class="backButton button" onclick="setPage(1);">Назад</div>
+      </div>
+   </div>
+</body>
+
+<script language="JavaScript" src="src/js/pages.js"></script>
+</html>

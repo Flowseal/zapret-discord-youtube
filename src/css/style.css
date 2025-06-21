@@ -1,0 +1,51 @@
+body {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    padding: 0;
+    margin: 0;
+    background: #282828;
+    padding-top: 7px;
+}
+
+.button {
+    padding: 10px;
+    background: rgb(80, 80, 80);
+    color: white;
+    cursor: pointer;
+    margin: 10px;
+    border-radius: 2px;
+}
+
+.button:hover {
+    color: rgb(200, 200, 200)
+}
+
+.backButton {
+    color: rgb(255, 255, 0);
+}
+
+.backButton:hover{
+    color: rgb(200, 200, 0)
+}
+
+.page {
+    display: none
+}
+
+.fixed {
+    position: absolute;
+    bottom: 0;
+}
+
+.right {
+    right: 0;
+}
+
+.left {
+    left: 0
+}
+
+.author {
+    font-size: 10px;
+    color: #606060;
+    padding: 10px
+}
