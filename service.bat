@@ -65,6 +65,7 @@ cls
 chcp 437 > nul
 echo Checking services and tasks...
 call :test_service zapret
+for /f "tokens=3*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do echo service strategy installed from "%%A %%B"
 call :test_service WinDivert
 
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
@@ -234,13 +235,16 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
 set ARGS=%args%
 echo Final args: !ARGS!
 set SRVCNAME=zapret
-for %%A in ("!filename!") do set "DisplayName=%%~nA"
 
 net stop %SRVCNAME% >nul 2>&1
 sc delete %SRVCNAME% >nul 2>&1
-sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "!DisplayName!" start= auto
+sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "zapret" start= auto
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
+for %%F in ("!file%choice%!") do (
+    set "filename=%%~nF"
+)
+reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
 
 pause
 goto menu
