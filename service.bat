@@ -319,6 +319,16 @@ if !errorlevel!==0 (
 )
 echo:
 
+:: Intel Connectivity Network Service
+sc query | findstr /I "Intel" | findstr /I "Connectivity" | findstr /I "Network" > nul
+if !errorlevel!==0 (
+    call :PrintRed "[X] Intel Connectivity Network Service found. It conflicts with zapret"
+    call :PrintRed "https://github.com/ValdikSS/GoodbyeDPI/issues/541#issuecomment-2661670982"
+) else (
+    call :PrintGreen "Intel Connectivity check passed"
+)
+echo:
+
 :: Check Point
 set "checkpointFound=0"
 sc query | findstr /I "TracSrvWrapper" > nul
