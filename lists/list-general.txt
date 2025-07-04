@@ -1,3 +1,6 @@
+soundcloud.cloud
+soundcloud.com
+sndcdn.com
 cloudflare-ech.com
 dis.gd
 discord-attachments-uploads-prd.storage.googleapis.com
