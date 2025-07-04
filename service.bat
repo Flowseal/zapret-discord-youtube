@@ -63,9 +63,8 @@ goto menu
 :service_status
 cls
 chcp 437 > nul
-echo Checking services and tasks...
+for /f "tokens=3*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do echo Service strategy installed from "%%A %%B"
 call :test_service zapret
-for /f "tokens=3*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do echo service strategy installed from "%%A %%B"
 call :test_service WinDivert
 
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
