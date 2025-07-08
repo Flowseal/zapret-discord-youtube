@@ -63,7 +63,7 @@ goto menu
 :service_status
 cls
 chcp 437 > nul
-for /f "tokens=3*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do echo Service strategy installed from "%%A %%B"
+for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do echo Service strategy installed from "%%B"
 call :test_service zapret
 call :test_service WinDivert
 
