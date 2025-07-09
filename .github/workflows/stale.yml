@@ -27,4 +27,4 @@ jobs:
 
           exempt-issue-labels: 'pinned,games'
           remove-stale-when-updated: true
-          operations-per-run: 100
+          operations-per-run: 4500
