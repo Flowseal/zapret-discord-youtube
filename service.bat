@@ -426,7 +426,7 @@ if exist "%gameFlagFile%" (
     set "GameFilter=1024-65535"
 ) else (
     set "GameFilterStatus=disabled"
-    set "GameFilter=0"
+    set "GameFilter=540"
 )
 exit /b
 
