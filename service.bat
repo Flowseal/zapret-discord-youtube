@@ -11,6 +11,10 @@ if "%~1"=="check_updates" (
     call :service_check_updates soft
     exit /b
 )
+if "%~1"=="start_update" (
+    call :service_start_update soft
+    exit /b
+)
 
 if "%~1"=="load_game_filter" (
     call :game_switch_status
@@ -251,6 +255,15 @@ goto menu
 
 :: CHECK UPDATES =======================
 :service_check_updates
+if "%1"=="soft" (
+start /b service start_update
+exit /b
+)
+goto :service_start_update
+
+
+:service_start_update
+
 chcp 437 > nul
 cls
 
@@ -266,7 +279,7 @@ for /f "delims=" %%A in ('powershell -command "(Invoke-WebRequest -Uri \"%GITHUB
 if not defined GITHUB_VERSION (
     echo Warning: failed to fetch the latest version. Check your internet connection. This warning does not affect the operation of zapret
     pause
-    if "%1"=="soft" exit /b 
+    if "%1"=="soft" exit 
     goto menu
 )
 
@@ -274,7 +287,7 @@ if not defined GITHUB_VERSION (
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     echo Latest version installed: %LOCAL_VERSION%
     
-    if "%1"=="soft" exit /b
+    if "%1"=="soft" exit 
     pause
     goto menu
 ) 
@@ -293,9 +306,10 @@ if /i "%CHOICE%"=="Y" (
 )
 
 
-if "%1"=="soft" exit /b
+if "%1"=="soft" exit 
 pause
 goto menu
+
 
 
 :: DIAGNOSTICS =========================
