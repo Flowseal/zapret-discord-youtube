@@ -1,5 +1,5 @@
 @echo off
-set "LOCAL_VERSION=1.8.2"
+set "LOCAL_VERSION=1.8.3"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -8,11 +8,11 @@ if "%~1"=="status_zapret" (
 )
 
 if "%~1"=="check_updates" (
-    call :service_check_updates soft
-    exit /b
-)
-if "%~1"=="start_update" (
-    call :service_start_update soft
+    if not "%~2"=="soft" (
+        start /b service check_updates soft
+    ) else (
+        call :service_check_updates soft
+    )
     exit /b
 )
 
@@ -255,15 +255,6 @@ goto menu
 
 :: CHECK UPDATES =======================
 :service_check_updates
-if "%1"=="soft" (
-start /b service start_update
-exit /b
-)
-goto :service_start_update
-
-
-:service_start_update
-
 chcp 437 > nul
 cls
 
