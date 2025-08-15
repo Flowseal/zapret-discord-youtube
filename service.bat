@@ -308,6 +308,15 @@ goto menu
 chcp 437 > nul
 cls
 
+:: Base Filtering Engine
+sc query BFE | findstr /I "RUNNING" > nul
+if !errorlevel!==0 (
+    call :PrintGreen "Base Filtering Engine check passed"
+) else (
+    call :PrintRed "[X] Base Filtering Engine is not running. This service is required for zapret to work"
+)
+echo:
+
 :: AdguardSvc.exe
 tasklist /FI "IMAGENAME eq AdguardSvc.exe" | find /I "AdguardSvc.exe" > nul
 if !errorlevel!==0 (
