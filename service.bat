@@ -70,12 +70,13 @@ chcp 437 > nul
 for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do echo Service strategy installed from "%%B"
 call :test_service zapret
 call :test_service WinDivert
+echo:
 
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
 if !errorlevel!==0 (
-    call :PrintGreen "Bypass is ACTIVE"
+    call :PrintGreen "Bypass (winws.exe) is ACTIVE"
 ) else (
-    call :PrintRed "Bypass NOT FOUND"
+    call :PrintRed "Bypass (winws.exe) NOT FOUND"
 )
 
 pause
@@ -96,6 +97,8 @@ if "%ServiceStatus%"=="RUNNING" (
     ) else (
         echo "%ServiceName%" service is RUNNING.
     )
+) else if "%ServiceStatus%"=="STOP_PENDING" (
+    call :PrintYellow "!ServiceName! is STOP_PENDING, that may be caused by a conflict with another bypass. Run Diagnostics to try to fix conflicts"
 ) else if not "%~2"=="soft" (
     echo "%ServiceName%" service is NOT running.
 )
@@ -109,13 +112,30 @@ cls
 chcp 65001 > nul
 
 set SRVCNAME=zapret
-net stop %SRVCNAME%
-sc delete %SRVCNAME%
+sc query "!SRVCNAME!" >nul 2>&1
+if !errorlevel!==0 (
+    net stop %SRVCNAME%
+    sc delete %SRVCNAME%
+) else (
+    echo Service "%SRVCNAME%" is not installed.
+)
 
-net stop "WinDivert"
-sc delete "WinDivert"
-net stop "WinDivert14"
-sc delete "WinDivert14"
+tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+if !errorlevel!==0 (
+    taskkill /IM winws.exe /F > nul
+)
+
+sc query "WinDivert" >nul 2>&1
+if !errorlevel!==0 (
+    net stop "WinDivert"
+
+    sc query "WinDivert" >nul 2>&1
+    if !errorlevel!==0 (
+        sc delete "WinDivert"
+    )
+)
+net stop "WinDivert14" >nul 2>&1
+sc delete "WinDivert14" >nul 2>&1
 
 pause
 goto menu
@@ -401,6 +421,103 @@ if !dnsfound!==1 (
     call :PrintGreen "DNS check passed"
 )
 echo:
+
+:: WinDivert conflict
+tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+set "winws_running=!errorlevel!"
+
+sc query WinDidvert | findstr /I "RUNNING STOP_PENDING" > nul
+set "windivert_running=!errorlevel!"
+
+if !winws_running! neq 0 if !windivert_running!==0 (
+    call :PrintYellow "[?] winws.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
+    
+    net stop "WinDivert" >nul 2>&1
+    sc delete "WinDivert" >nul 2>&1
+    if !errorlevel! neq 0 (
+        call :PrintRed "[X] Failed to delete WinDivert. Checking for conflicting services..."
+        
+        set "conflicting_services=GoodbyeDPI"
+        set "found_conflict=0"
+        
+        for %%s in (!conflicting_services!) do (
+            sc query "%%s" >nul 2>&1
+            if !errorlevel!==0 (
+                call :PrintYellow "[?] Found conflicting service: %%s. Stopping and removing..."
+                net stop "%%s" >nul 2>&1
+                sc delete "%%s" >nul 2>&1
+                if !errorlevel!==0 (
+                    call :PrintGreen "Successfully removed service: %%s"
+                ) else (
+                    call :PrintRed "[X] Failed to remove service: %%s"
+                )
+                set "found_conflict=1"
+            )
+        )
+        
+        if !found_conflict!==0 (
+            call :PrintRed "[X] No conflicting services found. Check manually if any other bypass is using WinDivert."
+        ) else (
+            call :PrintYellow "[?] Attempting to delete WinDivert again..."
+
+            sc delete "WinDivert" >nul 2>&1
+            sc query "WinDivert" >nul 2>&1
+            if !errorlevel! neq 0 (
+                call :PrintGreen "WinDivert successfully deleted after removing conflicting services"
+            ) else (
+                call :PrintRed "[X] WinDivert still cannot be deleted. Check manually if any other bypass is using WinDivert."
+            )
+        )
+    ) else (
+        call :PrintGreen "WinDivert successfully removed"
+    )
+    
+    echo:
+)
+
+:: Conflicting bypasses
+set "conflicting_services=GoodbyeDPI discordfix_zapret winws1 winws2"
+
+for %%s in (!conflicting_services!) do (
+    sc query "%%s" >nul 2>&1
+    if !errorlevel!==0 (
+        if "!found_conflicts!"=="" (
+            set "found_conflicts=%%s"
+        ) else (
+            set "found_conflicts=!found_conflicts! %%s"
+        )
+        set "found_any_conflict=1"
+    )
+)
+
+if !found_any_conflict!==1 (
+    call :PrintRed "[X] Conflicting bypass services found: !found_conflicts!"
+    
+    set "CHOICE="
+    set /p "CHOICE=Do you want to remove these conflicting services? (Y/N) (default: N) "
+    if "!CHOICE!"=="" set "CHOICE=N"
+    if "!CHOICE!"=="y" set "CHOICE=Y"
+    
+    if /i "!CHOICE!"=="Y" (
+        for %%s in (!found_conflicts!) do (
+            call :PrintYellow "Stopping and removing service: %%s"
+            net stop "%%s" >nul 2>&1
+            sc delete "%%s" >nul 2>&1
+            if !errorlevel!==0 (
+                call :PrintGreen "Successfully removed service: %%s"
+            ) else (
+                call :PrintRed "[X] Failed to remove service: %%s"
+            )
+        )
+
+        net stop "WinDivert" >nul 2>&1
+        sc delete "WinDivert" >nul 2>&1
+        net stop "WinDivert14" >nul 2>&1
+        sc delete "WinDivert14" >nul 2>&1
+    )
+    
+    echo:
+)
 
 :: Discord cache clearing
 set "CHOICE="
