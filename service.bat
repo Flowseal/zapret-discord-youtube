@@ -380,15 +380,14 @@ echo:
 
 :: DNS
 set "dnsfound=0"
-for /f "skip=1 tokens=*" %%a in ('wmic nicconfig where "IPEnabled=true" get DNSServerSearchOrder /format:table') do (
-    echo %%a | findstr /i "192.168." >nul
-    if !errorlevel!==0 (
+for /f "delims=" %%a in ('powershell -Command "Get-WmiObject -Class Win32_NetworkAdapterConfiguration | Where-Object {$_.IPEnabled -eq $true} | ForEach-Object {$_.DNSServerSearchOrder} | Where-Object {$_ -match '^192\.168\.'} | Measure-Object | Select-Object -ExpandProperty Count"') do (
+    if %%a gtr 0 (
         set "dnsfound=1"
     )
 )
 if !dnsfound!==1 (
     call :PrintYellow "[?] DNS servers are probably not specified."
-    call :PrintYellow "Provider's DNS servers are automatically used, which may affect zapret. It is recommended to install well-known DNS servers and setup DoH"
+    call :PrintYellow "Provider's DNS servers are probably automatically used, which may affect zapret. It is recommended to install well-known DNS servers and setup DoH"
 ) else (
     call :PrintGreen "DNS check passed"
 )
