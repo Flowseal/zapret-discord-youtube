@@ -146,8 +146,8 @@ pause
 goto menu
 
 
-:: INSTALL =============================
-:service_install
+:: INSTALL MENU =============================
+:service_install_menu
 cls
 chcp 65001 > nul
 
@@ -179,6 +179,19 @@ if not defined selectedFile (
     pause
     goto menu
 )
+
+call :service_install "!selectedFile!" "!choice!"
+goto menu
+
+:: INSTALL SERVICE =============================
+:service_install
+:: %1 - selectedFile, %2 - choice index
+setlocal EnableDelayedExpansion
+
+set "selectedFile=%~1"
+set "choice=%~2"
+set "BIN_PATH=%~dp0bin\"
+set "LISTS_PATH=%~dp0lists\"
 
 :: Args that should be followed by value
 set "args_with_value=sni"
@@ -269,13 +282,14 @@ sc delete %SRVCNAME% >nul 2>&1
 sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "zapret" start= auto
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
-for %%F in ("!file%choice%!") do (
+for %%F in ("!selectedFile!") do (
     set "filename=%%~nF"
 )
 reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
 
 pause
-goto menu
+endlocal
+goto :eof
 
 
 :: CHECK UPDATES =======================
