@@ -413,17 +413,17 @@ if !errorlevel!==0 (
 echo:
 
 :: DNS
-set "dnsfound=0"
-for /f "delims=" %%a in ('powershell -Command "Get-WmiObject -Class Win32_NetworkAdapterConfiguration | Where-Object {$_.IPEnabled -eq $true} | ForEach-Object {$_.DNSServerSearchOrder} | Where-Object {$_ -match '^192\.168\.'} | Measure-Object | Select-Object -ExpandProperty Count"') do (
+set "dohfound=0"
+for /f "delims=" %%a in ('powershell -Command "Get-ChildItem -Recurse -Path 'HKLM:System\CurrentControlSet\Services\Dnscache\InterfaceSpecificParameters\' | Get-ItemProperty | Where-Object { $_.DohFlags -gt 0 } | Measure-Object | Select-Object -ExpandProperty Count"') do (
     if %%a gtr 0 (
-        set "dnsfound=1"
+        set "dohfound=1"
     )
 )
-if !dnsfound!==1 (
-    call :PrintYellow "[?] DNS servers are probably not specified."
-    call :PrintYellow "Provider's DNS servers are probably automatically used, which may affect zapret. It is recommended to install well-known DNS servers and setup DoH"
+if !dohfound!==0 (
+    call :PrintYellow "[?] Make sure you configured secure DNS in a browser with some non-default DNS service provider,"
+    call :PrintYellow "If you use Windows 11 you can configure encrypted DNS in the Settings app to suppress this warning"
 ) else (
-    call :PrintGreen "DNS check passed"
+    call :PrintGreen "Secure DNS check passed"
 )
 echo:
 
