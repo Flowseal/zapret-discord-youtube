@@ -420,8 +420,8 @@ for /f "delims=" %%a in ('powershell -Command "Get-ChildItem -Recurse -Path 'HKL
     )
 )
 if !dohfound!==0 (
-    call :PrintYellow "[?] Make sure you configured secure DNS in a browser with some non-default DNS service provider,"
-    call :PrintYellow "If you use Windows 11 you can configure encrypted DNS in the Settings app to suppress this warning"
+    call :PrintYellow "[?] Make sure you have configured secure DNS in a browser with some non-default DNS service provider,"
+    call :PrintYellow "If you use Windows 11 you can configure encrypted DNS in the Settings to hide this warning"
 ) else (
     call :PrintGreen "Secure DNS check passed"
 )
