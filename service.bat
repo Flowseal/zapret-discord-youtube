@@ -4,6 +4,7 @@ set "LOCAL_VERSION=1.8.3"
 :: External commands
 if "%~1"=="status_zapret" (
     call :test_service zapret soft
+    call :tcp_enable
     exit /b
 )
 
@@ -61,6 +62,12 @@ if "%menu_choice%"=="7" goto ipset_switch
 if "%menu_choice%"=="8" goto ipset_update
 if "%menu_choice%"=="0" exit /b
 goto menu
+
+
+:: TCP ENABLE ==========================
+:tcp_enable
+netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul || netsh interface tcp set global timestamps=enabled > nul 2>&1
+exit /b
 
 
 :: STATUS ==============================
@@ -260,6 +267,8 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
 )
 
 :: Creating service with parsed args
+call :tcp_enable
+
 set ARGS=%args%
 echo Final args: !ARGS!
 set SRVCNAME=zapret
@@ -339,6 +348,21 @@ if !errorlevel!==0 (
     call :PrintGreen "Base Filtering Engine check passed"
 ) else (
     call :PrintRed "[X] Base Filtering Engine is not running. This service is required for zapret to work"
+)
+echo:
+
+:: TCP timestamps check
+netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul
+if !errorlevel!==0 (
+    call :PrintGreen "TCP timestamps check passed"
+) else (
+    call :PrintYellow "[?] TCP timestamps are disabled. Enabling timestamps..."
+    netsh interface tcp set global timestamps=enabled > nul 2>&1
+    if !errorlevel!==0 (
+        call :PrintGreen "TCP timestamps successfully enabled"
+    ) else (
+        call :PrintRed "[X] Failed to enable TCP timestamps"
+    )
 )
 echo:
 
