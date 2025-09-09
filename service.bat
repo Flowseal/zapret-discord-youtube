@@ -666,7 +666,7 @@ if !errorlevel!==0 (
     )
 
     >"%listFile%" (
-        echo 0.0.0.0/32
+        echo 203.0.113.113/32
     )
 )
 
