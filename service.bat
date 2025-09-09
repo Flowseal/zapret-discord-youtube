@@ -198,6 +198,7 @@ set QUOTE="
 
 for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
     set "line=%%a"
+    call set "line=%%line:^!=EXCL_MARK%%"
 
     echo !line! | findstr /i "%BIN%winws.exe" >nul
     if not errorlevel 1 (
@@ -270,12 +271,13 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
 call :tcp_enable
 
 set ARGS=%args%
+call set "ARGS=%%ARGS:EXCL_MARK=^!%%"
 echo Final args: !ARGS!
 set SRVCNAME=zapret
 
 net stop %SRVCNAME% >nul 2>&1
 sc delete %SRVCNAME% >nul 2>&1
-sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "zapret" start= auto
+sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
 for %%F in ("!file%choice%!") do (
