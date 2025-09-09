@@ -2,10 +2,9 @@
 
 # <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=28 /> <a href="https://github.com/Flowseal/">Flowseal</a><a href="https://github.com/Flowseal/zapret-discord-youtube">/zapret-discord-youtube</a> <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=28 />
 
-*"Plug & Play"* обход блокировок иностранных платформ, <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=11 /> **Discord** и <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=11 /> **YouTube** для Windows
 
 Альтернатива https://github.com/bol-van/zapret-win-bundle  
-Также, вы можете материально поддержать разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
+Также вы можете материально поддержать оригинального разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
 </div>
 
 > [!CAUTION]
@@ -26,7 +25,8 @@
 
 ## ⚙️Использование
 
-1. Включите Secure DNS в браузере. В Chrome - "Использовать безопасный DNS", и выбрать поставщика услуг DNS (выбрать вариант, отличный от поставщика по умолчанию). В Firefox - "Включить DNS через HTTPS, используя: Максимальную защиту"
+1. Включите Secure DNS. В Chrome - "Использовать безопасный DNS", и выбрать поставщика услуг DNS (выбрать вариант, отличный от поставщика по умолчанию). В Firefox - "Включить DNS через HTTPS, используя: Максимальную защиту"
+    * В **Windows 11** поддерживается включение Secure DNS прямо в настройках - [инструкция тут](https://www.howtogeek.com/765940/how-to-enable-dns-over-https-on-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
 
 2. Загрузите архив (zip/rar) со [страницы последнего релиза](https://github.com/Flowseal/zapret-discord-youtube/releases/latest)
 
@@ -57,20 +57,12 @@
 
 ## ☑️Распространенные проблемы
 
-### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
-
-- См. [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
-
-### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
-
-- См. [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
-
-### После запуска стратегии ничего не происходит
+### После запуска скрипта `general*` ничего не происходит
 
 - После запуска стратегии (отдельным bat файлом, не через service), должен открыться winws.exe (обход), который можно увидеть в панели задач.  
 Если этого не произошло, то см. [#522](https://github.com/Flowseal/zapret-discord-youtube/issues/522)
 
-### Обход не работает
+### Обход не работает / перестал работать
 
 > [!IMPORTANT]
 > **Стратегии блокировок со временем изменяются.**
@@ -78,15 +70,31 @@
 > В репозитории представлены множество различных стратегий для обхода. Если ни одна из них вам не помогает, то вам необходимо создать новую, взяв за основу одну из представленных здесь и изменив её параметры.
 > Информацию про параметры стратегий вы можете найти [тут](https://github.com/bol-van/zapret/blob/master/docs/readme.md#nfqws).
 
-- Убедитесь, что адрес ресурса записан в списках доменов или IP. Подробнее [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
+- Проверьте, чтобы не было ошибок в `service.bat` -> `Run Diagnostics`
 
-- Попробуйте в `service.bat` переключить `Switch Game Filter` и `Switch ipset`. На разных стратегиях они могут работать по-разному. **Подробнее, что они делают, [тут](https://github.com/Flowseal/zapret-discord-youtube?tab=readme-ov-file#%E2%84%B9%EF%B8%8F%D0%BA%D1%80%D0%B0%D1%82%D0%BA%D0%B8%D0%B5-%D0%BE%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D1%8F-%D1%84%D0%B0%D0%B9%D0%BB%D0%BE%D0%B2)**
+- Убедитесь, что адрес ресурса записан в списках доменов или IP
 
 - Проверьте другие стратегии (**`ALT`**/**`МГТС`** и другие)
 
-- Обновите файлы в папке [`bin`](./bin), взяв новые из [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws)
+- Выполните полную переустанвоку:
+  - `service.bat` -> `Remove Services`
+  - `service.bat` -> `Run Diagnostics` (если есть ошибки - устраните их) -> в конце Y
+  - Удалите папку с запретом
+  - Перезапустите устройство
+  - Скачайте последнюю версию [со страницы релизов](https://github.com/Flowseal/zapret-discord-youtube/releases) (`zapret-discord-youtube-...`)
+  - Распакуйте в новую папку в корне диска (без спец. символов и пробелов)
+  - Далее пробуйте запускать различные `general` скрипты (стратегии). Проверьте доступность интернет ресурсов - если не работают, то закрывайте программу (в панели задач иконка замочка) и пробуйте другую стратегию
+  - Как найдёте рабочую стратегию, можете поставить её на автозапуск: `service.bat` -> `Install Service` -> выбираете нужную
 
 - См. [#765](https://github.com/Flowseal/zapret-discord-youtube/issues/765)
+
+### Не работает игра/приложение с включённым запретом
+
+- Проверьте, что в service.bat `Game Filter` **`disabled`**, а `ipset` **`empty`**. Иначе это может затронуть доступность ресурсов, которых вы не ожидали.
+
+### Античит ругается на WinDivert
+
+- Прочитайте инструкцию тут - https://github.com/bol-van/zapret-win-bundle/tree/master/windivert-hide
 
 ### Требуется цифровая подпись драйвера WinDivert (Windows 7)
 
@@ -103,10 +111,18 @@ driverquery | find "Divert"
 2. Остановите и удалите службу командами:
 
 ```cmd
-sc stop {название, которые вы узнали в шаге 1}
+sc stop название_из_первого_шага
 
-sc delete {название, которые вы узнали в шаге 1}
+sc delete название_из_первого_шага
 ```
+
+### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
+
+- См. [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
+
+### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
+
+- См. [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
 
 ### Не нашли своей проблемы
 
@@ -122,7 +138,7 @@ sc delete {название, которые вы узнали в шаге 1}
 
 Вы можете поддержать проект, поставив :star: этому репозиторию (сверху справа этой страницы)
 
-Также, вы можете материально поддержать разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
+Также вы можете материально поддержать оригинального разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
 
 <a href="https://star-history.com/#Flowseal/zapret-discord-youtube&Date">
  <picture>
