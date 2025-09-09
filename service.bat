@@ -40,7 +40,7 @@ call :ipset_switch_status
 call :game_switch_status
 
 set "menu_choice=null"
-echo =========v!LOCAL_VERSION!=========
+echo =========  v!LOCAL_VERSION!  =========
 echo 1. Install Service
 echo 2. Remove Services
 echo 3. Check Status
