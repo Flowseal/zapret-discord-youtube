@@ -628,7 +628,7 @@ goto menu
 :ipset_switch_status
 chcp 437 > nul
 
-findstr /R "^0\.0\.0\.0/32$" "%~dp0lists\ipset-all.txt" >nul
+findstr /R "^203\.0\.113\.113/32$" "%~dp0lists\ipset-all.txt" >nul
 if !errorlevel!==0 (
     set "IPsetStatus=empty"
 ) else (
@@ -644,7 +644,7 @@ cls
 set "listFile=%~dp0lists\ipset-all.txt"
 set "backupFile=%listFile%.backup"
 
-findstr /R "^0\.0\.0\.0/32$" "%listFile%" >nul
+findstr /R "^203\.0\.113\.113/32$" "%listFile%" >nul
 if !errorlevel!==0 (
     echo Enabling ipset based bypass...
 
