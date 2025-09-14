@@ -28,7 +28,7 @@ if "%1"=="admin" (
 ) else (
     echo Requesting admin rights...
     powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/c \"\"%~f0\" admin\"' -Verb RunAs"
-    exit /b
+    exit
 )
 
 
@@ -249,9 +249,9 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
 
                 if "!arg:~0,2!" EQU "--" (
                     set "mergeargs=2"
-                ) else if !mergeargs!==2 (
-                    set "mergeargs=1"
-                ) else if !mergeargs!==1 (
+                ) else if !mergeargs! GEQ 1 (
+                    if !mergeargs!==2 set "mergeargs=1"
+
                     for %%x in (!args_with_value!) do (
                         if /i "%%x"=="!arg!" (
                             set "mergeargs=3"
