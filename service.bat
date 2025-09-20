@@ -457,7 +457,7 @@ echo:
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
 set "winws_running=!errorlevel!"
 
-sc query WinDidvert | findstr /I "RUNNING STOP_PENDING" > nul
+sc query "WinDivert" | findstr /I "RUNNING STOP_PENDING" > nul
 set "windivert_running=!errorlevel!"
 
 if !winws_running! neq 0 if !windivert_running!==0 (
@@ -490,7 +490,8 @@ if !winws_running! neq 0 if !windivert_running!==0 (
             call :PrintRed "[X] No conflicting services found. Check manually if any other bypass is using WinDivert."
         ) else (
             call :PrintYellow "[?] Attempting to delete WinDivert again..."
-
+            
+            net stop "WinDivert" >nul 2>&1
             sc delete "WinDivert" >nul 2>&1
             sc query "WinDivert" >nul 2>&1
             if !errorlevel! neq 0 (
