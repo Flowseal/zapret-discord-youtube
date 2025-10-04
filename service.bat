@@ -353,6 +353,26 @@ if !errorlevel!==0 (
 )
 echo:
 
+:: Proxy check
+set "proxyEnabled=0"
+set "proxyServer="
+
+for /f "tokens=2*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyEnable 2^>nul ^| findstr /i "ProxyEnable"') do (
+    if "%%B"=="0x1" set "proxyEnabled=1"
+)
+
+if !proxyEnabled!==1 (
+    for /f "tokens=2*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul ^| findstr /i "ProxyServer"') do (
+        set "proxyServer=%%B"
+    )
+    
+    call :PrintYellow "[?] System proxy is enabled: !proxyServer!"
+    call :PrintYellow "Make sure it's valid or disable it if you don't use a proxy"
+) else (
+    call :PrintGreen "Proxy check passed"
+)
+echo:
+
 :: TCP timestamps check
 netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul
 if !errorlevel!==0 (
@@ -465,7 +485,8 @@ if !winws_running! neq 0 if !windivert_running!==0 (
     
     net stop "WinDivert" >nul 2>&1
     sc delete "WinDivert" >nul 2>&1
-    if !errorlevel! neq 0 (
+    sc query "WinDivert" >nul 2>&1
+    if !errorlevel!==0 (
         call :PrintRed "[X] Failed to delete WinDivert. Checking for conflicting services..."
         
         set "conflicting_services=GoodbyeDPI"
