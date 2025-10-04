@@ -188,7 +188,7 @@ if not defined selectedFile (
 )
 
 :: Args that should be followed by value
-set "args_with_value=sni"
+set "args_with_value=sni host altorder"
 
 :: Parsing args (mergeargs: 2=start param|3=arg with value|1=params args|0=default)
 set "args="
