@@ -120,13 +120,19 @@ sc stop название_из_первого_шага
 sc delete название_из_первого_шага
 ```
 
-### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
-
-- См. [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
-
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
 
 - См. [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
+
+### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
+
+Работает ли YouTube?
+- Если YouTube не работает, значит выбранная вами стратегия не работает. Почините сначала ютуб.
+- Если YouTube работает, то проверьте Discord в браузере: https://discord.com/app. Таким образом и пользуйтесь.
+
+  Чтобы починить приложение, и если у вас Windows 11, то вы можете настроить Secure DNS прямо в настройках системы (см. начало README). К сожалению, нет достоверной информации, чинит ли это приложение или нет.
+
+- См. также [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
 
 ### Не нашли своей проблемы
 
