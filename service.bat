@@ -1,5 +1,8 @@
 @echo off
+chcp 65001 > nul
 set "LOCAL_VERSION=1.8.5"
+set "CMD_DIR=%~dp0"
+set "CMD_FILE=%~f0"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -46,11 +49,11 @@ echo 2. Remove Services
 echo 3. Check Status
 echo 4. Run Diagnostics
 echo 5. Check Updates
-echo 6. Switch Game Filter (%GameFilterStatus%)
-echo 7. Switch ipset (%IPsetStatus%)
+echo 6. Switch Game Filter (!GameFilterStatus!)
+echo 7. Switch ipset (!IPsetStatus!)
 echo 8. Update ipset list
 echo 0. Exit
-set /p menu_choice=Enter choice (0-8): 
+set /p menu_choice=Enter choice (0-8):
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -73,7 +76,6 @@ exit /b
 :: STATUS ==============================
 :service_status
 cls
-chcp 437 > nul
 
 sc query "zapret" >nul 2>&1
 if !errorlevel!==0 (
@@ -121,7 +123,6 @@ exit /b
 :: REMOVE ==============================
 :service_remove
 cls
-chcp 65001 > nul
 
 set SRVCNAME=zapret
 sc query "!SRVCNAME!" >nul 2>&1
@@ -156,7 +157,6 @@ goto menu
 :: INSTALL =============================
 :service_install
 cls
-chcp 65001 > nul
 
 :: Main
 cd /d "%~dp0"
@@ -291,57 +291,91 @@ goto menu
 
 :: CHECK UPDATES =======================
 :service_check_updates
-chcp 437 > nul
 cls
+
+echo.
+echo === Проверка обновлений ===
 
 :: Set current version and URLs
 set "GITHUB_VERSION_URL=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/version.txt"
-set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/"
-set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest/download/zapret-discord-youtube-"
+set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest/download/"
 
-:: Get the latest version from GitHub
-for /f "delims=" %%A in ('powershell -command "(Invoke-WebRequest -Uri \"%GITHUB_VERSION_URL%\" -Headers @{\"Cache-Control\"=\"no-cache\"} -TimeoutSec 5).Content.Trim()" 2^>nul') do set "GITHUB_VERSION=%%A"
+:: Get the latest version from GitHub using PowerShell (UTF-8 support)
+for /f "delims=" %%A in ('powershell -command "(Invoke-WebRequest -Uri \"%GITHUB_VERSION_URL%\" -Headers @{'Cache-Control'='no-cache'} -TimeoutSec 5).Content.Trim()" 2^>nul') do set "GITHUB_VERSION=%%A"
 
 :: Error handling
 if not defined GITHUB_VERSION (
-    echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
-    timeout /T 9
-    if "%1"=="soft" exit 
+    echo [Внимание] Не удалось получить последнюю версию. Программа продолжит работу.
+    timeout /T 5 > nul
+    if "%1"=="soft" exit /b
     goto menu
 )
 
 :: Version comparison
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
-    echo Latest version installed: %LOCAL_VERSION%
-    
-    if "%1"=="soft" exit 
-    pause
+    echo Установлена актуальная версия: %LOCAL_VERSION%
+    timeout /T 3 > nul
+    if "%1"=="soft" exit /b
     goto menu
-) 
-
-echo New version available: %GITHUB_VERSION%
-echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
-
-set "CHOICE="
-set /p "CHOICE=Do you want to automatically download the new version? (Y/N) (default: Y) "
-if "%CHOICE%"=="" set "CHOICE=Y"
-if /i "%CHOICE%"=="y" set "CHOICE=Y"
-
-if /i "%CHOICE%"=="Y" (
-    echo Opening the download page...
-    start "" "%GITHUB_DOWNLOAD_URL%%GITHUB_VERSION%.rar"
 )
 
+echo.
+echo !!! НОВАЯ ВЕРСИЯ ДОСТУПНА: %GITHUB_VERSION% !!!
+echo Текущая версия: %LOCAL_VERSION%
 
-if "%1"=="soft" exit 
+call :download_and_unpack
+
+echo.
+echo Обновление завершено. Старый исполняемый файл будет удален и будет запущен новый.
+:: Запуск процесса самоликвидации и закрытие текущего окна
+call :self_destruct
+
+if "%1"=="soft" exit /b
 pause
 goto menu
 
+:: ---
+:: FUNCTION: DOWNLOAD AND UNPACK
+:: ---
+:download_and_unpack
+setlocal EnableDelayedExpansion
+
+:: 1. Prepare file names (Assuming new file is a ZIP, and the name matches the version)
+set "REMOTE_FILE=zapret-discord-youtube-!GITHUB_VERSION!.zip"
+set "FULL_DOWNLOAD_URL=%GITHUB_DOWNLOAD_URL%!REMOTE_FILE!"
+set "LOCAL_PATH=%CMD_DIR%!REMOTE_FILE!"
+
+echo.
+echo [1/3] Загрузка новой версии: !REMOTE_FILE!
+
+:: 2. Download the ZIP file using PowerShell
+powershell -command "Invoke-WebRequest -Uri '!FULL_DOWNLOAD_URL!' -OutFile '!LOCAL_PATH!'"
+
+if not exist "!LOCAL_PATH!" (
+    echo [Ошибка] Не удалось загрузить файл по URL: !FULL_DOWNLOAD_URL!
+    goto :download_and_unpack_end
+)
+
+echo.
+echo [2/3] Файл успешно загружен.
+
+echo.
+echo [3/3] Распаковка архива в: %CMD_DIR%
+
+:: 3. Unpack the ZIP file into the current directory
+:: This uses the Shell.Application COM object for built-in ZIP support
+powershell -command "$shell = New-Object -ComObject Shell.Application; $zip = $shell.NameSpace('!LOCAL_PATH!'); $dest = $shell.NameSpace('%CMD_DIR%'); $dest.CopyHere($zip.Items(), 16); Start-Sleep -s 1; Remove-Item '!LOCAL_PATH!' -Force"
+
+echo.
+echo Распаковка завершена. Старый архив удален.
+
+:download_and_unpack_end
+endlocal
+exit /b
 
 
 :: DIAGNOSTICS =========================
 :service_diagnostics
-chcp 437 > nul
 cls
 
 :: Base Filtering Engine
@@ -365,7 +399,7 @@ if !proxyEnabled!==1 (
     for /f "tokens=2*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul ^| findstr /i "ProxyServer"') do (
         set "proxyServer=%%B"
     )
-    
+
     call :PrintYellow "[?] System proxy is enabled: !proxyServer!"
     call :PrintYellow "Make sure it's valid or disable it if you don't use a proxy"
 ) else (
@@ -482,16 +516,16 @@ set "windivert_running=!errorlevel!"
 
 if !winws_running! neq 0 if !windivert_running!==0 (
     call :PrintYellow "[?] winws.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
-    
+
     net stop "WinDivert" >nul 2>&1
     sc delete "WinDivert" >nul 2>&1
     sc query "WinDivert" >nul 2>&1
     if !errorlevel!==0 (
         call :PrintRed "[X] Failed to delete WinDivert. Checking for conflicting services..."
-        
+
         set "conflicting_services=GoodbyeDPI"
         set "found_conflict=0"
-        
+
         for %%s in (!conflicting_services!) do (
             sc query "%%s" >nul 2>&1
             if !errorlevel!==0 (
@@ -506,7 +540,7 @@ if !winws_running! neq 0 if !windivert_running!==0 (
                 set "found_conflict=1"
             )
         )
-        
+
         if !found_conflict!==0 (
             call :PrintRed "[X] No conflicting services found. Check manually if any other bypass is using WinDivert."
         ) else (
@@ -524,7 +558,7 @@ if !winws_running! neq 0 if !windivert_running!==0 (
     ) else (
         call :PrintGreen "WinDivert successfully removed"
     )
-    
+
     echo:
 )
 
@@ -547,12 +581,12 @@ for %%s in (!conflicting_services!) do (
 
 if !found_any_conflict!==1 (
     call :PrintRed "[X] Conflicting bypass services found: !found_conflicts!"
-    
+
     set "CHOICE="
     set /p "CHOICE=Do you want to remove these conflicting services? (Y/N) (default: N) "
     if "!CHOICE!"=="" set "CHOICE=N"
     if "!CHOICE!"=="y" set "CHOICE=Y"
-    
+
     if /i "!CHOICE!"=="Y" (
         for %%s in (!found_conflicts!) do (
             call :PrintYellow "Stopping and removing service: %%s"
@@ -570,13 +604,13 @@ if !found_any_conflict!==1 (
         net stop "WinDivert14" >nul 2>&1
         sc delete "WinDivert14" >nul 2>&1
     )
-    
+
     echo:
 )
 
 :: Discord cache clearing
 set "CHOICE="
-set /p "CHOICE=Do you want to clear the Discord cache? (Y/N) (default: Y)  "
+set /p "CHOICE=Do you want to clear the Discord cache? (Y/N) (default: Y) "
 if "!CHOICE!"=="" set "CHOICE=Y"
 if "!CHOICE!"=="y" set "CHOICE=Y"
 
@@ -616,7 +650,6 @@ goto menu
 
 :: GAME SWITCH ========================
 :game_switch_status
-chcp 437 > nul
 
 set "gameFlagFile=%~dp0bin\game_filter.enabled"
 
@@ -631,7 +664,6 @@ exit /b
 
 
 :game_switch
-chcp 437 > nul
 cls
 
 if not exist "%gameFlagFile%" (
@@ -650,7 +682,6 @@ goto menu
 
 :: IPSET SWITCH =======================
 :ipset_switch_status
-chcp 437 > nul
 
 findstr /R "^203\.0\.113\.113/32$" "%~dp0lists\ipset-all.txt" >nul
 if !errorlevel!==0 (
@@ -662,7 +693,6 @@ exit /b
 
 
 :ipset_switch
-chcp 437 > nul
 cls
 
 set "listFile=%~dp0lists\ipset-all.txt"
@@ -700,7 +730,6 @@ goto menu
 
 :: IPSET UPDATE =======================
 :ipset_update
-chcp 437 > nul
 cls
 
 set "listFile=%~dp0lists\ipset-all.txt"
@@ -738,3 +767,23 @@ exit /b
 :PrintYellow
 powershell -Command "Write-Host \"%~1\" -ForegroundColor Yellow"
 exit /b
+
+:: ---
+:: FUNCTION: SELF-DESTRUCT AND RESTART
+:: ---
+:self_destruct
+set "KILLER_BAT=%TEMP%\kill_and_cleanup_%RANDOM%.bat"
+
+
+(
+    echo @echo off
+    echo timeout /T 2 /NOBREAK > nul
+    echo del /F /Q "%CMD_FILE%"
+    echo del /F /Q "%KILLER_BAT%"
+    
+    echo start "" "%CMD_DIR%service.cmd" admin
+) > "%KILLER_BAT%"
+
+echo Запуск скрипта самоликвидации и завершение текущего процесса.
+start "" "%KILLER_BAT%"
+EXIT /b
