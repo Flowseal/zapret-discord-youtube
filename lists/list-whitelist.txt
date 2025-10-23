@@ -1,0 +1,30 @@
+# Вайтлист доменов - домены, которые НЕ должны фильтроваться
+# Каждый домен на отдельной строке
+# Поддомены учитываются автоматически
+
+# API сервисы, которые должны работать без фильтрации
+api.twitch.tv
+usher.ttvnw.net
+ttvnw.net
+api.github.com
+api.discord.com
+youtubei
+
+# Системные домены Windows
+windowsupdate.microsoft.com
+update.microsoft.com
+download.microsoft.com
+
+# Облачные сервисы
+onedrive.live.com
+outlook.live.com
+login.live.com
+
+# DNS сервисы
+1.1.1.1
+8.8.8.8
+8.8.4.4
+
+# Другие важные сервисы
+steamcommunity.com
+steampowered.com
