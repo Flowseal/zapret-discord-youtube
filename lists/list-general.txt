@@ -1,6 +1,4 @@
 cloudflare-ech.com
-hcaptcha.com
-challenges.cloudflare.com
 cloudflareaccess.com
 cloudflareapps.com
 cloudflarebolt.com
