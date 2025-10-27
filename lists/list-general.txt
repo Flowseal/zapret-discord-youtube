@@ -44,3 +44,8 @@ ffzap.com
 betterttv.net
 7tv.app
 7tv.io
+downloadcommon.limbuscompanycdn.org
+download.limbuscompanycdn.org
+downloadfmod.limbuscompanycdn.org
+presence.limbuscompanyapi.com
+www.limbuscompanyapi.com
