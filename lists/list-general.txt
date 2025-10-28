@@ -1,4 +1,5 @@
 cloudflare-ech.com
+encryptedsni.com
 cloudflareaccess.com
 cloudflareapps.com
 cloudflarebolt.com
