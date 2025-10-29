@@ -652,11 +652,18 @@ goto menu
 :ipset_switch_status
 chcp 437 > nul
 
-findstr /R "^203\.0\.113\.113/32$" "%~dp0lists\ipset-all.txt" >nul
-if !errorlevel!==0 (
-    set "IPsetStatus=empty"
+set "listFile=%~dp0lists\ipset-all.txt"
+for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
+
+if !lineCount!==0 (
+    set "IPsetStatus=any"
 ) else (
-    set "IPsetStatus=loaded"
+    findstr /R "^203\.0\.113\.113/32$" "%listFile%" >nul
+    if !errorlevel!==0 (
+        set "IPsetStatus=none"
+    ) else (
+        set "IPsetStatus=loaded"
+    )
 )
 exit /b
 
@@ -668,30 +675,39 @@ cls
 set "listFile=%~dp0lists\ipset-all.txt"
 set "backupFile=%listFile%.backup"
 
-findstr /R "^203\.0\.113\.113/32$" "%listFile%" >nul
-if !errorlevel!==0 (
-    echo Enabling ipset based bypass...
-
-    if exist "%backupFile%" (
-        del /f /q "%listFile%"
-        ren "%backupFile%" "ipset-all.txt"
-    ) else (
-        echo Error: no backup to restore. Update list from service menu by yourself
-    )
-
-) else (
-    echo Disabling ipset based bypass...
-
+if "%IPsetStatus%"=="loaded" (
+    echo Switching to none mode...
+    
     if not exist "%backupFile%" (
         ren "%listFile%" "ipset-all.txt.backup"
     ) else (
         del /f /q "%backupFile%"
         ren "%listFile%" "ipset-all.txt.backup"
     )
-
+    
     >"%listFile%" (
         echo 203.0.113.113/32
     )
+    
+) else if "%IPsetStatus%"=="none" (
+    echo Switching to any mode...
+    
+    >"%listFile%" (
+        rem Creating empty file
+    )
+    
+) else if "%IPsetStatus%"=="any" (
+    echo Switching to loaded mode...
+    
+    if exist "%backupFile%" (
+        del /f /q "%listFile%"
+        ren "%backupFile%" "ipset-all.txt"
+    ) else (
+        echo Error: no backup to restore. Update list from service menu first
+        pause
+        goto menu
+    )
+    
 )
 
 pause
