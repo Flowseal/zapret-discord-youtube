@@ -33,11 +33,13 @@
 1. Включите Secure DNS. В Chrome - "Использовать безопасный DNS", и выбрать поставщика услуг DNS (выбрать вариант, отличный от поставщика по умолчанию). В Firefox - "Включить DNS через HTTPS, используя: Максимальную защиту"
     * В **Windows 11** поддерживается включение Secure DNS прямо в настройках - [инструкция тут](https://www.howtogeek.com/765940/how-to-enable-dns-over-https-on-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
 
-2. Загрузите архив (zip/rar) со [страницы последнего релиза](https://github.com/Flowseal/zapret-discord-youtube/releases/latest)
+2. Скачайте архив (zip/rar) со [страницы последнего релиза](https://github.com/Flowseal/zapret-discord-youtube/releases/latest)
 
-3. Распакуйте содержимое архива по пути, который не содержит кириллицу/спец. символы
+3. Зайдите в свойства скачанного архива и поставьте галочку "Разблокировать". Если вы используете архиватор 7-Zip или PeaZip, этот шаг можно пропустить
 
-4. Запустите нужный файл
+4. Распакуйте содержимое архива по пути, который не содержит кириллицу/спец. символы
+
+5. Запустите нужный файл
 
 ## ℹ️Краткие описания файлов
 
@@ -128,13 +130,18 @@ sc stop название_из_первого_шага
 sc delete название_из_первого_шага
 ```
 
-### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
-
-- См. [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
-
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
 
 - См. [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
+
+### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
+
+Работает ли YouTube?
+- Если YouTube не работает, значит необходимо использовать другую стратегию. Почините сначала ютуб.
+- Если YouTube работает, то проверьте Discord в браузере: https://discord.com/app. В браузере работает? Если да, то так и пользуйтесь.
+- Если Discord и в браузере не работает, убедитесь что вы настроили Secure DNS, и после этого ещё раз пробуйте все стратегии. Бывает такое, что на одной стратегии YouTube работает, а Discord нет.
+- Если ни одна из стратегий не подошла, то может помочь всем известное решение из трёх букв.
+- См. также [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
 
 ### Не нашли своей проблемы
 
