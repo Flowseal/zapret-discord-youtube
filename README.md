@@ -146,7 +146,7 @@ sc delete название_из_первого_шага
 - [`list-general.txt`](./lists/list-general.txt) для доменов (поддомены автоматически учитываются)
 - [`list-exclude.txt`](./lists/list-exclude.txt) для исключения доменов (например, если айпи сети указан в `ipset-all.txt`, но конкретный домен из этой сети не надо фильтровать)
 - [`ipset-all.txt`](./lists/ipset-all.txt) для IP и подсетей
-- [`ipset-all.txt`](./lists/ipset-exclude.txt) для исключения IP и подсетей
+- [`ipset-exclude.txt`](./lists/ipset-exclude.txt) для исключения IP и подсетей
 
 ## ⭐Поддержка проекта
 
