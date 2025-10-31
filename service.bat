@@ -453,7 +453,7 @@ sc query | findstr /I "VPN" > nul
 if !errorlevel!==0 (
     for /f "tokens=2 delims=:" %%A in ('sc query ^|^ findstr /I "VPN"') do (
         if not defined VPN_SERVICES (
-            set "VPN_SERVICES=%%A"
+            set "VPN_SERVICES=!VPN_SERVICES!%%A"
         ) else (
             set "VPN_SERVICES=!VPN_SERVICES!,%%A"
         )
