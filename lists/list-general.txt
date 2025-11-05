@@ -43,3 +43,7 @@ ffzap.com
 betterttv.net
 7tv.app
 7tv.io
+facepunch.com
+*.facepunch.com
+rustmaps.com
+*.rustmaps.com
