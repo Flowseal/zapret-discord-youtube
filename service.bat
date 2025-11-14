@@ -82,13 +82,18 @@ if !errorlevel!==0 (
 
 call :test_service zapret
 call :test_service WinDivert
+
+set "BIN_PATH=%~dp0bin\"
+if not exist "%BIN_PATH%\WinDivert64.sys" (
+    call :PrintRed "File bin\WinDivert64.sys is NOT found."
+)
 echo:
 
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
 if !errorlevel!==0 (
-    call :PrintGreen "Bypass (winws.exe) is ACTIVE"
+    call :PrintGreen "Bypass (winws.exe) is RUNNING."
 ) else (
-    call :PrintRed "Bypass (winws.exe) NOT FOUND"
+    call :PrintRed "Bypass (winws.exe) is NOT running."
 )
 
 pause
@@ -445,6 +450,15 @@ if !errorlevel!==0 (
     call :PrintRed "Try to uninstall or disable SmartByte through services.msc"
 ) else (
     call :PrintGreen "SmartByte check passed"
+)
+echo:
+
+:: WinDivert64.sys file
+set "BIN_PATH=%~dp0bin\"
+if not exist "%BIN_PATH%\WinDivert64.sys" (
+    call :PrintRed "File bin\WinDivert64.sys is NOT found."
+) else (
+    call :PrintGreen "File bin\WinDivert64.sys is found."
 )
 echo:
 
