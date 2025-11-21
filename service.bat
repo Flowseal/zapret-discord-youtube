@@ -84,7 +84,7 @@ call :test_service zapret
 call :test_service WinDivert
 
 set "BIN_PATH=%~dp0bin\"
-if not exist "%BIN_PATH%\WinDivert64.sys" (
+if not exist "%BIN_PATH%\*.sys" (
     call :PrintRed "File bin\WinDivert64.sys is NOT found."
 )
 echo:
@@ -455,10 +455,10 @@ echo:
 
 :: WinDivert64.sys file
 set "BIN_PATH=%~dp0bin\"
-if not exist "%BIN_PATH%\WinDivert64.sys" (
+if not exist "%BIN_PATH%\*.sys" (
     call :PrintRed "File bin\WinDivert64.sys is NOT found."
 ) else (
-    call :PrintGreen "File bin\WinDivert64.sys is found."
+    call :PrintGreen "File WinDivert64.sys is found."
 )
 echo:
 
