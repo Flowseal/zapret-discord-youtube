@@ -385,6 +385,7 @@ if !errorlevel! neq 0  (
 	echo PATH = "%PATH%"
 	echo:
 	pause
+	goto menu
 )
 
 :: TCP timestamps check
