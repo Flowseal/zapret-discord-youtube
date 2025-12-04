@@ -1,0 +1,2 @@
+YouTube="https://www.youtube.com"
+Discord="https://discord.com"
