@@ -1,4 +1,4 @@
-# targets.txt - список конечных точек для теста zapret.ps1
+﻿# targets.txt - список конечных точек для теста zapret.ps1
 #
 # Формат:
 #   KeyName = "https://host..."   -> Выполняет проверки HTTP/TLS + ping

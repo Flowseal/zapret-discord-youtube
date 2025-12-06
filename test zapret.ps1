@@ -1,4 +1,4 @@
-$hasErrors = $false
+﻿$hasErrors = $false
 
 # Check Admin
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
