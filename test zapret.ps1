@@ -1,33 +1,35 @@
-﻿$hasErrors = $false
+$hasErrors = $false
 
 # Check Admin
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "[ERROR] Run as Administrator!" -ForegroundColor Red
+    Write-Host "[ERROR] Запустите от имени администратора!" -ForegroundColor Red
     $hasErrors = $true
 } else {
-    Write-Host "[OK] Admin rights" -ForegroundColor Green
+    Write-Host "[OK] Права администратора есть" -ForegroundColor Green
 }
 
 # Check curl
-$curlPath = Get-Command "curl.exe" -ErrorAction SilentlyContinue
-if (-not $curlPath) {
-    Write-Host "[ERROR] curl.exe not found!" -ForegroundColor Red
-    Write-Host "         Install curl or add to PATH" -ForegroundColor Yellow
+if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
+    Write-Host "[ERROR] Не найден curl.exe" -ForegroundColor Red
+    Write-Host "         Установите curl или добавьте в PATH" -ForegroundColor Yellow
     $hasErrors = $true
 } else {
-    Write-Host "[OK] curl.exe found" -ForegroundColor Green
+    Write-Host "[OK] Найден curl.exe" -ForegroundColor Green
 }
 
 if ($hasErrors) {
     Write-Host ""
-    Write-Host "Fix errors and restart." -ForegroundColor Yellow
-    Write-Host "Press any key to exit..." -ForegroundColor DarkGray
+    Write-Host "Исправьте ошибки и перезапустите." -ForegroundColor Yellow
+    Write-Host "Нажмите любую клавишу для выхода..." -ForegroundColor DarkGray
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 1
 }
 
 Write-Host ""
+
+$script:spinIndex = -1
+$script:currentLine = ""
 
 # Config
 $targetDir = $PSScriptRoot
@@ -35,59 +37,78 @@ $batFiles = Get-ChildItem -Path $targetDir -Filter "general*.bat" | Sort-Object 
 
 # Load targets
 $targetsFile = Join-Path $targetDir "targets.txt"
-$targets = [ordered]@{}
+$rawTargets = [ordered]@{}
 if (Test-Path $targetsFile) {
     Get-Content $targetsFile | ForEach-Object {
         if ($_ -match '^\s*(\w+)\s*=\s*"(.+)"\s*$') {
-            $targets[$matches[1]] = $matches[2]
+            $rawTargets[$matches[1]] = $matches[2]
         }
     }
 }
 
-# Defaults if empty
-if ($targets.Count -eq 0) {
-    Write-Host "[INFO] targets.txt missing or empty. Using defaults." -ForegroundColor Gray
-    $targets["Discord"] = "https://discord.com"
-    $targets["YouTube"] = "https://www.youtube.com"
+# Defaults if targets.txt missing or empty
+if ($rawTargets.Count -eq 0) {
+    Write-Host "[INFO] targets.txt отсутствует или пуст. Использую значения по умолчанию." -ForegroundColor Gray
+    $rawTargets["Discord Main"]           = "https://discord.com"
+    $rawTargets["Discord Gateway"]        = "https://gateway.discord.gg"
+    $rawTargets["Discord CDN"]            = "https://cdn.discordapp.com"
+    $rawTargets["Discord Updates"]        = "https://updates.discord.com"
+    $rawTargets["YouTube Web"]            = "https://www.youtube.com"
+    $rawTargets["YouTube Short"]          = "https://youtu.be"
+    $rawTargets["YouTube Image"]          = "https://i.ytimg.com"
+    $rawTargets["YouTube Video Redirect"] = "https://redirector.googlevideo.com"
+    $rawTargets["Google Main"]            = "https://www.google.com"
+    $rawTargets["Google Gstatic"]         = "https://www.gstatic.com"
+    $rawTargets["Cloudflare Web"]         = "https://www.cloudflare.com"
+    $rawTargets["Cloudflare CDN"]         = "https://cdnjs.cloudflare.com"
+    $rawTargets["Cloudflare DNS 1.1.1.1"] = "PING:1.1.1.1"
+    $rawTargets["Cloudflare DNS 1.0.0.1"] = "PING:1.0.0.1"
+    $rawTargets["Google DNS 8.8.8.8"]     = "PING:8.8.8.8"
+    $rawTargets["Google DNS 8.8.4.4"]     = "PING:8.8.4.4"
+    $rawTargets["Quad9 DNS 9.9.9.9"]      = "PING:9.9.9.9"
 } else {
-    Write-Host "[INFO] Loaded targets: $($targets.Count)" -ForegroundColor Gray
+    Write-Host "[INFO] Загружено целей: $($rawTargets.Count)" -ForegroundColor Gray
 }
 
+# Convert raw targets to structured list (supports PING:ip for ping-only targets)
+function Convert-Target {
+    param(
+        [string]$Name,
+        [string]$Value
+    )
+
+    if ($Value -like "PING:*") {
+        $ping = $Value -replace '^PING:\s*', ''
+        $url = $null
+        $pingTarget = $ping
+    } else {
+        $url = $Value
+        $pingTarget = $url -replace "^https?://", "" -replace "/.*$", ""
+    }
+
+    return [pscustomobject]@{
+        Name       = $Name
+        Url        = $url
+        PingTarget = $pingTarget
+    }
+}
+
+$targetList = @()
+foreach ($key in $rawTargets.Keys) {
+    $targetList += Convert-Target -Name $key -Value $rawTargets[$key]
+}
+
+# Max name length for aligned output
+$maxNameLen = ($targetList | ForEach-Object { $_.Name.Length } | Measure-Object -Maximum).Maximum
+if (-not $maxNameLen -or $maxNameLen -lt 10) { $maxNameLen = 10 }
+
 Write-Host ""
-Write-Host "Press any key to start..." -ForegroundColor DarkGray
+Write-Host "Нажмите любую клавишу для старта..." -ForegroundColor DarkGray
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 
 # Stop winws
 function Stop-Zapret {
     Get-Process -Name "winws" -ErrorAction SilentlyContinue | Stop-Process -Force
-}
-
-# Curl check
-function Test-Curl {
-    param($url)
-    try {
-        $output = & curl.exe -I -s -m 5 -o NUL -w "%{http_code}" $url
-        
-        if ($LASTEXITCODE -eq 0 -and $output -match "^2\d\d|^3\d\d") {
-            return "OK ($output)"
-        } else {
-            return "ERROR ($output)"
-        }
-    } catch {
-        return "ERROR (Exception)"
-    }
-}
-
-# Ping check
-function Test-Ping {
-    param($target)
-    try {
-        $pings = Test-Connection -ComputerName $target -Count 3 -ErrorAction Stop
-        $avg = ($pings | Measure-Object -Property ResponseTime -Average).Average
-        return "{0:N0} ms" -f $avg
-    } catch {
-        return "Timeout"
-    }
 }
 
 # Spinner animation
@@ -99,67 +120,12 @@ function Show-Spinner {
     Start-Sleep -Milliseconds $delay
 }
 
-# Curl with progress
-function Test-CurlWithProgress {
-    param($url, $label)
-    
-    $job = Start-Job -ScriptBlock {
-        param($u)
-        $output = & curl.exe -I -s -m 10 -o NUL -w "%{http_code}" $u
-        if ($LASTEXITCODE -eq 0 -and $output -match "^2\d\d|^3\d\d") {
-            return "OK ($output)"
-        } else {
-            return "ERROR ($output)"
-        }
-    } -ArgumentList $url
-    
-    $script:currentLine = "  $label [HTTP] "
-    Write-Host "`r$($script:currentLine) " -NoNewline
-    while ($job.State -eq 'Running') {
-        Show-Spinner
-    }
-    
-    $result = Receive-Job -Job $job
-    Remove-Job -Job $job
-    
-    if (-not $result) { return "ERROR" }
-    return $result
-}
-
-# Ping with progress
-function Test-PingWithProgress {
-    param($target, $label)
-    
-    $job = Start-Job -ScriptBlock {
-        param($t)
-        try {
-            $pings = Test-Connection -ComputerName $t -Count 3 -ErrorAction Stop
-            $avg = ($pings | Measure-Object -Property ResponseTime -Average).Average
-            return "{0:N0} ms" -f $avg
-        } catch {
-            return "Timeout"
-        }
-    } -ArgumentList $target
-    
-    $script:currentLine = "  $label [PING] "
-    Write-Host "`r$($script:currentLine) " -NoNewline
-    while ($job.State -eq 'Running') {
-        Show-Spinner
-    }
-    
-    $result = Receive-Job -Job $job
-    Remove-Job -Job $job
-    
-    if (-not $result) { return "Timeout" }
-    return $result
-}
-
 $results = @()
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "             ZAPRET CONFIGURATION TESTER" -ForegroundColor Cyan
-Write-Host "                Total configs: $($batFiles.Count.ToString().PadLeft(2))" -ForegroundColor Cyan
+Write-Host "              ТЕСТ КОНФИГУРАЦИЙ ZAPRET" -ForegroundColor Cyan
+Write-Host "                Всего конфигов: $($batFiles.Count.ToString().PadLeft(2))" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 $configNum = 0
@@ -174,67 +140,140 @@ foreach ($file in $batFiles) {
     Stop-Zapret
     
     # Start config
-    Write-Host "  > Starting config..." -ForegroundColor Cyan
+    Write-Host "  > Запуск конфигурации..." -ForegroundColor Cyan
     $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($file.FullName)`"" -WorkingDirectory $targetDir -PassThru -WindowStyle Minimized
     
     # Wait init
-    Write-Host "  > Waiting for init (5s)..." -ForegroundColor DarkGray
+    Write-Host "  > Ожидаю запуск (5с)..." -ForegroundColor DarkGray
     Start-Sleep -Seconds 5
     
     # Tests
     Write-Host ""
     
     $currentRes = [ordered]@{
-        'Config' = $file.Name
+        'Конфиг' = $file.Name
     }
 
-    # Max name length
-    $maxNameLen = ($targets.Keys | Measure-Object -Property Length -Maximum).Maximum
-    if ($maxNameLen -lt 10) { $maxNameLen = 10 }
+    $curlTimeoutSeconds = 8
 
-    # Dynamic targets
-    foreach ($targetName in $targets.Keys) {
-        $targetUrl = $targets[$targetName]
-        $targetDomain = $targetUrl -replace "^https?://", "" -replace "/.*$", ""
-        
-        $status = Test-CurlWithProgress $targetUrl $targetName
-        
-        if ($status -match "OK") {
-            $ping = Test-PingWithProgress $targetDomain $targetName
-        } else {
-            $ping = "?"
-        }
-        
-        if ($status -match "OK") {
-            $combined = "$status | Ping: $ping"
-            $combinedColor = "Green"
-        } else {
-            $combined = $status
-            $combinedColor = "Red"
-        }
-        
+    # Parallel target checks
+    $targetJobs = @()
+    foreach ($target in $targetList) {
+        $targetJobs += Start-Job -ScriptBlock {
+            param($t, $curlTimeoutSeconds)
+
+            $httpPieces = @()
+
+            if ($t.Url) {
+                $tests = @(
+                    @{ Label = "HTTP";   Args = @("--http1.1") },
+                    # Enforce exact TLS versions by pinning both min and max
+                    @{ Label = "TLS1.0"; Args = @("--tlsv1.0", "--tls-max", "1.0") },
+                    @{ Label = "TLS1.1"; Args = @("--tlsv1.1", "--tls-max", "1.1") },
+                    @{ Label = "TLS1.2"; Args = @("--tlsv1.2", "--tls-max", "1.2") },
+                    @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
+                )
+
+                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "-o", "NUL", "-w", "%{http_code}")
+                foreach ($test in $tests) {
+                    try {
+                        $curlArgs = $baseArgs + $test.Args
+                        $output = & curl.exe @curlArgs $t.Url 2>&1
+                        $text = ($output | Out-String).Trim()
+                        $unsupported = $text -match "does not support|not supported"
+                        if ($unsupported) {
+                            $httpPieces += "$($test.Label):UNSUP"
+                            continue
+                        }
+
+                        $ok = ($LASTEXITCODE -eq 0)
+                        if ($ok) {
+                            $httpPieces += "$($test.Label):OK   "
+                        } else {
+                            $httpPieces += "$($test.Label):ERROR"
+                        }
+                    } catch {
+                        $httpPieces += "$($test.Label):ERROR"
+                    }
+                }
+            }
+
+            $pingResult = "н/д"
+            if ($t.PingTarget) {
+                try {
+                    $pings = Test-Connection -ComputerName $t.PingTarget -Count 3 -ErrorAction Stop
+                    $avg = ($pings | Measure-Object -Property ResponseTime -Average).Average
+                    $pingResult = "{0:N0} ms" -f $avg
+                } catch {
+                    $pingResult = "Тайм-аут"
+                }
+            }
+
+            return [pscustomobject]@{
+                Name          = $t.Name
+                HttpTokens    = $httpPieces
+                PingResult    = $pingResult
+                IsUrl         = [bool]$t.Url
+            }
+        } -ArgumentList $target, $curlTimeoutSeconds
+    }
+
+    $script:currentLine = "  Выполняю тесты "
+    Write-Host "`r$($script:currentLine) " -NoNewline
+    while (@($targetJobs | Where-Object State -eq 'Running').Count -gt 0) {
+        Show-Spinner 120
+    }
+
+    Wait-Job -Job $targetJobs | Out-Null
+    $targetResults = foreach ($job in $targetJobs) { Receive-Job -Job $job }
+    Remove-Job -Job $targetJobs -Force
+
+    $targetLookup = @{}
+    foreach ($res in $targetResults) { $targetLookup[$res.Name] = $res }
+
+    foreach ($target in $targetList) {
+        $res = $targetLookup[$target.Name]
+        if (-not $res) { continue }
+
         $padding = " " * 60
         Write-Host "`r$padding" -NoNewline
-        Write-Host "`r  $($targetName.PadRight($maxNameLen))    " -NoNewline
-        Write-Host "$combined" -ForegroundColor $combinedColor
-        
-        $currentRes[$targetName] = $combined
+        Write-Host "`r  $($target.Name.PadRight($maxNameLen))    " -NoNewline
+
+        if ($res.IsUrl -and $res.HttpTokens) {
+            foreach ($tok in $res.HttpTokens) {
+                $tokColor = "Green"
+                if ($tok -match "UNSUP") { $tokColor = "Yellow" }
+                elseif ($tok -match "ERR") { $tokColor = "Red" }
+                Write-Host " $tok" -NoNewline -ForegroundColor $tokColor
+            }
+            Write-Host " | Пинг: " -NoNewline -ForegroundColor DarkGray
+            if ($res.PingResult -eq "Тайм-аут") {
+                $pingColor = "Yellow"
+            } else {
+                $pingColor = "Cyan"
+            }
+            Write-Host "$($res.PingResult)" -NoNewline -ForegroundColor $pingColor
+            Write-Host ""
+        } else {
+            # Ping-only target
+            Write-Host " Пинг: " -NoNewline -ForegroundColor DarkGray
+            if ($res.PingResult -eq "Тайм-аут") {
+                $pingColor = "Red"
+            } else {
+                $pingColor = "Cyan"
+            }
+            Write-Host "$($res.PingResult)" -ForegroundColor $pingColor
+        }
+
+        # Build combined string for CSV
+        if ($res.IsUrl -and $res.HttpTokens) {
+            $combined = ($res.HttpTokens -join " ") + " | Пинг: $($res.PingResult)"
+        } else {
+            $combined = "Пинг: $($res.PingResult)"
+        }
+        $currentRes[$target.Name] = $combined
     }
 
-    # Google DNS
-    $ping8888 = Test-PingWithProgress "8.8.8.8" "Google DNS"
-    $dnsResult = "Ping: $ping8888"
-    
-    $padding = " " * 60
-    Write-Host "`r$padding" -NoNewline
-    Write-Host "`r  $("Google DNS".PadRight($maxNameLen))    " -NoNewline
-    if ($ping8888 -eq "Timeout") {
-        Write-Host "$dnsResult" -ForegroundColor Red
-    } else {
-        Write-Host "$dnsResult" -ForegroundColor Cyan
-    }
-    $currentRes['GoogleDNS'] = $dnsResult
-    
     $results += [PSCustomObject]$currentRes
     
     # Stop
@@ -247,8 +286,8 @@ $csvPath = Join-Path $PSScriptRoot "test results.csv"
 $results | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
 
 Write-Host ""
-Write-Host "Results saved to: " -NoNewline -ForegroundColor DarkGray
+Write-Host "Результаты сохранены в: " -NoNewline -ForegroundColor DarkGray
 Write-Host "test results.csv" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Press any key to exit..." -ForegroundColor DarkGray
+Write-Host "Нажмите любую клавишу для выхода..." -ForegroundColor DarkGray
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
