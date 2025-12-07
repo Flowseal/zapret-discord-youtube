@@ -1,35 +1,33 @@
 ﻿$hasErrors = $false
 
 function Test-ZapretServiceConflict {
-    $zapret = Get-Service -Name "zapret" -ErrorAction SilentlyContinue
-    if ($zapret) {
-        Write-Host "" 
-        Write-Host "[ERROR] Zapret is installed as a Windows service (zapret)." -ForegroundColor Red
-        Write-Host "         Tests must run in standalone mode, so please remove the service first." -ForegroundColor Yellow
-        Write-Host "         Run service.bat and choose 'Remove Services'." -ForegroundColor Gray
-        Write-Host ""
-        # Wait removed: handled by batch file
-        exit 1
-    }
+    return [bool](Get-Service -Name "zapret" -ErrorAction SilentlyContinue)
 }
-
 
 # Check Admin
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "[ERROR] Запустите от имени администратора!" -ForegroundColor Red
+    Write-Host "[ОШИБКА] Для работы тестов требуется запуск от имени администратора" -ForegroundColor Red
     $hasErrors = $true
 } else {
-    Write-Host "[OK] Права администратора есть" -ForegroundColor Green
+    Write-Host "[ОК] Права администратора есть" -ForegroundColor Green
 }
 
 # Check curl
 if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
-    Write-Host "[ERROR] Не найден curl.exe" -ForegroundColor Red
-    Write-Host "         Установите curl или добавьте в PATH" -ForegroundColor Yellow
+    Write-Host "[ОШИБКА] Не найден curl.exe" -ForegroundColor Red
+    Write-Host "Установите curl или добавьте в PATH" -ForegroundColor Yellow
     $hasErrors = $true
 } else {
-    Write-Host "[OK] Найден curl.exe" -ForegroundColor Green
+    Write-Host "[ОК] Найден curl.exe" -ForegroundColor Green
+}
+
+# Check if zapret service installed
+if (Test-ZapretServiceConflict) {
+    Write-Host "[ОШИБКА] Обнаружен установленный сервис Windows 'zapret'" -ForegroundColor Red
+    Write-Host "         Для работы тестов сервис должен быть удалён" -ForegroundColor Yellow
+    Write-Host "         Откройте service.bat и выберите пункт 'Remove Services', чтобы удалить сервис" -ForegroundColor Yellow
+    $hasErrors = $true
 }
 
 if ($hasErrors) {
@@ -37,8 +35,6 @@ if ($hasErrors) {
     Write-Host "Исправьте ошибки и перезапустите." -ForegroundColor Yellow
     exit 1
 }
-
-Test-ZapretServiceConflict
 
 Write-Host ""
 
@@ -231,8 +227,8 @@ foreach ($file in $batFiles) {
                 $tests = @(
                     @{ Label = "HTTP";   Args = @("--http1.1") },
                     # Enforce exact TLS versions by pinning both min and max
-                    @{ Label = "TLS1.0"; Args = @("--tlsv1.0", "--tls-max", "1.0") },
-                    @{ Label = "TLS1.1"; Args = @("--tlsv1.1", "--tls-max", "1.1") },
+                    # @{ Label = "TLS1.0"; Args = @("--tlsv1.0", "--tls-max", "1.0") },
+                    # @{ Label = "TLS1.1"; Args = @("--tlsv1.1", "--tls-max", "1.1") },
                     @{ Label = "TLS1.2"; Args = @("--tlsv1.2", "--tls-max", "1.2") },
                     @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
                 )
@@ -352,4 +348,3 @@ Write-Host ""
 Write-Host "Результаты сохранены в: " -NoNewline -ForegroundColor DarkGray
 Write-Host "test results.csv" -ForegroundColor Cyan
 Write-Host ""
-# Wait removed: handled by batch file
