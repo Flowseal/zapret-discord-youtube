@@ -35,7 +35,6 @@ if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
 if ($hasErrors) {
     Write-Host ""
     Write-Host "Исправьте ошибки и перезапустите." -ForegroundColor Yellow
-    Wait-ForExit
     exit 1
 }
 
