@@ -50,53 +50,7 @@ $script:currentLine = ""
 $targetDir = $PSScriptRoot
 $batFiles = Get-ChildItem -Path $targetDir -Filter "general*.bat" | Sort-Object Name
 
-# Select test mode: all configs or custom subset
-function Read-ModeSelection {
-    while ($true) {
-        Write-Host "" 
-        Write-Host "Выберите режим запуска тестов:" -ForegroundColor Cyan
-        Write-Host "  [1] Все конфиги" -ForegroundColor Gray
-        Write-Host "  [2] Выборочные конфиги" -ForegroundColor Gray
-        $choice = Read-Host "Введите 1 или 2"
-        switch ($choice) {
-            '1' { return 'all' }
-            '2' { return 'select' }
-            default { Write-Host "Некорректный ввод. Повторите." -ForegroundColor Yellow }
-        }
-    }
-}
-
-function Read-ConfigSelection {
-    param([array]$allFiles)
-
-    while ($true) {
-        Write-Host "" 
-        Write-Host "Доступные конфиги:" -ForegroundColor Cyan
-        for ($i = 0; $i -lt $allFiles.Count; $i++) {
-            $idx = $i + 1
-            Write-Host "  [$idx] $($allFiles[$i].Name)" -ForegroundColor Gray
-        }
-
-        $selectionInput = Read-Host "Введите номера через запятую (пример: 1,3,5)"
-        $numbers = $selectionInput -split "[,\s]+" | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
-        $valid = $numbers | Where-Object { $_ -ge 1 -and $_ -le $allFiles.Count } | Select-Object -Unique
-
-        if (-not $valid -or $valid.Count -eq 0) {
-            Write-Host "Не выбрано ни одного конфига. Повторите ввод." -ForegroundColor Yellow
-            continue
-        }
-
-        return $valid | ForEach-Object { $allFiles[$_ - 1] }
-    }
-}
-
-$mode = Read-ModeSelection
-if ($mode -eq 'select') {
-    $selected = Read-ConfigSelection -allFiles $batFiles
-    $batFiles = $selected
-}
-
-# Load targets
+# Load targets before choosing mode
 $targetsFile = Join-Path $targetDir "targets.txt"
 $rawTargets = [ordered]@{}
 if (Test-Path $targetsFile) {
@@ -129,6 +83,55 @@ if ($rawTargets.Count -eq 0) {
     $rawTargets["Quad9 DNS 9.9.9.9"]      = "PING:9.9.9.9"
 } else {
     Write-Host "[INFO] Загружено целей: $($rawTargets.Count)" -ForegroundColor Gray
+}
+
+Write-Host ""
+
+# Select test mode: all configs or custom subset
+function Read-ModeSelection {
+    while ($true) {
+        Write-Host "" 
+        Write-Host "Выберите режим запуска тестов:" -ForegroundColor Cyan
+        Write-Host "  [1] Все конфиги" -ForegroundColor Gray
+        Write-Host "  [2] Выборочные конфиги" -ForegroundColor Gray
+        $choice = Read-Host "Введите 1 или 2"
+        switch ($choice) {
+            '1' { return 'all' }
+            '2' { return 'select' }
+            default { Write-Host "Некорректный ввод. Повторите." -ForegroundColor Yellow }
+        }
+    }
+}
+
+function Read-ConfigSelection {
+    param([array]$allFiles)
+
+    while ($true) {
+        Write-Host "" 
+        Write-Host "Доступные конфиги:" -ForegroundColor Cyan
+        for ($i = 0; $i -lt $allFiles.Count; $i++) {
+            $idx = $i + 1
+            Write-Host "  [$idx] $($allFiles[$i].Name)" -ForegroundColor Gray
+        }
+
+        $selectionInput = Read-Host "Введите номера через запятую (пример: 1,3,5)"
+        $numbers = $selectionInput -split "[,\s]+" | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
+        $valid = $numbers | Where-Object { $_ -ge 1 -and $_ -le $allFiles.Count } | Select-Object -Unique
+
+        if (-not $valid -or $valid.Count -eq 0) {
+            Write-Host ""
+            Write-Host "Не выбрано ни одного конфига. Повторите ввод." -ForegroundColor Yellow
+            continue
+        }
+
+        return $valid | ForEach-Object { $allFiles[$_ - 1] }
+    }
+}
+
+$mode = Read-ModeSelection
+if ($mode -eq 'select') {
+    $selected = Read-ConfigSelection -allFiles $batFiles
+    $batFiles = $selected
 }
 
 # Convert raw targets to structured list (supports PING:ip for ping-only targets)
