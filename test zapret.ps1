@@ -1,5 +1,16 @@
 ﻿$hasErrors = $false
 
+function Wait-ForExit {
+    param([string]$message = "Нажмите любую клавишу для выхода...")
+    Write-Host $message -ForegroundColor DarkGray
+    try {
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    } catch {
+        # Fallback for hosts without RawUI
+        Read-Host "Press Enter to exit"
+    }
+}
+
 # Check Admin
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -21,8 +32,7 @@ if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
 if ($hasErrors) {
     Write-Host ""
     Write-Host "Исправьте ошибки и перезапустите." -ForegroundColor Yellow
-    Write-Host "Нажмите любую клавишу для выхода..." -ForegroundColor DarkGray
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    Wait-ForExit
     exit 1
 }
 
@@ -335,5 +345,4 @@ Write-Host ""
 Write-Host "Результаты сохранены в: " -NoNewline -ForegroundColor DarkGray
 Write-Host "test results.csv" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Нажмите любую клавишу для выхода..." -ForegroundColor DarkGray
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+Wait-ForExit

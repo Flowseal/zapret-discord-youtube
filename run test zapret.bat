@@ -24,9 +24,11 @@ if %errorLevel% == 0 (
     echo Starting configuration tests...
     echo.
     powershell -NoProfile -ExecutionPolicy Bypass -File "test zapret.ps1"
-    
+
     if %errorLevel% neq 0 (
         echo.
         echo Script execution error.
-        pause
     )
+
+    echo.
+    pause
