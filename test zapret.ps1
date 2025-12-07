@@ -1,15 +1,18 @@
 ﻿$hasErrors = $false
 
-function Wait-ForExit {
-    param([string]$message = "Нажмите любую клавишу для выхода...")
-    Write-Host $message -ForegroundColor DarkGray
-    try {
-        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    } catch {
-        # Fallback for hosts without RawUI
-        Read-Host "Press Enter to exit"
+function Test-ZapretServiceConflict {
+    $zapret = Get-Service -Name "zapret" -ErrorAction SilentlyContinue
+    if ($zapret) {
+        Write-Host "" 
+        Write-Host "[ERROR] Zapret is installed as a Windows service (zapret)." -ForegroundColor Red
+        Write-Host "         Tests must run in standalone mode, so please remove the service first." -ForegroundColor Yellow
+        Write-Host "         Run service.bat and choose 'Remove Services'." -ForegroundColor Gray
+        Write-Host ""
+        # Wait removed: handled by batch file
+        exit 1
     }
 }
+
 
 # Check Admin
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -35,6 +38,8 @@ if ($hasErrors) {
     Wait-ForExit
     exit 1
 }
+
+Test-ZapretServiceConflict
 
 Write-Host ""
 
@@ -345,4 +350,4 @@ Write-Host ""
 Write-Host "Результаты сохранены в: " -NoNewline -ForegroundColor DarkGray
 Write-Host "test results.csv" -ForegroundColor Cyan
 Write-Host ""
-Wait-ForExit
+# Wait removed: handled by batch file
