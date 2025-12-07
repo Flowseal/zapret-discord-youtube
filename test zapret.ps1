@@ -85,7 +85,6 @@ Write-Host ""
 # Select test mode: all configs or custom subset
 function Read-ModeSelection {
     while ($true) {
-        Write-Host "" 
         Write-Host "Выберите режим запуска тестов:" -ForegroundColor Cyan
         Write-Host "  [1] Все конфиги" -ForegroundColor Gray
         Write-Host "  [2] Выборочные конфиги" -ForegroundColor Gray
@@ -109,8 +108,13 @@ function Read-ConfigSelection {
             Write-Host "  [$idx] $($allFiles[$i].Name)" -ForegroundColor Gray
         }
 
-        $selectionInput = Read-Host "Введите номера через запятую (пример: 1,3,5)"
-        $numbers = $selectionInput -split "[,\s]+" | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
+        $selectionInput = Read-Host "Введите номера через запятую (пример: 1,3,5) или '0' чтобы запустить все"
+        $trimmed = $selectionInput.Trim()
+        if ($trimmed -eq '0') {
+            return $allFiles
+        }
+
+        $numbers = $selectionInput -split "[\,\s]+" | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
         $valid = $numbers | Where-Object { $_ -ge 1 -and $_ -le $allFiles.Count } | Select-Object -Unique
 
         if (-not $valid -or $valid.Count -eq 0) {
@@ -162,8 +166,6 @@ $maxNameLen = ($targetList | ForEach-Object { $_.Name.Length } | Measure-Object 
 if (-not $maxNameLen -or $maxNameLen -lt 10) { $maxNameLen = 10 }
 
 Write-Host ""
-Write-Host "Нажмите любую клавишу для старта..." -ForegroundColor DarkGray
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 
 # Stop winws
 function Stop-Zapret {
