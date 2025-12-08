@@ -21,6 +21,26 @@ if %errorLevel% == 0 (
 :run
     cd /d "%~dp0"
     
+    :: Check PowerShell
+    where powershell >nul 2>&1
+    if %errorLevel% neq 0 (
+        echo PowerShell is not installed or not in PATH.
+        echo Please install PowerShell and rerun this script.
+        echo.
+        pause
+        exit /B 1
+    )
+
+    :: Require PowerShell 2.0+
+    powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -ge 2) { exit 0 } else { exit 1 }" >nul 2>&1
+    if %errorLevel% neq 0 (
+        echo PowerShell 2.0 or newer is required.
+        echo Please upgrade PowerShell and rerun this script.
+        echo.
+        pause
+        exit /B 1
+    )
+
     echo Starting configuration tests...
     echo.
     powershell -NoProfile -ExecutionPolicy Bypass -File "test zapret.ps1"

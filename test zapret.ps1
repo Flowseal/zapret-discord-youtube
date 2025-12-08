@@ -1,5 +1,17 @@
 ﻿$hasErrors = $false
 
+function New-OrderedDict { New-Object System.Collections.Specialized.OrderedDictionary }
+function Add-OrSet {
+    param($dict, $key, $val)
+    if ($dict.Contains($key)) { $dict[$key] = $val } else { $dict.Add($key, $val) }
+}
+function ConvertTo-PSObject {
+    param($dict)
+    $props = @{}
+    foreach ($k in $dict.Keys) { $props[$k] = $dict[$k] }
+    New-Object PSObject -Property $props
+}
+
 function Test-ZapretServiceConflict {
     return [bool](Get-Service -Name "zapret" -ErrorAction SilentlyContinue)
 }
@@ -43,15 +55,16 @@ $script:currentLine = ""
 
 # Config
 $targetDir = $PSScriptRoot
+if (-not $targetDir) { $targetDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
 $batFiles = Get-ChildItem -Path $targetDir -Filter "general*.bat" | Sort-Object Name
 
 # Load targets before choosing mode
 $targetsFile = Join-Path $targetDir "targets.txt"
-$rawTargets = [ordered]@{}
+$rawTargets = New-OrderedDict
 if (Test-Path $targetsFile) {
     Get-Content $targetsFile | ForEach-Object {
         if ($_ -match '^\s*(\w+)\s*=\s*"(.+)"\s*$') {
-            $rawTargets[$matches[1]] = $matches[2]
+            Add-OrSet -dict $rawTargets -key $matches[1] -val $matches[2]
         }
     }
 }
@@ -59,23 +72,23 @@ if (Test-Path $targetsFile) {
 # Defaults if targets.txt missing or empty
 if ($rawTargets.Count -eq 0) {
     Write-Host "[INFO] targets.txt отсутствует или пуст. Использую значения по умолчанию." -ForegroundColor Gray
-    $rawTargets["Discord Main"]           = "https://discord.com"
-    $rawTargets["Discord Gateway"]        = "https://gateway.discord.gg"
-    $rawTargets["Discord CDN"]            = "https://cdn.discordapp.com"
-    $rawTargets["Discord Updates"]        = "https://updates.discord.com"
-    $rawTargets["YouTube Web"]            = "https://www.youtube.com"
-    $rawTargets["YouTube Short"]          = "https://youtu.be"
-    $rawTargets["YouTube Image"]          = "https://i.ytimg.com"
-    $rawTargets["YouTube Video Redirect"] = "https://redirector.googlevideo.com"
-    $rawTargets["Google Main"]            = "https://www.google.com"
-    $rawTargets["Google Gstatic"]         = "https://www.gstatic.com"
-    $rawTargets["Cloudflare Web"]         = "https://www.cloudflare.com"
-    $rawTargets["Cloudflare CDN"]         = "https://cdnjs.cloudflare.com"
-    $rawTargets["Cloudflare DNS 1.1.1.1"] = "PING:1.1.1.1"
-    $rawTargets["Cloudflare DNS 1.0.0.1"] = "PING:1.0.0.1"
-    $rawTargets["Google DNS 8.8.8.8"]     = "PING:8.8.8.8"
-    $rawTargets["Google DNS 8.8.4.4"]     = "PING:8.8.4.4"
-    $rawTargets["Quad9 DNS 9.9.9.9"]      = "PING:9.9.9.9"
+    Add-OrSet $rawTargets "Discord Main"           "https://discord.com"
+    Add-OrSet $rawTargets "Discord Gateway"        "https://gateway.discord.gg"
+    Add-OrSet $rawTargets "Discord CDN"            "https://cdn.discordapp.com"
+    Add-OrSet $rawTargets "Discord Updates"        "https://updates.discord.com"
+    Add-OrSet $rawTargets "YouTube Web"            "https://www.youtube.com"
+    Add-OrSet $rawTargets "YouTube Short"          "https://youtu.be"
+    Add-OrSet $rawTargets "YouTube Image"          "https://i.ytimg.com"
+    Add-OrSet $rawTargets "YouTube Video Redirect" "https://redirector.googlevideo.com"
+    Add-OrSet $rawTargets "Google Main"            "https://www.google.com"
+    Add-OrSet $rawTargets "Google Gstatic"         "https://www.gstatic.com"
+    Add-OrSet $rawTargets "Cloudflare Web"         "https://www.cloudflare.com"
+    Add-OrSet $rawTargets "Cloudflare CDN"         "https://cdnjs.cloudflare.com"
+    Add-OrSet $rawTargets "Cloudflare DNS 1.1.1.1" "PING:1.1.1.1"
+    Add-OrSet $rawTargets "Cloudflare DNS 1.0.0.1" "PING:1.0.0.1"
+    Add-OrSet $rawTargets "Google DNS 8.8.8.8"     "PING:8.8.8.8"
+    Add-OrSet $rawTargets "Google DNS 8.8.4.4"     "PING:8.8.4.4"
+    Add-OrSet $rawTargets "Quad9 DNS 9.9.9.9"      "PING:9.9.9.9"
 } else {
     Write-Host "[INFO] Загружено целей: $($rawTargets.Count)" -ForegroundColor Gray
 }
@@ -149,11 +162,11 @@ function Convert-Target {
         $pingTarget = $url -replace "^https?://", "" -replace "/.*$", ""
     }
 
-    return [pscustomobject]@{
+    return (New-Object PSObject -Property @{
         Name       = $Name
         Url        = $url
         PingTarget = $pingTarget
-    }
+    })
 }
 
 $targetList = @()
@@ -180,8 +193,6 @@ function Show-Spinner {
     Write-Host "`r$($script:currentLine)$($spinChars[$script:spinIndex])" -NoNewline
     Start-Sleep -Milliseconds $delay
 }
-
-$results = @()
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
@@ -211,10 +222,6 @@ foreach ($file in $batFiles) {
     # Tests
     Write-Host ""
     
-    $currentRes = [ordered]@{
-        'Конфиг' = $file.Name
-    }
-
     $curlTimeoutSeconds = 8
 
     # Parallel target checks
@@ -229,8 +236,6 @@ foreach ($file in $batFiles) {
                 $tests = @(
                     @{ Label = "HTTP";   Args = @("--http1.1") },
                     # Enforce exact TLS versions by pinning both min and max
-                    # @{ Label = "TLS1.0"; Args = @("--tlsv1.0", "--tls-max", "1.0") },
-                    # @{ Label = "TLS1.1"; Args = @("--tlsv1.1", "--tls-max", "1.1") },
                     @{ Label = "TLS1.2"; Args = @("--tlsv1.2", "--tls-max", "1.2") },
                     @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
                 )
@@ -270,12 +275,12 @@ foreach ($file in $batFiles) {
                 }
             }
 
-            return [pscustomobject]@{
-                Name          = $t.Name
-                HttpTokens    = $httpPieces
-                PingResult    = $pingResult
-                IsUrl         = [bool]$t.Url
-            }
+            return (New-Object PSObject -Property @{
+                Name       = $t.Name
+                HttpTokens = $httpPieces
+                PingResult = $pingResult
+                IsUrl      = [bool]$t.Url
+            })
         } -ArgumentList $target, $curlTimeoutSeconds
     }
 
@@ -326,27 +331,11 @@ foreach ($file in $batFiles) {
             Write-Host "$($res.PingResult)" -ForegroundColor $pingColor
         }
 
-        # Build combined string for CSV
-        if ($res.IsUrl -and $res.HttpTokens) {
-            $combined = ($res.HttpTokens -join " ") + " | Пинг: $($res.PingResult)"
-        } else {
-            $combined = "Пинг: $($res.PingResult)"
-        }
-        $currentRes[$target.Name] = $combined
     }
-
-    $results += [PSCustomObject]$currentRes
     
     # Stop
     Stop-Zapret
     if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 }
 
-# Save CSV
-$csvPath = Join-Path $PSScriptRoot "test results.csv"
-$results | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
 
-Write-Host ""
-Write-Host "Результаты сохранены в: " -NoNewline -ForegroundColor DarkGray
-Write-Host "test results.csv" -ForegroundColor Cyan
-Write-Host ""
