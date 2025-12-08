@@ -1,5 +1,4 @@
 $hasErrors = $false
-$script:safeWriteFallback = $false
 
 function New-OrderedDict { New-Object System.Collections.Specialized.OrderedDictionary }
 function Add-OrSet {
@@ -17,82 +16,35 @@ function Test-ZapretServiceConflict {
     return [bool](Get-Service -Name "zapret" -ErrorAction SilentlyContinue)
 }
 
-# Get ping result (avg) in 'NN ms' format; fallback to ping.exe when Test-Connection absent
-function Get-PingAverage {
-    param([string]$TargetHost)
-    try {
-        if (Get-Command Test-Connection -ErrorAction SilentlyContinue) {
-            $pings = Test-Connection -ComputerName $TargetHost -Count 3 -ErrorAction Stop
-            $avg = ($pings | Measure-Object -Property ResponseTime -Average).Average
-            return "{0:N0} ms" -f $avg
-        } else {
-            $out = & ping.exe -n 3 $TargetHost 2>&1
-            $s = ($out | Out-String)
-            if ($s -match "Average\s*=\s*(\d+)\s*ms") { return "$($matches[1]) ms" }
-            if ($s -match "Average\s*=\s*(\d+)\s*мс") { return "$($matches[1]) ms" }
-            if ($s -match "Среднее\s*=\s*(\d+)\s*мс") { return "$($matches[1]) ms" }
-            return "Timeout"
-        }
-    } catch { return "Timeout" }
-}
-
-# Safe write helper to avoid "Win32 internal error" when console is not available or a host
-function SafeWrite {
-    param(
-        [string]$Text,
-        [string]$Color = $null,
-        [switch]$NoNewline
-    )
-    if ($script:safeWriteFallback) {
-        if ($NoNewline) { Write-Output -NoNewline $Text } else { Write-Output $Text }
-        return
-    }
-
-    $prevEA = $ErrorActionPreference
-    $ErrorActionPreference = 'Stop'
-    try {
-        if ($Color) {
-            if ($NoNewline) { Write-Host -NoNewline $Text -ForegroundColor $Color } else { Write-Host $Text -ForegroundColor $Color }
-        } else {
-            if ($NoNewline) { Write-Host -NoNewline $Text } else { Write-Host $Text }
-        }
-    } catch {
-        $script:safeWriteFallback = $true
-        if ($NoNewline) { Write-Output -NoNewline $Text } else { Write-Output $Text }
-    } finally {
-        $ErrorActionPreference = $prevEA
-    }
-}
-
 # Check Admin
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    SafeWrite "[ERROR] Run as Administrator to execute tests" Red
+    Write-Host "[ERROR] Run as Administrator to execute tests" -ForegroundColor Red
     $hasErrors = $true
 } else {
-    SafeWrite "[OK] Administrator rights detected" Green
+    Write-Host "[OK] Administrator rights detected" -ForegroundColor Green
 }
 
 # Check curl
 if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
-    SafeWrite "[ERROR] curl.exe not found" Red
-    SafeWrite "Install curl or add it to PATH" Yellow
+    Write-Host "[ERROR] curl.exe not found" -ForegroundColor Red
+    Write-Host "Install curl or add it to PATH" -ForegroundColor Yellow
     $hasErrors = $true
 } else {
-    SafeWrite "[OK] curl.exe found" Green
+    Write-Host "[OK] curl.exe found" -ForegroundColor Green
 }
 
 # Check if zapret service installed
 if (Test-ZapretServiceConflict) {
-    SafeWrite "[ERROR] Windows service 'zapret' is installed" Red
-    SafeWrite "         Remove the service before running tests" Yellow
-    SafeWrite "         Open service.bat and choose 'Remove Services'" Yellow
+    Write-Host "[ERROR] Windows service 'zapret' is installed" -ForegroundColor Red
+    Write-Host "         Remove the service before running tests" -ForegroundColor Yellow
+    Write-Host "         Open service.bat and choose 'Remove Services'" -ForegroundColor Yellow
     $hasErrors = $true
 }
 
 if ($hasErrors) {
-    SafeWrite ""
-    SafeWrite "Fix the errors above and rerun." Yellow
+    Write-Host ""
+    Write-Host "Fix the errors above and rerun." -ForegroundColor Yellow
     exit 1
 }
 
@@ -117,7 +69,7 @@ if (Test-Path $targetsFile) {
 
 # Defaults if targets.txt missing or empty
 if ($rawTargets.Count -eq 0) {
-    SafeWrite "[INFO] targets.txt missing or empty. Using defaults." Gray
+    Write-Host "[INFO] targets.txt missing or empty. Using defaults." -ForegroundColor Gray
     Add-OrSet $rawTargets "Discord Main"           "https://discord.com"
     Add-OrSet $rawTargets "Discord Gateway"        "https://gateway.discord.gg"
     Add-OrSet $rawTargets "Discord CDN"            "https://cdn.discordapp.com"
@@ -136,22 +88,22 @@ if ($rawTargets.Count -eq 0) {
     Add-OrSet $rawTargets "Google DNS 8.8.4.4"     "PING:8.8.4.4"
     Add-OrSet $rawTargets "Quad9 DNS 9.9.9.9"      "PING:9.9.9.9"
 } else {
-    SafeWrite "[INFO] Targets loaded: $($rawTargets.Count)" Gray
+    Write-Host "[INFO] Targets loaded: $($rawTargets.Count)" -ForegroundColor Gray
 }
 
-SafeWrite ""
+Write-Host ""
 
 # Select test mode: all configs or custom subset
 function Read-ModeSelection {
     while ($true) {
-        SafeWrite "Select test run mode:" Cyan
-        SafeWrite "  [1] All configs" Gray
-        SafeWrite "  [2] Selected configs" Gray
+        Write-Host "Select test run mode:" -ForegroundColor Cyan
+        Write-Host "  [1] All configs" -ForegroundColor Gray
+        Write-Host "  [2] Selected configs" -ForegroundColor Gray
         $choice = Read-Host "Enter 1 or 2"
         switch ($choice) {
             '1' { return 'all' }
             '2' { return 'select' }
-            default { SafeWrite "Invalid input. Try again." Yellow }
+            default { Write-Host "Некорректный ввод. Повторите." -ForegroundColor Yellow }
         }
     }
 }
@@ -160,11 +112,11 @@ function Read-ConfigSelection {
     param([array]$allFiles)
 
     while ($true) {
-        SafeWrite "" 
-        SafeWrite "Available configs:" Cyan
+        Write-Host "" 
+        Write-Host "Available configs:" -ForegroundColor Cyan
         for ($i = 0; $i -lt $allFiles.Count; $i++) {
             $idx = $i + 1
-            SafeWrite "  [$idx] $($allFiles[$i].Name)" Gray
+            Write-Host "  [$idx] $($allFiles[$i].Name)" -ForegroundColor Gray
         }
 
         $selectionInput = Read-Host "Enter numbers separated by comma (e.g. 1,3,5) or '0' to run all"
@@ -177,8 +129,8 @@ function Read-ConfigSelection {
         $valid = $numbers | Where-Object { $_ -ge 1 -and $_ -le $allFiles.Count } | Select-Object -Unique
 
         if (-not $valid -or $valid.Count -eq 0) {
-            SafeWrite ""
-            SafeWrite "No configs selected. Try again." Yellow
+            Write-Host ""
+            Write-Host "No configs selected. Try again." -ForegroundColor Yellow
             continue
         }
 
@@ -194,7 +146,7 @@ if ($mode -eq 'select') {
 
 # Ensure we have configs to run
 if (-not $batFiles -or $batFiles.Count -eq 0) {
-    SafeWrite "[ERROR] No general*.bat files found" Red
+    Write-Host "[ERROR] No general*.bat files found" -ForegroundColor Red
     exit 1
 }
 
@@ -230,7 +182,7 @@ foreach ($key in $rawTargets.Keys) {
 $maxNameLen = ($targetList | ForEach-Object { $_.Name.Length } | Measure-Object -Maximum).Maximum
 if (-not $maxNameLen -or $maxNameLen -lt 10) { $maxNameLen = 10 }
 
-SafeWrite ""
+Write-Host ""
 
 # Stop winws
 function Stop-Zapret {
@@ -242,29 +194,29 @@ function Show-Spinner {
     param($delay = 100)
     $spinChars = @('|', '/', '-', '\')
     $script:spinIndex = ($script:spinIndex + 1) % 4
-    SafeWrite "`r$($script:currentLine)$($spinChars[$script:spinIndex])" -NoNewline
+    Write-Host "`r$($script:currentLine)$($spinChars[$script:spinIndex])" -NoNewline
     Start-Sleep -Milliseconds $delay
 }
 
-SafeWrite ""
-SafeWrite "============================================================" Cyan
-SafeWrite "                 ZAPRET CONFIG TESTS" Cyan
-SafeWrite "                 Total configs: $($batFiles.Count.ToString().PadLeft(2))" Cyan
-SafeWrite "============================================================" Cyan
+Write-Host ""
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "                 ZAPRET CONFIG TESTS" -ForegroundColor Cyan
+Write-Host "                 Total configs: $($batFiles.Count.ToString().PadLeft(2))" -ForegroundColor Cyan
+Write-Host "============================================================" -ForegroundColor Cyan
 
 $configNum = 0
 foreach ($file in $batFiles) {
     $configNum++
-    SafeWrite ""
-    SafeWrite "------------------------------------------------------------" DarkCyan
-    SafeWrite "  [$configNum/$($batFiles.Count)] $($file.Name)" Yellow
-    SafeWrite "------------------------------------------------------------" DarkCyan
+    Write-Host ""
+    Write-Host "------------------------------------------------------------" -ForegroundColor DarkCyan
+    Write-Host "  [$configNum/$($batFiles.Count)] $($file.Name)" -ForegroundColor Yellow
+    Write-Host "------------------------------------------------------------" -ForegroundColor DarkCyan
     
     # Cleanup
     Stop-Zapret
     
     # Start config
-    SafeWrite "  > Starting config..." Cyan
+    Write-Host "  > Starting config..." -ForegroundColor Cyan
     $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($file.FullName)`"" -WorkingDirectory $targetDir -PassThru -WindowStyle Minimized
     
     # Wait init
@@ -273,98 +225,22 @@ foreach ($file in $batFiles) {
     # Tests
     $curlTimeoutSeconds = 8
 
-    # Parallel target checks (Start-Job fallback to sequential)
-    $canJob = $false
-    try { $canJob = (Get-Command Start-Job -ErrorAction SilentlyContinue) -ne $null } catch { $canJob = $false }
-    $targetResults = @()
-    if ($canJob) {
-        $targetJobs = @()
-        foreach ($target in $targetList) {
-            $targetJobs += Start-Job -ScriptBlock {
-                param($t, $curlTimeoutSeconds)
+    # Parallel target checks
+    $targetJobs = @()
+    foreach ($target in $targetList) {
+        $targetJobs += Start-Job -ScriptBlock {
+            param($t, $curlTimeoutSeconds)
 
-                # Define Get-PingAverage inside job to make it available in child session
-                function Get-PingAverage {
-                    param([string]$TargetHost)
-                    try {
-                        if (Get-Command Test-Connection -ErrorAction SilentlyContinue) {
-                            $pings = Test-Connection -ComputerName $TargetHost -Count 3 -ErrorAction Stop
-                            $avg = ($pings | Measure-Object -Property ResponseTime -Average).Average
-                            return "{0:N0} ms" -f $avg
-                        } else {
-                            $out = & ping.exe -n 3 $TargetHost 2>&1
-                            $s = ($out | Out-String)
-                            if ($s -match "Average\s*=\s*(\d+)\s*ms") { return "$( $matches[1] ) ms" }
-                            if ($s -match "Average\s*=\s*(\d+)\s*мс") { return "$( $matches[1] ) ms" }
-                            if ($s -match "Среднее\s*=\s*(\d+)\s*мс") { return "$( $matches[1] ) ms" }
-                            return "Timeout"
-                        }
-                    } catch { return "Timeout" }
-                }
-
-                $httpPieces = @()
-
-                if ($t.Url) {
-                    $tests = @(
-                        @{ Label = "HTTP";   Args = @("--http1.1") },
-                        # Enforce exact TLS versions by pinning both min and max
-                        @{ Label = "TLS1.2"; Args = @("--tlsv1.2", "--tls-max", "1.2") },
-                        @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
-                    )
-
-                    $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "-o", "NUL", "-w", "%{http_code}")
-                    foreach ($test in $tests) {
-                        try {
-                            $curlArgs = $baseArgs + $test.Args
-                            $output = & curl.exe @curlArgs $t.Url 2>&1
-                            $text = ($output | Out-String).Trim()
-                            $unsupported = $text -match "does not support|not supported"
-                            if ($unsupported) {
-                                $httpPieces += "$($test.Label):UNSUP"
-                                continue
-                            }
-
-                            $ok = ($LASTEXITCODE -eq 0)
-                            if ($ok) {
-                                $httpPieces += "$($test.Label):OK   "
-                            } else {
-                                $httpPieces += "$($test.Label):ERROR"
-                            }
-                        } catch {
-                            $httpPieces += "$($test.Label):ERROR"
-                        }
-                    }
-                }
-
-                $pingResult = "n/a"
-                if ($t.PingTarget) {
-                    $pingResult = Get-PingAverage -TargetHost $t.PingTarget
-                }
-
-                return (New-Object PSObject -Property @{
-                    Name       = $t.Name
-                    HttpTokens = $httpPieces
-                    PingResult = $pingResult
-                    IsUrl      = [bool]$t.Url
-                })
-            } -ArgumentList $target, $curlTimeoutSeconds
-        }
-        SafeWrite "  > Running tests (parallel)..." DarkGray
-        Wait-Job -Job $targetJobs | Out-Null
-        $targetResults = foreach ($job in $targetJobs) { Receive-Job -Job $job }
-        Remove-Job -Job $targetJobs -Force -ErrorAction SilentlyContinue
-    } else {
-        SafeWrite "  > Running tests (sequential)..." DarkGray
-        foreach ($target in $targetList) {
-            # Inline execution for older PowerShell without Start-Job
-            $t = $target
             $httpPieces = @()
+
             if ($t.Url) {
                 $tests = @(
                     @{ Label = "HTTP";   Args = @("--http1.1") },
+                    # Enforce exact TLS versions by pinning both min and max
                     @{ Label = "TLS1.2"; Args = @("--tlsv1.2", "--tls-max", "1.2") },
                     @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
                 )
+
                 $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "-o", "NUL", "-w", "%{http_code}")
                 foreach ($test in $tests) {
                     try {
@@ -376,21 +252,46 @@ foreach ($file in $batFiles) {
                             $httpPieces += "$($test.Label):UNSUP"
                             continue
                         }
+
                         $ok = ($LASTEXITCODE -eq 0)
-                        if ($ok) { $httpPieces += "$($test.Label):OK   " } else { $httpPieces += "$($test.Label):ERROR" }
-                    } catch { $httpPieces += "$($test.Label):ERROR" }
+                        if ($ok) {
+                            $httpPieces += "$($test.Label):OK   "
+                        } else {
+                            $httpPieces += "$($test.Label):ERROR"
+                        }
+                    } catch {
+                        $httpPieces += "$($test.Label):ERROR"
+                    }
                 }
             }
+
             $pingResult = "n/a"
             if ($t.PingTarget) {
-                $pingResult = Get-PingAverage -TargetHost $t.PingTarget
+                try {
+                    $pings = Test-Connection -ComputerName $t.PingTarget -Count 3 -ErrorAction Stop
+                    $avg = ($pings | Measure-Object -Property ResponseTime -Average).Average
+                    $pingResult = "{0:N0} ms" -f $avg
+                } catch {
+                    $pingResult = "Timeout"
+                }
             }
-            $targetResults += (New-Object PSObject -Property @{ Name = $t.Name; HttpTokens = $httpPieces; PingResult = $pingResult; IsUrl = [bool]$t.Url })
-        }
+
+            return (New-Object PSObject -Property @{
+                Name       = $t.Name
+                HttpTokens = $httpPieces
+                PingResult = $pingResult
+                IsUrl      = [bool]$t.Url
+            })
+        } -ArgumentList $target, $curlTimeoutSeconds
     }
 
     $script:currentLine = "  > Running tests..."
-    SafeWrite $script:currentLine DarkGray
+    Write-Host $script:currentLine -ForegroundColor DarkGray
+    Wait-Job -Job $targetJobs | Out-Null
+
+    Wait-Job -Job $targetJobs | Out-Null
+    $targetResults = foreach ($job in $targetJobs) { Receive-Job -Job $job }
+    Remove-Job -Job $targetJobs -Force -ErrorAction SilentlyContinue
 
     $targetLookup = @{}
     foreach ($res in $targetResults) { $targetLookup[$res.Name] = $res }
@@ -399,32 +300,32 @@ foreach ($file in $batFiles) {
         $res = $targetLookup[$target.Name]
         if (-not $res) { continue }
 
-        SafeWrite "  $($target.Name.PadRight($maxNameLen))    " -NoNewline
+        Write-Host "  $($target.Name.PadRight($maxNameLen))    " -NoNewline
 
         if ($res.IsUrl -and $res.HttpTokens) {
             foreach ($tok in $res.HttpTokens) {
                 $tokColor = "Green"
                 if ($tok -match "UNSUP") { $tokColor = "Yellow" }
                 elseif ($tok -match "ERR") { $tokColor = "Red" }
-                SafeWrite " $tok" $tokColor -NoNewline
+                Write-Host " $tok" -NoNewline -ForegroundColor $tokColor
             }
-            SafeWrite " | Ping: " DarkGray -NoNewline
+            Write-Host " | Ping: " -NoNewline -ForegroundColor DarkGray
             if ($res.PingResult -eq "Timeout") {
                 $pingColor = "Yellow"
             } else {
                 $pingColor = "Cyan"
             }
-            SafeWrite "$($res.PingResult)" $pingColor -NoNewline
-            SafeWrite ""
+            Write-Host "$($res.PingResult)" -NoNewline -ForegroundColor $pingColor
+            Write-Host ""
         } else {
             # Ping-only target
-            SafeWrite " Ping: " DarkGray -NoNewline
+            Write-Host " Ping: " -NoNewline -ForegroundColor DarkGray
             if ($res.PingResult -eq "Timeout") {
                 $pingColor = "Red"
             } else {
                 $pingColor = "Cyan"
             }
-            SafeWrite "$($res.PingResult)" $pingColor
+            Write-Host "$($res.PingResult)" -ForegroundColor $pingColor
         }
 
     }
@@ -434,7 +335,8 @@ foreach ($file in $batFiles) {
     if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 }
 
-SafeWrite ""
-SafeWrite "All tests finished." Green
+Write-Host ""
+Write-Host "All tests finished." -ForegroundColor Green
+
 
 
