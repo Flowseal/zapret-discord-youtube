@@ -1,11 +1,11 @@
-﻿# targets.txt - список конечных точек для теста zapret.ps1
+# targets.txt - endpoint list for zapret.ps1 tests
 #
-# Формат:
-#   KeyName = "https://host..."   -> Выполняет проверки HTTP/TLS + ping
-#   KeyName = "PING:1.2.3.4"       -> Только ping
+# Format:
+#   KeyName = "https://host..."   -> Runs HTTP/TLS checks + ping
+#   KeyName = "PING:1.2.3.4"       -> Ping only
 #
-# Ключи должны быть одним словом (буквы/цифры/подчёркивание), так как
-# скрипт парсит ключи как простые идентификаторы. Вы можете добавлять или удалять строки.
+# Keys must be a single word (letters/digits/underscore), because the
+# script parses them as simple identifiers. You can add or remove lines.
 
 ### Discord
 DiscordMain           = "https://discord.com"
