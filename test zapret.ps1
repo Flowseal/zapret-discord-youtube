@@ -337,6 +337,9 @@ foreach ($file in $batFiles) {
 
 Write-Host ""
 Write-Host "All tests finished." -ForegroundColor Green
+Write-Host "Press any key to exit..." -ForegroundColor Yellow
+[void][System.Console]::ReadKey($true)
+
 
 
 
