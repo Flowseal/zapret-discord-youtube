@@ -43,7 +43,8 @@ if %errorLevel% == 0 (
 
     echo Starting configuration tests...
     echo.
-    powershell -NoProfile -ExecutionPolicy Bypass -File "test zapret.ps1"
+    :: Run PowerShell with a process-scoped ExecutionPolicy bypass and execute the script from this folder
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; & '%~dp0test zapret.ps1'"
 
     if %errorLevel% neq 0 (
         echo.
