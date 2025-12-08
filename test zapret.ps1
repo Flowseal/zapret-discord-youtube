@@ -1,4 +1,5 @@
 $hasErrors = $false
+$script:safeWriteFallback = $false
 
 function New-OrderedDict { New-Object System.Collections.Specialized.OrderedDictionary }
 function Add-OrSet {
@@ -42,6 +43,13 @@ function SafeWrite {
         [string]$Color = $null,
         [switch]$NoNewline
     )
+    if ($script:safeWriteFallback) {
+        if ($NoNewline) { Write-Output -NoNewline $Text } else { Write-Output $Text }
+        return
+    }
+
+    $prevEA = $ErrorActionPreference
+    $ErrorActionPreference = 'Stop'
     try {
         if ($Color) {
             if ($NoNewline) { Write-Host -NoNewline $Text -ForegroundColor $Color } else { Write-Host $Text -ForegroundColor $Color }
@@ -49,8 +57,10 @@ function SafeWrite {
             if ($NoNewline) { Write-Host -NoNewline $Text } else { Write-Host $Text }
         }
     } catch {
-        # fallback to Write-Output if host write fails
+        $script:safeWriteFallback = $true
         if ($NoNewline) { Write-Output -NoNewline $Text } else { Write-Output $Text }
+    } finally {
+        $ErrorActionPreference = $prevEA
     }
 }
 
