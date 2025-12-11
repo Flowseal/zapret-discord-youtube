@@ -1,15 +1,49 @@
 $hasErrors = $false
 
+# Define functions early
+function Get-IpsetStatus {
+    $listFile = Join-Path $PSScriptRoot "lists\ipset-all.txt"
+    if (-not (Test-Path $listFile)) { return "none" }
+    $lineCount = (Get-Content $listFile | Measure-Object -Line).Lines
+    if ($lineCount -eq 0) { return "any" }
+    $hasDummy = Get-Content $listFile | Select-String -Pattern "203\.0\.113\.113/32" -Quiet
+    if ($hasDummy) { return "none" } else { return "loaded" }
+}
+
+function Set-IpsetMode {
+    param([string]$mode)
+    $listFile = Join-Path $PSScriptRoot "lists\ipset-all.txt"
+    $backupFile = Join-Path $PSScriptRoot "lists\ipset-all.test-backup.txt"
+    if ($mode -eq "any") {
+        # Always backup current file (even if none)
+        if (Test-Path $listFile) {
+            Copy-Item $listFile $backupFile -Force
+        } else {
+            # If none, create empty backup
+            "" | Out-File $backupFile -Encoding UTF8
+        }
+        # Make file empty
+        "" | Out-File $listFile -Encoding UTF8
+    } elseif ($mode -eq "restore") {
+        if (Test-Path $backupFile) {
+            Move-Item $backupFile $listFile -Force
+        }
+    }
+}
+
+trap {
+    Write-Host "[ERROR] Script interrupted. Restoring ipset..." -ForegroundColor Red
+    if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
+        Set-IpsetMode -mode "restore"
+    }
+    Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
+    break
+}
+
 function New-OrderedDict { New-Object System.Collections.Specialized.OrderedDictionary }
 function Add-OrSet {
     param($dict, $key, $val)
     if ($dict.Contains($key)) { $dict[$key] = $val } else { $dict.Add($key, $val) }
-}
-function ConvertTo-PSObject {
-    param($dict)
-    $props = @{}
-    foreach ($k in $dict.Keys) { $props[$k] = $dict[$k] }
-    New-Object PSObject -Property $props
 }
 
 # Convert raw target value to structured target (supports PING:ip for ping-only targets)
@@ -108,7 +142,7 @@ function Invoke-DpiSuite {
     )
 
     $rangeSpec = "0-$($RangeBytes - 1)"
-    $globalWarn = $false
+    $warnDetected = $false
 
     Write-Host "[INFO] Targets: $($Targets.Count) (custom URL overrides suite). Range: $rangeSpec bytes; Timeout: $TimeoutSeconds s; Warn window: $WarnMinKB-$WarnMaxKB KB" -ForegroundColor Cyan
     Write-Host "[INFO] Starting DPI TCP 16-20 checks (parallel: $MaxParallel)..." -ForegroundColor DarkGray
@@ -226,11 +260,11 @@ function Invoke-DpiSuite {
         if (-not $res.Warned) {
             Write-Host "  No 16-20KB freeze pattern for this target." -ForegroundColor Green
         } else {
-            $globalWarn = $true
+            $warnDetected = $true
         }
     }
 
-    if ($globalWarn) {
+    if ($warnDetected) {
         Write-Host ""
         Write-Host "[WARNING] Detected possible DPI TCP 16-20 blocking on one or more targets. Consider changing strategy/SNI/IP." -ForegroundColor Red
     } else {
@@ -261,6 +295,25 @@ if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
     Write-Host "[OK] curl.exe found" -ForegroundColor Green
 }
 
+# Check for leftover ipset flag from previous interrupted run
+$ipsetFlagFile = Join-Path $PSScriptRoot "ipset_switched.flag"
+if (Test-Path $ipsetFlagFile) {
+    Write-Host "[INFO] Detected leftover ipset switch flag. Restoring ipset..." -ForegroundColor Yellow
+    Set-IpsetMode -mode "restore"
+    Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
+}
+
+# Get original ipset status early
+$originalIpsetStatus = Get-IpsetStatus
+
+# Warn about ipset switching and X button behavior
+if ($originalIpsetStatus -ne "any") {
+    Write-Host "[INFO] Current ipset status: $originalIpsetStatus" -ForegroundColor Cyan
+    Write-Host "[WARNING] Ipset will be switched to 'any' for accurate DPI tests." -ForegroundColor Yellow
+    Write-Host "[WARNING] If you close the window with the X button, ipset will NOT restore immediately." -ForegroundColor Yellow
+    Write-Host "[WARNING] It will be restored automatically on the next script run." -ForegroundColor Yellow
+}
+
 # Check if zapret service installed
 if (Test-ZapretServiceConflict) {
     Write-Host "[ERROR] Windows service 'zapret' is installed" -ForegroundColor Red
@@ -288,9 +341,6 @@ if ($env:MONITOR_WARN_MINKB) { [int]$dpiWarnMinKB = $env:MONITOR_WARN_MINKB }
 if ($env:MONITOR_WARN_MAXKB) { [int]$dpiWarnMaxKB = $env:MONITOR_WARN_MAXKB }
 if ($env:MONITOR_MAX_PARALLEL) { [int]$dpiMaxParallel = $env:MONITOR_MAX_PARALLEL }
 $dpiTargets = Build-DpiTargets -CustomUrl $dpiCustomUrl
-
-$script:spinIndex = -1
-$script:currentLine = ""
 
 # Config
 $targetDir = $PSScriptRoot
@@ -424,14 +474,47 @@ function Stop-Zapret {
     Get-Process -Name "winws" -ErrorAction SilentlyContinue | Stop-Process -Force
 }
 
-# Spinner animation
-function Show-Spinner {
-    param($delay = 100)
-    $spinChars = @('|', '/', '-', '\')
-    $script:spinIndex = ($script:spinIndex + 1) % 4
-    Write-Host "`r$($script:currentLine)$($spinChars[$script:spinIndex])" -NoNewline
-    Start-Sleep -Milliseconds $delay
+# Capture/restore running winws instances to return user ipset/config
+function Get-WinwsSnapshot {
+    try {
+        return Get-CimInstance Win32_Process -Filter "Name='winws.exe'" |
+            Select-Object ProcessId, CommandLine, ExecutablePath
+    } catch {
+        return @()
+    }
 }
+
+function Restore-WinwsSnapshot {
+    param($snapshot)
+
+    if (-not $snapshot -or $snapshot.Count -eq 0) { return }
+
+    $current = @()
+    try { $current = (Get-WinwsSnapshot).CommandLine } catch { $current = @() }
+
+    Write-Host "[INFO] Restoring previously running winws instances..." -ForegroundColor DarkGray
+    foreach ($p in $snapshot) {
+        if (-not $p.ExecutablePath) { continue }
+
+        # Skip if an identical command line is already active
+        if ($current -and $current -contains $p.CommandLine) { continue }
+
+        $exe = $p.ExecutablePath
+        $args = ""
+        if ($p.CommandLine) {
+            $quotedExe = '"' + $exe + '"'
+            if ($p.CommandLine.StartsWith($quotedExe)) {
+                $args = $p.CommandLine.Substring($quotedExe.Length).Trim()
+            } elseif ($p.CommandLine.StartsWith($exe)) {
+                $args = $p.CommandLine.Substring($exe.Length).Trim()
+            }
+        }
+
+        Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null
+    }
+}
+
+$originalWinws = Get-WinwsSnapshot
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
@@ -440,8 +523,17 @@ Write-Host "                 Mode: $($testType.ToUpper())" -ForegroundColor Cyan
 Write-Host "                 Total configs: $($batFiles.Count.ToString().PadLeft(2))" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-$configNum = 0
-foreach ($file in $batFiles) {
+try {
+    # Save original ipset status and switch to 'any' for accurate DPI tests
+    if ($originalIpsetStatus -ne "any") {
+        Write-Host "[WARNING] Ipset is in '$originalIpsetStatus' mode. Switching to 'any' for accurate DPI tests..." -ForegroundColor Yellow
+        Set-IpsetMode -mode "any"
+        # Create flag file to indicate ipset was switched
+        "" | Out-File -FilePath $ipsetFlagFile -Encoding UTF8
+    }
+
+    $configNum = 0
+    foreach ($file in $batFiles) {
     $configNum++
     Write-Host ""
     Write-Host "------------------------------------------------------------" -ForegroundColor DarkCyan
@@ -592,9 +684,27 @@ foreach ($file in $batFiles) {
     if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 }
 
-Write-Host ""
-Write-Host "All tests finished." -ForegroundColor Green
-# Write-Host "Press any key to exit..." -ForegroundColor Yellow
-# [void][System.Console]::ReadKey($true)
+    Write-Host ""
+    Write-Host "All tests finished." -ForegroundColor Green
+    # Write-Host "Press any key to exit..." -ForegroundColor Yellow
+    # [void][System.Console]::ReadKey($true)
+}
+catch {
+    Write-Host "[ERROR] An error occurred during tests. Restoring ipset..." -ForegroundColor Red
+    if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
+        Set-IpsetMode -mode "restore"
+    }
+    Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
+    throw  # Re-throw the error
+}
+finally {
+    Stop-Zapret
+    Restore-WinwsSnapshot -snapshot $originalWinws
+    if ($originalIpsetStatus -ne "any") {
+        Write-Host "[INFO] Restoring original ipset mode..." -ForegroundColor DarkGray
+        Set-IpsetMode -mode "restore"
+    }
+    Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
+}
 
 
