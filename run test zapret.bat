@@ -43,5 +43,5 @@ if %errorLevel% == 0 (
 
     echo Starting configuration tests in PowerShell window...
     echo.
-    start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0test zapret.ps1"
+    start "" powershell -NoExit -NoProfile -ExecutionPolicy Bypass -File "%~dp0test zapret.ps1"
     exit /B

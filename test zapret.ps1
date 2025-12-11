@@ -12,6 +12,233 @@ function ConvertTo-PSObject {
     New-Object PSObject -Property $props
 }
 
+# Convert raw target value to structured target (supports PING:ip for ping-only targets)
+function Convert-Target {
+    param(
+        [string]$Name,
+        [string]$Value
+    )
+
+    if ($Value -like "PING:*") {
+        $ping = $Value -replace '^PING:\s*', ''
+        $url = $null
+        $pingTarget = $ping
+    } else {
+        $url = $Value
+        $pingTarget = $url -replace "^https?://", "" -replace "/.*$", ""
+    }
+
+    return (New-Object PSObject -Property @{
+        Name       = $Name
+        Url        = $url
+        PingTarget = $pingTarget
+    })
+}
+
+function Get-DpiSuite {
+    # Suite sourced from monitor.ps1 (DPI TCP 16-20)
+    return @(
+        @{ Id = "US.CF-01"; Provider = "Cloudflare"; Url = "https://cdn.cookielaw.org/scripttemplates/202501.2.0/otBannerSdk.js"; Times = 1 }
+        @{ Id = "US.CF-02"; Provider = "Cloudflare"; Url = "https://genshin.jmp.blue/characters/all#"; Times = 1 }
+        @{ Id = "US.CF-03"; Provider = "Cloudflare"; Url = "https://api.frankfurter.dev/v1/2000-01-01..2002-12-31"; Times = 1 }
+        @{ Id = "US.DO-01"; Provider = "DigitalOcean"; Url = "https://genderize.io/"; Times = 2 }
+        @{ Id = "DE.HE-01"; Provider = "Hetzner"; Url = "https://j.dejure.org/jcg/doctrine/doctrine_banner.webp"; Times = 1 }
+        @{ Id = "FI.HE-01"; Provider = "Hetzner"; Url = "https://tcp1620-01.dubybot.live/1MB.bin"; Times = 1 }
+        @{ Id = "FI.HE-02"; Provider = "Hetzner"; Url = "https://tcp1620-02.dubybot.live/1MB.bin"; Times = 1 }
+        @{ Id = "FI.HE-03"; Provider = "Hetzner"; Url = "https://tcp1620-05.dubybot.live/1MB.bin"; Times = 1 }
+        @{ Id = "FI.HE-04"; Provider = "Hetzner"; Url = "https://tcp1620-06.dubybot.live/1MB.bin"; Times = 1 }
+        @{ Id = "FR.OVH-01"; Provider = "OVH"; Url = "https://eu.api.ovh.com/console/rapidoc-min.js"; Times = 1 }
+        @{ Id = "FR.OVH-02"; Provider = "OVH"; Url = "https://ovh.sfx.ovh/10M.bin"; Times = 1 }
+        @{ Id = "SE.OR-01"; Provider = "Oracle"; Url = "https://oracle.sfx.ovh/10M.bin"; Times = 1 }
+        @{ Id = "DE.AWS-01"; Provider = "AWS"; Url = "https://tms.delta.com/delta/dl_anderson/Bootstrap.js"; Times = 1 }
+        @{ Id = "US.AWS-01"; Provider = "AWS"; Url = "https://corp.kaltura.com/wp-content/cache/min/1/wp-content/themes/airfleet/dist/styles/theme.css"; Times = 1 }
+        @{ Id = "US.GC-01"; Provider = "Google Cloud"; Url = "https://api.usercentrics.eu/gvl/v3/en.json"; Times = 1 }
+        @{ Id = "US.FST-01"; Provider = "Fastly"; Url = "https://openoffice.apache.org/images/blog/rejected.png"; Times = 1 }
+        @{ Id = "US.FST-02"; Provider = "Fastly"; Url = "https://www.juniper.net/etc.clientlibs/juniper/clientlibs/clientlib-site/resources/fonts/lato/Lato-Regular.woff2"; Times = 1 }
+        @{ Id = "PL.AKM-01"; Provider = "Akamai"; Url = "https://www.lg.com/lg5-common-gp/library/jquery.min.js"; Times = 1 }
+        @{ Id = "PL.AKM-02"; Provider = "Akamai"; Url = "https://media-assets.stryker.com/is/image/stryker/gateway_1?$max_width_1410$"; Times = 1 }
+        @{ Id = "US.CDN77-01"; Provider = "CDN77"; Url = "https://cdn.eso.org/images/banner1920/eso2520a.jpg"; Times = 1 }
+        @{ Id = "DE.CNTB-01"; Provider = "Contabo"; Url = "https://cloudlets.io/wp-content/themes/Avada/includes/lib/assets/fonts/fontawesome/webfonts/fa-solid-900.woff2"; Times = 1 }
+        @{ Id = "FR.SW-01"; Provider = "Scaleway"; Url = "https://renklisigorta.com.tr/teklif-al"; Times = 1 }
+        @{ Id = "US.CNST-01"; Provider = "Constant"; Url = "https://cdn.xuansiwei.com/common/lib/font-awesome/4.7.0/fontawesome-webfont.woff2?v=4.7.0"; Times = 1 }
+        # Local test payload (requires: run make-test-payload.ps1 and serve via python -m http.server 8000)
+        # @{ Id = "LOCAL.TEST-16K"; Provider = "LocalTest"; Url = "http://127.0.0.1:8000/test-payload-16384b.bin"; Times = 1 }
+    )
+}
+
+function Build-DpiTargets {
+    param(
+        [string]$CustomUrl
+    )
+
+    $suite = Get-DpiSuite
+    $targets = @()
+
+    if ($CustomUrl) {
+        $targets += @{ Id = "CUSTOM"; Provider = "Custom"; Url = $CustomUrl }
+    } else {
+        foreach ($entry in $suite) {
+            $repeat = $entry.Times
+            if (-not $repeat -or $repeat -lt 1) { $repeat = 1 }
+            for ($i = 0; $i -lt $repeat; $i++) {
+                $suffix = ""
+                if ($repeat -gt 1) { $suffix = "@$i" }
+                $targets += @{ Id = "$($entry.Id)$suffix"; Provider = $entry.Provider; Url = $entry.Url }
+            }
+        }
+    }
+
+    return $targets
+}
+
+function Invoke-DpiSuite {
+    param(
+        [array]$Targets,
+        [int]$TimeoutSeconds,
+        [int]$RangeBytes,
+        [int]$WarnMinKB,
+        [int]$WarnMaxKB,
+        [int]$MaxParallel
+    )
+
+    $tests = @(
+        @{ Label = "HTTP";   Args = @("--http1.1") },
+        @{ Label = "TLS1.2"; Args = @("--tlsv1.2", "--tls-max", "1.2") },
+        @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
+    )
+
+    $rangeSpec = "0-$($RangeBytes - 1)"
+    $globalWarn = $false
+
+    Write-Host "[INFO] Targets: $($Targets.Count) (custom URL overrides suite). Range: $rangeSpec bytes; Timeout: $TimeoutSeconds s; Warn window: $WarnMinKB-$WarnMaxKB KB" -ForegroundColor Cyan
+    Write-Host "[INFO] Starting DPI TCP 16-20 checks (parallel: $MaxParallel)..." -ForegroundColor DarkGray
+
+    $runspacePool = [runspacefactory]::CreateRunspacePool(1, $MaxParallel)
+    $runspacePool.Open()
+
+    $scriptBlock = {
+        param($target, $tests, $rangeSpec, $TimeoutSeconds, $WarnMinKB, $WarnMaxKB)
+
+        $warned = $false
+        $lines = @()
+
+        foreach ($test in $tests) {
+            $curlArgs = @(
+                "-L",
+                "--range", $rangeSpec,
+                "-m", $TimeoutSeconds,
+                "-w", "%{http_code} %{size_download}",
+                "-o", "NUL",
+                "-s"
+            ) + $test.Args + $target.Url
+
+            $output = & curl.exe @curlArgs 2>&1
+            $exit = $LASTEXITCODE
+            $text = ($output | Out-String).Trim()
+
+            $code = "NA"
+            $sizeBytes = 0
+
+            if ($text -match '^(?<code>\d{3})\s+(?<size>\d+)$') {
+                $code = $matches['code']
+                $sizeBytes = [int64]$matches['size']
+            } elseif ($text -match 'not supported|does not support') {
+                $code = "UNSUP"
+            } elseif ($text) {
+                $code = "ERR"
+            }
+
+            $sizeKB = [math]::Round($sizeBytes / 1024, 1)
+            $status = "OK"
+            $color = "Green"
+
+            if ($code -eq "UNSUP") {
+                $status = "UNSUPPORTED"
+                $color = "Yellow"
+            } elseif ($exit -ne 0 -or $code -eq "ERR" -or $code -eq "NA") {
+                $status = "FAIL"
+                $color = "Red"
+            }
+
+            if (($sizeKB -ge $WarnMinKB) -and ($sizeKB -le $WarnMaxKB) -and ($exit -ne 0)) {
+                $status = "LIKELY_BLOCKED"
+                $color = "Yellow"
+                $warned = $true
+            }
+
+            $lines += [PSCustomObject]@{
+                TargetId   = $target.Id
+                Provider   = $target.Provider
+                TestLabel  = $test.Label
+                Code       = $code
+                SizeBytes  = $sizeBytes
+                SizeKB     = $sizeKB
+                Status     = $status
+                Color      = $color
+                Warned     = $warned
+            }
+        }
+
+        return [PSCustomObject]@{
+            TargetId = $target.Id
+            Provider = $target.Provider
+            Lines    = $lines
+            Warned   = $warned
+        }
+    }
+
+    $runspaces = @()
+    foreach ($target in $Targets) {
+        $powershell = [powershell]::Create().AddScript($scriptBlock)
+        [void]$powershell.AddArgument($target)
+        [void]$powershell.AddArgument($tests)
+        [void]$powershell.AddArgument($rangeSpec)
+        [void]$powershell.AddArgument($TimeoutSeconds)
+        [void]$powershell.AddArgument($WarnMinKB)
+        [void]$powershell.AddArgument($WarnMaxKB)
+        $powershell.RunspacePool = $runspacePool
+
+        $runspaces += [PSCustomObject]@{
+            Powershell = $powershell
+            Handle     = $powershell.BeginInvoke()
+        }
+    }
+
+    $results = @()
+    foreach ($rs in $runspaces) {
+        $results += $rs.Powershell.EndInvoke($rs.Handle)
+        $rs.Powershell.Dispose()
+    }
+    $runspacePool.Close()
+    $runspacePool.Dispose()
+
+    foreach ($res in $results) {
+        Write-Host "`n=== $($res.TargetId) [$($res.Provider)] ===" -ForegroundColor DarkCyan
+
+        foreach ($line in $res.Lines) {
+            $msg = "[{0}][{1}] code={2} size={3} bytes ({4} KB) status={5}" -f $line.TargetId, $line.TestLabel, $line.Code, $line.SizeBytes, $line.SizeKB, $line.Status
+            Write-Host $msg -ForegroundColor $line.Color
+            if ($line.Status -eq "LIKELY_BLOCKED") {
+                Write-Host "  Pattern matches 16-20KB freeze; censor likely cutting this strategy." -ForegroundColor Yellow
+            }
+        }
+
+        if (-not $res.Warned) {
+            Write-Host "  No 16-20KB freeze pattern for this target." -ForegroundColor Green
+        } else {
+            $globalWarn = $true
+        }
+    }
+
+    if ($globalWarn) {
+        Write-Host ""
+        Write-Host "[WARNING] Detected possible DPI TCP 16-20 blocking on one or more targets. Consider changing strategy/SNI/IP." -ForegroundColor Red
+    } else {
+        Write-Host ""
+        Write-Host "[OK] No 16-20KB freeze pattern detected across targets." -ForegroundColor Green
+    }
+}
+
 function Test-ZapretServiceConflict {
     return [bool](Get-Service -Name "zapret" -ErrorAction SilentlyContinue)
 }
@@ -48,6 +275,20 @@ if ($hasErrors) {
     exit 1
 }
 
+# DPI checker defaults (override via MONITOR_* env vars like in monitor.ps1)
+$dpiTimeoutSeconds = 5
+$dpiRangeBytes = 262144
+$dpiWarnMinKB = 14
+$dpiWarnMaxKB = 22
+$dpiMaxParallel = 8
+$dpiCustomUrl = $env:MONITOR_URL
+if ($env:MONITOR_TIMEOUT) { [int]$dpiTimeoutSeconds = $env:MONITOR_TIMEOUT }
+if ($env:MONITOR_RANGE) { [int]$dpiRangeBytes = $env:MONITOR_RANGE }
+if ($env:MONITOR_WARN_MINKB) { [int]$dpiWarnMinKB = $env:MONITOR_WARN_MINKB }
+if ($env:MONITOR_WARN_MAXKB) { [int]$dpiWarnMaxKB = $env:MONITOR_WARN_MAXKB }
+if ($env:MONITOR_MAX_PARALLEL) { [int]$dpiMaxParallel = $env:MONITOR_MAX_PARALLEL }
+$dpiTargets = Build-DpiTargets -CustomUrl $dpiCustomUrl
+
 $script:spinIndex = -1
 $script:currentLine = ""
 
@@ -56,46 +297,26 @@ $targetDir = $PSScriptRoot
 if (-not $targetDir) { $targetDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
 $batFiles = Get-ChildItem -Path $targetDir -Filter "general*.bat" | Sort-Object Name
 
-# Load targets before choosing mode
-$targetsFile = Join-Path $targetDir "targets.txt"
-$rawTargets = New-OrderedDict
-if (Test-Path $targetsFile) {
-    Get-Content $targetsFile | ForEach-Object {
-        if ($_ -match '^\s*(\w+)\s*=\s*"(.+)"\s*$') {
-            Add-OrSet -dict $rawTargets -key $matches[1] -val $matches[2]
+# Select top-level test type (standard vs DPI checkers)
+function Read-TestType {
+    while ($true) {
+        Write-Host ""
+        Write-Host "Select test type:" -ForegroundColor Cyan
+        Write-Host "  [1] Standard tests (HTTP/ping)" -ForegroundColor Gray
+        Write-Host "  [2] DPI checkers (TCP 16-20 freeze)" -ForegroundColor Gray
+        $choice = Read-Host "Enter 1 or 2"
+        switch ($choice) {
+            '1' { return 'standard' }
+            '2' { return 'dpi' }
+            default { Write-Host "Incorrect input. Please try again." -ForegroundColor Yellow }
         }
     }
 }
 
-# Defaults if targets.txt missing or empty
-if ($rawTargets.Count -eq 0) {
-    Write-Host "[INFO] targets.txt missing or empty. Using defaults." -ForegroundColor Gray
-    Add-OrSet $rawTargets "Discord Main"           "https://discord.com"
-    Add-OrSet $rawTargets "Discord Gateway"        "https://gateway.discord.gg"
-    Add-OrSet $rawTargets "Discord CDN"            "https://cdn.discordapp.com"
-    Add-OrSet $rawTargets "Discord Updates"        "https://updates.discord.com"
-    Add-OrSet $rawTargets "YouTube Web"            "https://www.youtube.com"
-    Add-OrSet $rawTargets "YouTube Short"          "https://youtu.be"
-    Add-OrSet $rawTargets "YouTube Image"          "https://i.ytimg.com"
-    Add-OrSet $rawTargets "YouTube Video Redirect" "https://redirector.googlevideo.com"
-    Add-OrSet $rawTargets "Google Main"            "https://www.google.com"
-    Add-OrSet $rawTargets "Google Gstatic"         "https://www.gstatic.com"
-    Add-OrSet $rawTargets "Cloudflare Web"         "https://www.cloudflare.com"
-    Add-OrSet $rawTargets "Cloudflare CDN"         "https://cdnjs.cloudflare.com"
-    Add-OrSet $rawTargets "Cloudflare DNS 1.1.1.1" "PING:1.1.1.1"
-    Add-OrSet $rawTargets "Cloudflare DNS 1.0.0.1" "PING:1.0.0.1"
-    Add-OrSet $rawTargets "Google DNS 8.8.8.8"     "PING:8.8.8.8"
-    Add-OrSet $rawTargets "Google DNS 8.8.4.4"     "PING:8.8.4.4"
-    Add-OrSet $rawTargets "Quad9 DNS 9.9.9.9"      "PING:9.9.9.9"
-} else {
-    Write-Host "[INFO] Targets loaded: $($rawTargets.Count)" -ForegroundColor Gray
-}
-
-Write-Host ""
-
 # Select test mode: all configs or custom subset
 function Read-ModeSelection {
     while ($true) {
+        Write-Host ""
         Write-Host "Select test run mode:" -ForegroundColor Cyan
         Write-Host "  [1] All configs" -ForegroundColor Gray
         Write-Host "  [2] Selected configs" -ForegroundColor Gray
@@ -103,7 +324,7 @@ function Read-ModeSelection {
         switch ($choice) {
             '1' { return 'all' }
             '2' { return 'select' }
-            default { Write-Host "Некорректный ввод. Повторите." -ForegroundColor Yellow }
+            default { Write-Host "Incorrect input. Please try again." -ForegroundColor Yellow }
         }
     }
 }
@@ -138,10 +359,58 @@ function Read-ConfigSelection {
     }
 }
 
+$testType = Read-TestType
 $mode = Read-ModeSelection
 if ($mode -eq 'select') {
     $selected = Read-ConfigSelection -allFiles $batFiles
     $batFiles = @($selected)
+}
+
+# Load targets once for standard mode
+$targetList = @()
+$maxNameLen = 10
+if ($testType -eq 'standard') {
+    $targetsFile = Join-Path $targetDir "targets.txt"
+    $rawTargets = New-OrderedDict
+    if (Test-Path $targetsFile) {
+        Get-Content $targetsFile | ForEach-Object {
+            if ($_ -match '^\s*(\w+)\s*=\s*"(.+)"\s*$') {
+                Add-OrSet -dict $rawTargets -key $matches[1] -val $matches[2]
+            }
+        }
+    }
+
+    if ($rawTargets.Count -eq 0) {
+        Write-Host "[INFO] targets.txt missing or empty. Using defaults." -ForegroundColor Gray
+        Add-OrSet $rawTargets "Discord Main"           "https://discord.com"
+        Add-OrSet $rawTargets "Discord Gateway"        "https://gateway.discord.gg"
+        Add-OrSet $rawTargets "Discord CDN"            "https://cdn.discordapp.com"
+        Add-OrSet $rawTargets "Discord Updates"        "https://updates.discord.com"
+        Add-OrSet $rawTargets "YouTube Web"            "https://www.youtube.com"
+        Add-OrSet $rawTargets "YouTube Short"          "https://youtu.be"
+        Add-OrSet $rawTargets "YouTube Image"          "https://i.ytimg.com"
+        Add-OrSet $rawTargets "YouTube Video Redirect" "https://redirector.googlevideo.com"
+        Add-OrSet $rawTargets "Google Main"            "https://www.google.com"
+        Add-OrSet $rawTargets "Google Gstatic"         "https://www.gstatic.com"
+        Add-OrSet $rawTargets "Cloudflare Web"         "https://www.cloudflare.com"
+        Add-OrSet $rawTargets "Cloudflare CDN"         "https://cdnjs.cloudflare.com"
+        Add-OrSet $rawTargets "Cloudflare DNS 1.1.1.1" "PING:1.1.1.1"
+        Add-OrSet $rawTargets "Cloudflare DNS 1.0.0.1" "PING:1.0.0.1"
+        Add-OrSet $rawTargets "Google DNS 8.8.8.8"     "PING:8.8.8.8"
+        Add-OrSet $rawTargets "Google DNS 8.8.4.4"     "PING:8.8.4.4"
+        Add-OrSet $rawTargets "Quad9 DNS 9.9.9.9"      "PING:9.9.9.9"
+    } else {
+        Write-Host ""
+        Write-Host "[INFO] Loaded targets from targets.txt" -ForegroundColor Gray
+        Write-Host "[INFO] Targets loaded: $($rawTargets.Count)" -ForegroundColor Gray
+    }
+
+    foreach ($key in $rawTargets.Keys) {
+        $targetList += Convert-Target -Name $key -Value $rawTargets[$key]
+    }
+
+    $maxNameLen = ($targetList | ForEach-Object { $_.Name.Length } | Measure-Object -Maximum).Maximum
+    if (-not $maxNameLen -or $maxNameLen -lt 10) { $maxNameLen = 10 }
 }
 
 # Ensure we have configs to run
@@ -149,40 +418,6 @@ if (-not $batFiles -or $batFiles.Count -eq 0) {
     Write-Host "[ERROR] No general*.bat files found" -ForegroundColor Red
     exit 1
 }
-
-# Convert raw targets to structured list (supports PING:ip for ping-only targets)
-function Convert-Target {
-    param(
-        [string]$Name,
-        [string]$Value
-    )
-
-    if ($Value -like "PING:*") {
-        $ping = $Value -replace '^PING:\s*', ''
-        $url = $null
-        $pingTarget = $ping
-    } else {
-        $url = $Value
-        $pingTarget = $url -replace "^https?://", "" -replace "/.*$", ""
-    }
-
-    return (New-Object PSObject -Property @{
-        Name       = $Name
-        Url        = $url
-        PingTarget = $pingTarget
-    })
-}
-
-$targetList = @()
-foreach ($key in $rawTargets.Keys) {
-    $targetList += Convert-Target -Name $key -Value $rawTargets[$key]
-}
-
-# Max name length for aligned output
-$maxNameLen = ($targetList | ForEach-Object { $_.Name.Length } | Measure-Object -Maximum).Maximum
-if (-not $maxNameLen -or $maxNameLen -lt 10) { $maxNameLen = 10 }
-
-Write-Host ""
 
 # Stop winws
 function Stop-Zapret {
@@ -201,6 +436,7 @@ function Show-Spinner {
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "                 ZAPRET CONFIG TESTS" -ForegroundColor Cyan
+Write-Host "                 Mode: $($testType.ToUpper())" -ForegroundColor Cyan
 Write-Host "                 Total configs: $($batFiles.Count.ToString().PadLeft(2))" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
@@ -222,13 +458,15 @@ foreach ($file in $batFiles) {
     # Wait init
     Start-Sleep -Seconds 5
     
-    # Tests
-    $curlTimeoutSeconds = 8
+    if ($testType -eq 'standard') {
+        $curlTimeoutSeconds = 5
 
-    # Parallel target checks
-    $targetJobs = @()
-    foreach ($target in $targetList) {
-        $targetJobs += Start-Job -ScriptBlock {
+        # Parallel target checks via runspace pool (faster than jobs)
+        $maxParallel = 8
+        $runspacePool = [runspacefactory]::CreateRunspacePool(1, $maxParallel)
+        $runspacePool.Open()
+
+        $scriptBlock = {
             param($t, $curlTimeoutSeconds)
 
             $httpPieces = @()
@@ -236,7 +474,6 @@ foreach ($file in $batFiles) {
             if ($t.Url) {
                 $tests = @(
                     @{ Label = "HTTP";   Args = @("--http1.1") },
-                    # Enforce exact TLS versions by pinning both min and max
                     @{ Label = "TLS1.2"; Args = @("--tlsv1.2", "--tls-max", "1.2") },
                     @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
                 )
@@ -282,52 +519,72 @@ foreach ($file in $batFiles) {
                 PingResult = $pingResult
                 IsUrl      = [bool]$t.Url
             })
-        } -ArgumentList $target, $curlTimeoutSeconds
-    }
-
-    $script:currentLine = "  > Running tests..."
-    Write-Host $script:currentLine -ForegroundColor DarkGray
-    Wait-Job -Job $targetJobs | Out-Null
-
-    Wait-Job -Job $targetJobs | Out-Null
-    $targetResults = foreach ($job in $targetJobs) { Receive-Job -Job $job }
-    Remove-Job -Job $targetJobs -Force -ErrorAction SilentlyContinue
-
-    $targetLookup = @{}
-    foreach ($res in $targetResults) { $targetLookup[$res.Name] = $res }
-
-    foreach ($target in $targetList) {
-        $res = $targetLookup[$target.Name]
-        if (-not $res) { continue }
-
-        Write-Host "  $($target.Name.PadRight($maxNameLen))    " -NoNewline
-
-        if ($res.IsUrl -and $res.HttpTokens) {
-            foreach ($tok in $res.HttpTokens) {
-                $tokColor = "Green"
-                if ($tok -match "UNSUP") { $tokColor = "Yellow" }
-                elseif ($tok -match "ERR") { $tokColor = "Red" }
-                Write-Host " $tok" -NoNewline -ForegroundColor $tokColor
-            }
-            Write-Host " | Ping: " -NoNewline -ForegroundColor DarkGray
-            if ($res.PingResult -eq "Timeout") {
-                $pingColor = "Yellow"
-            } else {
-                $pingColor = "Cyan"
-            }
-            Write-Host "$($res.PingResult)" -NoNewline -ForegroundColor $pingColor
-            Write-Host ""
-        } else {
-            # Ping-only target
-            Write-Host " Ping: " -NoNewline -ForegroundColor DarkGray
-            if ($res.PingResult -eq "Timeout") {
-                $pingColor = "Red"
-            } else {
-                $pingColor = "Cyan"
-            }
-            Write-Host "$($res.PingResult)" -ForegroundColor $pingColor
         }
 
+        $runspaces = @()
+        foreach ($target in $targetList) {
+            $ps = [powershell]::Create().AddScript($scriptBlock)
+            [void]$ps.AddArgument($target)
+            [void]$ps.AddArgument($curlTimeoutSeconds)
+            $ps.RunspacePool = $runspacePool
+
+            $runspaces += [PSCustomObject]@{
+                Powershell = $ps
+                Handle     = $ps.BeginInvoke()
+            }
+        }
+
+        $script:currentLine = "  > Running tests..."
+        Write-Host $script:currentLine -ForegroundColor DarkGray
+
+        $targetResults = @()
+        foreach ($rs in $runspaces) {
+            $targetResults += $rs.Powershell.EndInvoke($rs.Handle)
+            $rs.Powershell.Dispose()
+        }
+
+        $runspacePool.Close()
+        $runspacePool.Dispose()
+
+        $targetLookup = @{}
+        foreach ($res in $targetResults) { $targetLookup[$res.Name] = $res }
+
+        foreach ($target in $targetList) {
+            $res = $targetLookup[$target.Name]
+            if (-not $res) { continue }
+
+            Write-Host "  $($target.Name.PadRight($maxNameLen))    " -NoNewline
+
+            if ($res.IsUrl -and $res.HttpTokens) {
+                foreach ($tok in $res.HttpTokens) {
+                    $tokColor = "Green"
+                    if ($tok -match "UNSUP") { $tokColor = "Yellow" }
+                    elseif ($tok -match "ERR") { $tokColor = "Red" }
+                    Write-Host " $tok" -NoNewline -ForegroundColor $tokColor
+                }
+                Write-Host " | Ping: " -NoNewline -ForegroundColor DarkGray
+                if ($res.PingResult -eq "Timeout") {
+                    $pingColor = "Yellow"
+                } else {
+                    $pingColor = "Cyan"
+                }
+                Write-Host "$($res.PingResult)" -NoNewline -ForegroundColor $pingColor
+                Write-Host ""
+            } else {
+                # Ping-only target
+                Write-Host " Ping: " -NoNewline -ForegroundColor DarkGray
+                if ($res.PingResult -eq "Timeout") {
+                    $pingColor = "Red"
+                } else {
+                    $pingColor = "Cyan"
+                }
+                Write-Host "$($res.PingResult)" -ForegroundColor $pingColor
+            }
+
+        }
+    } else {
+        Write-Host "  > Running DPI checkers..." -ForegroundColor DarkGray
+        Invoke-DpiSuite -Targets $dpiTargets -TimeoutSeconds $dpiTimeoutSeconds -RangeBytes $dpiRangeBytes -WarnMinKB $dpiWarnMinKB -WarnMaxKB $dpiWarnMaxKB -MaxParallel $dpiMaxParallel
     }
     
     # Stop
@@ -337,9 +594,7 @@ foreach ($file in $batFiles) {
 
 Write-Host ""
 Write-Host "All tests finished." -ForegroundColor Green
-Write-Host "Press any key to exit..." -ForegroundColor Yellow
-[void][System.Console]::ReadKey($true)
-
-
+# Write-Host "Press any key to exit..." -ForegroundColor Yellow
+# [void][System.Console]::ReadKey($true)
 
 
