@@ -451,7 +451,14 @@ echo:
 :: VPN
 sc query | findstr /I "VPN" > nul
 if !errorlevel!==0 (
-    call :PrintYellow "[?] Some VPN services found. Some VPNs can conflict with zapret"
+    for /f "tokens=2 delims=:" %%A in ('sc query ^|^ findstr /I "VPN"') do (
+        if not defined VPN_SERVICES (
+            set "VPN_SERVICES=!VPN_SERVICES!%%A"
+        ) else (
+            set "VPN_SERVICES=!VPN_SERVICES!,%%A"
+        )
+    )
+    call :PrintYellow "[?] VPN services found:!VPN_SERVICES!. Some VPNs can conflict with zapret"
     call :PrintYellow "Make sure that all VPNs are disabled"
 ) else (
     call :PrintGreen "VPN check passed"
