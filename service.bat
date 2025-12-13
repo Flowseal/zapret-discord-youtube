@@ -467,8 +467,6 @@ echo:
 set "BIN_PATH=%~dp0bin\"
 if not exist "%BIN_PATH%\*.sys" (
     call :PrintRed "WinDivert64.sys file NOT found."
-) else (
-    call :PrintGreen "WinDivert64.sys file found."
 )
 echo:
 
