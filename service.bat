@@ -82,13 +82,18 @@ if !errorlevel!==0 (
 
 call :test_service zapret
 call :test_service WinDivert
+
+set "BIN_PATH=%~dp0bin\"
+if not exist "%BIN_PATH%\*.sys" (
+    call :PrintRed "WinDivert64.sys file NOT found."
+)
 echo:
 
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
 if !errorlevel!==0 (
-    call :PrintGreen "Bypass (winws.exe) is ACTIVE"
+    call :PrintGreen "Bypass (winws.exe) is RUNNING."
 ) else (
-    call :PrintRed "Bypass (winws.exe) NOT FOUND"
+    call :PrintRed "Bypass (winws.exe) is NOT running."
 )
 
 pause
@@ -373,6 +378,16 @@ if !proxyEnabled!==1 (
 )
 echo:
 
+:: Check netsh
+where netsh >nul 2>nul
+if !errorlevel! neq 0  (
+    call :PrintRed "[X] netsh command not found, check your PATH variable"
+	echo PATH = "%PATH%"
+	echo:
+	pause
+	goto menu
+)
+
 :: TCP timestamps check
 netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul
 if !errorlevel!==0 (
@@ -445,6 +460,15 @@ if !errorlevel!==0 (
     call :PrintRed "Try to uninstall or disable SmartByte through services.msc"
 ) else (
     call :PrintGreen "SmartByte check passed"
+)
+echo:
+
+:: WinDivert64.sys file
+set "BIN_PATH=%~dp0bin\"
+if not exist "%BIN_PATH%\*.sys" (
+    call :PrintRed "WinDivert64.sys file NOT found."
+) else (
+    call :PrintGreen "WinDivert64.sys file found."
 )
 echo:
 
