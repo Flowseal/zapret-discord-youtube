@@ -3,7 +3,7 @@ set "LOCAL_VERSION=1.9.0b"
 
 :: External commands
 if "%~1"=="status_zapret" (
-    call :test_service zapret soft
+    call :test_service zapret soft enabled
     call :tcp_enable
     exit /b
 )
