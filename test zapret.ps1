@@ -271,6 +271,8 @@ function Invoke-DpiSuite {
         Write-Host ""
         Write-Host "[OK] No 16-20KB freeze pattern detected across targets." -ForegroundColor Green
     }
+
+    return $results
 }
 
 function Test-ZapretServiceConflict {
@@ -347,6 +349,8 @@ $targetDir = $PSScriptRoot
 if (-not $targetDir) { $targetDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
 $batFiles = Get-ChildItem -Path $targetDir -Filter "general*.bat" | Sort-Object Name
 
+$globalResults = @()
+
 # Select top-level test type (standard vs DPI checkers)
 function Read-TestType {
     while ($true) {
@@ -409,6 +413,8 @@ function Read-ConfigSelection {
     }
 }
 
+while ($true) {
+    $globalResults = @()
 $testType = Read-TestType
 $mode = Read-ModeSelection
 if ($mode -eq 'select') {
@@ -674,9 +680,12 @@ try {
             }
 
         }
+
+        $globalResults += @{ Config = $file.Name; Type = 'standard'; Results = $targetResults }
     } else {
         Write-Host "  > Running DPI checkers..." -ForegroundColor DarkGray
-        Invoke-DpiSuite -Targets $dpiTargets -TimeoutSeconds $dpiTimeoutSeconds -RangeBytes $dpiRangeBytes -WarnMinKB $dpiWarnMinKB -WarnMaxKB $dpiWarnMaxKB -MaxParallel $dpiMaxParallel
+        $dpiResults = Invoke-DpiSuite -Targets $dpiTargets -TimeoutSeconds $dpiTimeoutSeconds -RangeBytes $dpiRangeBytes -WarnMinKB $dpiWarnMinKB -WarnMaxKB $dpiWarnMaxKB -MaxParallel $dpiMaxParallel
+        $globalResults += @{ Config = $file.Name; Type = 'dpi'; Results = $dpiResults }
     }
     
     # Stop
@@ -686,18 +695,102 @@ try {
 
     Write-Host ""
     Write-Host "All tests finished." -ForegroundColor Green
-    # Write-Host "Press any key to exit..." -ForegroundColor Yellow
-    # [void][System.Console]::ReadKey($true)
-}
-catch {
+
+    # Analytics
+    $analytics = @{}
+    foreach ($res in $globalResults) {
+        if ($res.Type -eq 'standard') {
+            foreach ($targetRes in $res.Results) {
+                $config = $res.Config
+                if (-not $analytics.ContainsKey($config)) { $analytics[$config] = @{ OK = 0; ERROR = 0; UNSUP = 0; PingOK = 0; PingFail = 0 } }
+                if ($targetRes.IsUrl) {
+                    foreach ($tok in $targetRes.HttpTokens) {
+                        if ($tok -match "OK") { $analytics[$config].OK++ }
+                        elseif ($tok -match "ERROR") { $analytics[$config].ERROR++ }
+                        elseif ($tok -match "UNSUP") { $analytics[$config].UNSUP++ }
+                    }
+                }
+                if ($targetRes.PingResult -ne "Timeout" -and $targetRes.PingResult -ne "n/a") { $analytics[$config].PingOK++ } else { $analytics[$config].PingFail++ }
+            }
+        } elseif ($res.Type -eq 'dpi') {
+            foreach ($targetRes in $res.Results) {
+                $config = $res.Config
+                if (-not $analytics.ContainsKey($config)) { $analytics[$config] = @{ OK = 0; FAIL = 0; UNSUPPORTED = 0; LIKELY_BLOCKED = 0 } }
+                foreach ($line in $targetRes.Lines) {
+                    if ($line.Status -eq "OK") { $analytics[$config].OK++ }
+                    elseif ($line.Status -eq "FAIL") { $analytics[$config].FAIL++ }
+                    elseif ($line.Status -eq "UNSUPPORTED") { $analytics[$config].UNSUPPORTED++ }
+                    elseif ($line.Status -eq "LIKELY_BLOCKED") { $analytics[$config].LIKELY_BLOCKED++ }
+                }
+            }
+        }
+    }
+
+    Write-Host ""
+    Write-Host "=== ANALYTICS ===" -ForegroundColor Cyan
+    foreach ($config in $analytics.Keys) {
+        $a = $analytics[$config]
+        if ($a.ContainsKey('PingOK')) {
+            Write-Host "$config : HTTP OK: $($a.OK), ERR: $($a.ERROR), UNSUP: $($a.UNSUP), Ping OK: $($a.PingOK), Fail: $($a.PingFail)" -ForegroundColor Yellow
+        } else {
+            Write-Host "$config : OK: $($a.OK), FAIL: $($a.FAIL), UNSUP: $($a.UNSUPPORTED), BLOCKED: $($a.LIKELY_BLOCKED)" -ForegroundColor Yellow
+        }
+    }
+
+    # Save to file
+    $resultFile = Join-Path $PSScriptRoot "test_results.txt"
+    # Clear file
+    "" | Out-File $resultFile -Encoding UTF8
+    foreach ($res in $globalResults) {
+        $config = $res.Config
+        $type = $res.Type
+        $results = $res.Results
+        Add-Content $resultFile "Config: $config (Type: $type)"
+        if ($type -eq 'standard') {
+            foreach ($targetRes in $results) {
+                $name = $targetRes.Name
+                $http = $targetRes.HttpTokens -join ' '
+                $ping = $targetRes.PingResult
+                Add-Content $resultFile "  $name : $http | Ping: $ping"
+            }
+        } elseif ($type -eq 'dpi') {
+            foreach ($targetRes in $results) {
+                $id = $targetRes.TargetId
+                $provider = $targetRes.Provider
+                Add-Content $resultFile "  Target: $id ($provider)"
+                foreach ($line in $targetRes.Lines) {
+                    $test = $line.TestLabel
+                    $code = $line.Code
+                    $size = $line.SizeKB
+                    $status = $line.Status
+                    Add-Content $resultFile "    ${test}: code=${code} size=${size} KB status=${status}"
+                }
+            }
+        }
+        Add-Content $resultFile ""
+    }
+
+    # Add analytics
+    Add-Content $resultFile "=== ANALYTICS ==="
+    foreach ($config in $analytics.Keys) {
+        $a = $analytics[$config]
+        if ($a.ContainsKey('PingOK')) {
+            Add-Content $resultFile "$config : HTTP OK: $($a.OK), ERR: $($a.ERROR), UNSUP: $($a.UNSUP), Ping OK: $($a.PingOK), Fail: $($a.PingFail)"
+        } else {
+            Add-Content $resultFile "$config : OK: $($a.OK), FAIL: $($a.FAIL), UNSUP: $($a.UNSUPPORTED), BLOCKED: $($a.LIKELY_BLOCKED)"
+        }
+    }
+
+    Write-Host "Results saved to $resultFile" -ForegroundColor Green
+
+} catch {
     Write-Host "[ERROR] An error occurred during tests. Restoring ipset..." -ForegroundColor Red
     if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
         Set-IpsetMode -mode "restore"
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
     throw  # Re-throw the error
-}
-finally {
+} finally {
     Stop-Zapret
     Restore-WinwsSnapshot -snapshot $originalWinws
     if ($originalIpsetStatus -ne "any") {
@@ -705,6 +798,10 @@ finally {
         Set-IpsetMode -mode "restore"
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
+}
+
+    Write-Host "Press any key to return to menu..." -ForegroundColor Yellow
+    [void][System.Console]::ReadKey($true)
 }
 
 
