@@ -1,8 +1,14 @@
 $hasErrors = $false
 
+$rootDir = Split-Path $PSScriptRoot
+$binDir = $PSScriptRoot
+$listsDir = Join-Path $rootDir "lists"
+$resultsDir = Join-Path $rootDir "test results"
+if (-not (Test-Path $resultsDir)) { New-Item -ItemType Directory -Path $resultsDir | Out-Null }
+
 # Define functions early
 function Get-IpsetStatus {
-    $listFile = Join-Path $PSScriptRoot "lists\ipset-all.txt"
+    $listFile = Join-Path $listsDir "ipset-all.txt"
     if (-not (Test-Path $listFile)) { return "none" }
     $lineCount = (Get-Content $listFile | Measure-Object -Line).Lines
     if ($lineCount -eq 0) { return "any" }
@@ -12,8 +18,8 @@ function Get-IpsetStatus {
 
 function Set-IpsetMode {
     param([string]$mode)
-    $listFile = Join-Path $PSScriptRoot "lists\ipset-all.txt"
-    $backupFile = Join-Path $PSScriptRoot "lists\ipset-all.test-backup.txt"
+    $listFile = Join-Path $listsDir "ipset-all.txt"
+    $backupFile = Join-Path $listsDir "ipset-all.test-backup.txt"
     if ($mode -eq "any") {
         # Always backup current file (even if none)
         if (Test-Path $listFile) {
@@ -298,7 +304,7 @@ if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
 }
 
 # Check for leftover ipset flag from previous interrupted run
-$ipsetFlagFile = Join-Path $PSScriptRoot "ipset_switched.flag"
+$ipsetFlagFile = Join-Path $rootDir "ipset_switched.flag"
 if (Test-Path $ipsetFlagFile) {
     Write-Host "[INFO] Detected leftover ipset switch flag. Restoring ipset..." -ForegroundColor Yellow
     Set-IpsetMode -mode "restore"
@@ -345,7 +351,7 @@ if ($env:MONITOR_MAX_PARALLEL) { [int]$dpiMaxParallel = $env:MONITOR_MAX_PARALLE
 $dpiTargets = Build-DpiTargets -CustomUrl $dpiCustomUrl
 
 # Config
-$targetDir = $PSScriptRoot
+$targetDir = $rootDir
 if (-not $targetDir) { $targetDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
 $batFiles = Get-ChildItem -Path $targetDir -Filter "general*.bat" | Sort-Object Name
 
@@ -468,6 +474,8 @@ if ($testType -eq 'standard') {
     $maxNameLen = ($targetList | ForEach-Object { $_.Name.Length } | Measure-Object -Maximum).Maximum
     if (-not $maxNameLen -or $maxNameLen -lt 10) { $maxNameLen = 10 }
 }
+
+Write-Host "[WARNING] Tests may take several minutes to complete. Please wait..." -ForegroundColor Yellow
 
 # Ensure we have configs to run
 if (-not $batFiles -or $batFiles.Count -eq 0) {
@@ -737,8 +745,23 @@ try {
         }
     }
 
+    # Determine best strategy
+    $bestConfig = $null
+    $maxScore = 0
+    foreach ($config in $analytics.Keys) {
+        $a = $analytics[$config]
+        $score = $a.OK
+        $score -gt $maxScore
+        $maxScore = $score
+        $bestConfig = $config
+    }
+    Write-Host ""
+    Write-Host "Best config: $bestConfig" -ForegroundColor Green
+    Write-Host ""
+
     # Save to file
-    $resultFile = Join-Path $PSScriptRoot "test_results.txt"
+    $dateStr = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+    $resultFile = Join-Path $resultsDir "test_results_$dateStr.txt"
     # Clear file
     "" | Out-File $resultFile -Encoding UTF8
     foreach ($res in $globalResults) {
@@ -781,6 +804,8 @@ try {
         }
     }
 
+    Add-Content $resultFile "Best strategy: $bestConfig"
+
     Write-Host "Results saved to $resultFile" -ForegroundColor Green
 
 } catch {
@@ -800,8 +825,7 @@ try {
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 }
 
-    Write-Host "Press any key to return to menu..." -ForegroundColor Yellow
+    Write-Host "Press any key to close..." -ForegroundColor Yellow
     [void][System.Console]::ReadKey($true)
+    exit
 }
-
-

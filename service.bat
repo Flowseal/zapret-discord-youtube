@@ -49,8 +49,9 @@ echo 5. Check Updates
 echo 6. Switch Game Filter (%GameFilterStatus%)
 echo 7. Switch ipset (%IPsetStatus%)
 echo 8. Update ipset list
+echo 9. Run Tests
 echo 0. Exit
-set /p menu_choice=Enter choice (0-8): 
+set /p menu_choice=Enter choice (0-9): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -60,6 +61,7 @@ if "%menu_choice%"=="5" goto service_check_updates
 if "%menu_choice%"=="6" goto game_switch
 if "%menu_choice%"=="7" goto ipset_switch
 if "%menu_choice%"=="8" goto ipset_update
+if "%menu_choice%"=="9" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -754,3 +756,34 @@ exit /b
 :PrintYellow
 powershell -Command "Write-Host \"%~1\" -ForegroundColor Yellow"
 exit /b
+
+
+:: RUN TESTS =============================
+:run_tests
+chcp 65001 >nul
+
+:: Check PowerShell
+where powershell >nul 2>&1
+if %errorLevel% neq 0 (
+    echo PowerShell is not installed or not in PATH.
+    echo Please install PowerShell and rerun this script.
+    echo.
+    pause
+    goto menu
+)
+
+:: Require PowerShell 2.0+
+powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -ge 2) { exit 0 } else { exit 1 }" >nul 2>&1
+if %errorLevel% neq 0 (
+    echo PowerShell 2.0 or newer is required.
+    echo Please upgrade PowerShell and rerun this script.
+    echo.
+    pause
+    goto menu
+)
+
+echo Starting configuration tests in PowerShell window...
+echo.
+start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0bin\test zapret.ps1"
+pause
+goto menu
