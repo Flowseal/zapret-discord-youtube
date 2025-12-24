@@ -9,11 +9,14 @@ if "%~1"=="status_zapret" (
 )
 
 if "%~1"=="check_updates" (
-    if not "%~2"=="soft" (
-        start /b service check_updates soft
-    ) else (
-        call :service_check_updates soft
+    if exist "%~dp0utils\check_updates.enabled" (
+        if not "%~2"=="soft" (
+            start /b service check_updates soft
+        ) else (
+            call :service_check_updates soft
+        )
     )
+
     exit /b
 )
 
@@ -38,6 +41,7 @@ setlocal EnableDelayedExpansion
 cls
 call :ipset_switch_status
 call :game_switch_status
+call :check_updates_switch_status
 
 set "menu_choice=null"
 echo =========  v!LOCAL_VERSION!  =========
@@ -46,10 +50,11 @@ echo 2. Remove Services
 echo 3. Check Status
 echo 4. Run Diagnostics
 echo 5. Check Updates
-echo 6. Switch Game Filter (%GameFilterStatus%)
-echo 7. Switch ipset (%IPsetStatus%)
-echo 8. Update ipset list
-echo 9. Run Tests
+echo 6. Switch Check Updates (%CheckUpdatesStatus%)
+echo 7. Switch Game Filter (%GameFilterStatus%)
+echo 8. Switch ipset (%IPsetStatus%)
+echo 9. Update ipset list
+echo 10. Run Tests
 echo 0. Exit
 set /p menu_choice=Enter choice (0-9): 
 
@@ -58,10 +63,11 @@ if "%menu_choice%"=="2" goto service_remove
 if "%menu_choice%"=="3" goto service_status
 if "%menu_choice%"=="4" goto service_diagnostics
 if "%menu_choice%"=="5" goto service_check_updates
-if "%menu_choice%"=="6" goto game_switch
-if "%menu_choice%"=="7" goto ipset_switch
-if "%menu_choice%"=="8" goto ipset_update
-if "%menu_choice%"=="9" goto run_tests
+if "%menu_choice%"=="6" goto check_updates_switch
+if "%menu_choice%"=="7" goto game_switch
+if "%menu_choice%"=="8" goto ipset_switch
+if "%menu_choice%"=="9" goto ipset_update
+if "%menu_choice%"=="10" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -650,7 +656,7 @@ goto menu
 :game_switch_status
 chcp 437 > nul
 
-set "gameFlagFile=%~dp0bin\game_filter.enabled"
+set "gameFlagFile=%~dp0utils\game_filter.enabled"
 
 if exist "%gameFlagFile%" (
     set "GameFilterStatus=enabled"
@@ -674,6 +680,36 @@ if not exist "%gameFlagFile%" (
     echo Disabling game filter...
     del /f /q "%gameFlagFile%"
     call :PrintYellow "Restart the zapret to apply the changes"
+)
+
+pause
+goto menu
+
+
+:: CHECK UPDATES SWITCH =================
+:check_updates_switch_status
+chcp 437 > nul
+
+set "checkUpdatesFlag=%~dp0utils\check_updates.enabled"
+
+if exist "%checkUpdatesFlag%" (
+    set "CheckUpdatesStatus=enabled"
+) else (
+    set "CheckUpdatesStatus=disabled"
+)
+exit /b
+
+
+:check_updates_switch
+chcp 437 > nul
+cls
+
+if not exist "%checkUpdatesFlag%" (
+    echo Enabling check updates...
+    echo ENABLED > "%checkUpdatesFlag%"
+) else (
+    echo Disabling check updates...
+    del /f /q "%checkUpdatesFlag%"
 )
 
 pause
@@ -791,6 +827,7 @@ exit /b
 :: RUN TESTS =============================
 :run_tests
 chcp 65001 >nul
+cls
 
 :: Check PowerShell
 where powershell >nul 2>&1
@@ -814,6 +851,6 @@ if %errorLevel% neq 0 (
 
 echo Starting configuration tests in PowerShell window...
 echo.
-start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0bin\test zapret.ps1"
+start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test zapret.ps1"
 pause
 goto menu
