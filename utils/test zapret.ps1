@@ -539,7 +539,7 @@ Write-Host "============================================================" -Foreg
 
 try {
     # Save original ipset status and switch to 'any' for accurate DPI tests
-    if ($originalIpsetStatus -ne "any") {
+    if (($originalIpsetStatus -ne "any") -and ($testType -eq 'dpi')) {
         Write-Host "[WARNING] Ipset is in '$originalIpsetStatus' mode. Switching to 'any' for accurate DPI tests..." -ForegroundColor Yellow
         Set-IpsetMode -mode "any"
         # Create flag file to indicate ipset was switched
