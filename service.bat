@@ -63,7 +63,7 @@ echo 8. Switch ipset (%IPsetStatus%)
 echo 9. Update ipset list
 echo 10. Run Tests
 echo 0. Exit
-set /p menu_choice=Enter choice (0-9): 
+set /p menu_choice=Enter choice (0-10): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
