@@ -19,3 +19,5 @@ w.soundcloud.com
 style.sndcdn.com
 a-v2.sndcdn.com
 soundcloud.zendesk.com
+soundcloud.app.goo.gl
+

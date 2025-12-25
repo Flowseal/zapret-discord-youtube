@@ -1,5 +1,4 @@
 gstatic.com
-storage.googleapis.com
 cloud.google.com
 googleusercontent.com
 googlecode.com
@@ -11,11 +10,12 @@ googletagservices.com
 googletagmanager.com
 tagmanager.google.com
 
-# fonts.gstatic.com
-# fonts.googleapis.com
-# maps.googleapis.com
+update.googleapis.com
+storage.googleapis.com
+maps.googleapis.com
+fonts.googleapis.com
 # ssl.gstatic.com
-apis.google.com
+# apis.google.com
 # googleapis.com
 
 play.googleapi.com
@@ -23,8 +23,9 @@ play.google.com
 adservice.google.com
 adservice.google.ru
 pagead2.googlesyndication.com
+www.googleadservices.com
 tpc.googlesyndication.com
-# doubleclick.net
 googleads.g.doubleclick.net
 static.doubleclick.net
+stats.g.doubleclick.net
 pubads.g.doubleclick.net

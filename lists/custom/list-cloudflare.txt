@@ -1,6 +1,7 @@
 argotunnel.com
 cfargotunnel.com
 cfl.re
+encryptedsni.com
 cloudflare-dns.com
 cloudflare-ech.com
 cloudflare-esni.com
@@ -40,7 +41,6 @@ cloudflareaccess.com
 cloudflareapps.com
 cloudflarebolt.com
 cloudflareclient.com
-cloudflareinsights.com
 cloudflareok.com
 cloudflarepartners.com
 cloudflareportal.com
@@ -59,6 +59,7 @@ cloudflareworkers.com
 cloudflareanycast.net
 cloudflarechina.cn
 cloudflareglobal.net
+cloudflareinsights.com
 cloudflareinsights-cn.com
 cloudflareperf.com
 cloudflareprod.com
@@ -76,6 +77,7 @@ workers.dev
 
 wsrv.nl
 as13335.net
+cfapi.net
 cfdata-staging.org
 cfplat.com
 cfops.it
@@ -85,6 +87,7 @@ cfssl.org
 cfdata.com
 cfdata.org
 cfdata.lol
+cf-china.info
 cf-ipfs.com
 cfworker-ipfs.com
 cf-test.com
@@ -102,6 +105,5 @@ cf-emailsecurity.net
 cloudflare-cn.com
 cloudflarechina.cn
 cloudflarecn.net
-cloudflareinsights-cn.com
 cloudflarestoragegw.com
 static-cloudflare.top

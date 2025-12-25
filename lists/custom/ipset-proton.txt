@@ -1,0 +1,85 @@
+# https://ipinfo.io/AS209103
+
+# Proton AG	256
+185.159.157.0/24
+
+# Proton AG	256
+185.159.159.0/24
+
+# Proton AG	256
+194.126.177.0/24
+
+# Proton AG	256
+62.169.136.0/24
+
+# Proton AG	256
+62.169.137.0/24
+
+# Proton AG	256
+79.135.104.0/24
+
+# Proton AG
+2a07:b941:e10::/44
+
+# PV-SL-Frankfurt-Network
+2a07:b941:e40::/44
+
+# Proton AG
+2a07:b941:f00::/44
+
+# Proton AG
+2a07:b941:f10::/44
+
+
+# https://ipinfo.io/AS62371
+
+# Proton AG	256
+109.224.244.0/24
+
+# Proton AG	256
+109.224.247.0/24
+
+# Proton AG	256
+176.119.200.0/24
+
+# Proton AG	256
+185.205.70.0/24
+
+# Proton Technologies AG 256
+185.70.40.0/24	
+
+# Proton AG	256
+185.70.41.0/24
+
+# Proton AG	256
+185.70.42.0/24
+
+# Proton AG	256
+185.70.43.0/24
+
+# Proton AG	256
+194.0.147.0/24
+
+# Proton AG	256
+79.135.106.0/24
+
+# Proton AG
+2a05:2701:f00::/44
+
+# Proton AG
+2a05:2701:f10::/44
+
+# Proton AG
+2a05:2701:f40::/44
+
+# Proton AG
+2a05:2701:f50::/44
+
+# Proton AG
+2a05:2701:fe00::/48
+
+# Proton AG
+2a05:2701:fe01::/48
+
+# Proton AG
+2a05:2701:fe02::/48

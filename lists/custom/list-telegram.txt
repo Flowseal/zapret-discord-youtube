@@ -11,6 +11,8 @@ telegra.ph
 telegram-cdn.org
 telegram.dog
 telegram.me
+telegram.dev
+telegram.app
 telegram.org
 telegram.space
 telesco.pe

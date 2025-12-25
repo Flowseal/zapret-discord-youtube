@@ -1,0 +1,32 @@
+# include:asobo
+# include:bethesda
+# include:forza
+# include:mojang
+
+# All .xbox domains
+xbox
+
+gamepass.com
+orithegame.com
+renovacionxboxlive.com
+tellmewhygame.com
+xbox.co
+xbox.com
+xbox.eu
+xbox.org
+xbox360.co
+xbox360.com
+xbox360.eu
+xbox360.org
+xboxab.com
+xboxgamepass.com
+xboxgamestudios.com
+xboxlive.cn
+xboxlive.com
+xboxone.co
+xboxone.com
+xboxone.eu
+xboxplayanywhere.com
+xboxservices.com
+xboxstudios.com
+xbx.lv

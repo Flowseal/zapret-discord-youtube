@@ -1,0 +1,30 @@
+# include:npmjs
+
+atom.io
+dependabot.com
+ghcr.io
+git.io
+github.blog
+github.com
+github.community
+github.dev
+github.io
+githubapp.com
+githubassets.com
+githubcopilot.com
+githubhackathon.com
+githubnext.com
+githubpreview.dev
+githubstatus.com
+githubuniverse.com
+githubusercontent.com
+myoctocat.com
+opensource.guide
+repo.new
+thegithubshop.com
+
+# GitHub Actions Artifacts
+blob.core.windows.net
+
+github-cloud.s3.amazonaws.com
+# regexp:^github-production-release-asset-[0-9a-zA-Z]{6}\.s3\.amazonaws\.com$
