@@ -44,3 +44,6 @@ ffzap.com
 betterttv.net
 7tv.app
 7tv.io
+modrinth.com
+api.modrinth.com
+cdn.modrinth.com
