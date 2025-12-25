@@ -753,12 +753,14 @@ try {
     $bestConfig = $null
     $maxScore = 0
     foreach ($config in $analytics.Keys) {
-        $a = $analytics[$config]
-        $score = $a.OK
-        $score -gt $maxScore
+    $a = $analytics[$config]
+    $score = $a.OK
+    if ($score -gt $maxScore) {
         $maxScore = $score
         $bestConfig = $config
     }
+}
+
     Write-Host ""
     Write-Host "Best config: $bestConfig" -ForegroundColor Green
     Write-Host ""
