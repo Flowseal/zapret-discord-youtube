@@ -33,7 +33,9 @@ if "%1"=="admin" (
 
     echo Started with admin rights
 ) else (
+    call :check_extracted
     call :check_command powershell
+
     echo Requesting admin rights...
     powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/c \"\"%~f0\" admin\"' -Verb RunAs"
     exit
@@ -858,5 +860,17 @@ if %errorLevel% neq 0 (
     echo Fix your PATH variable with instructions here https://github.com/Flowseal/zapret-discord-youtube/issues/7490
     pause
     exit /b 1
+)
+exit /b 0
+
+:check_extracted
+set "extracted=1"
+
+if not exist "%~dp0bin\" set "extracted=0"
+
+if "%extracted%"=="0" (
+    call :PrintRed "Zapret must be extracted from archive first"
+    pause
+    exit
 )
 exit /b 0
