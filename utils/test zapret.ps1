@@ -333,6 +333,8 @@ if (Test-ZapretServiceConflict) {
 if ($hasErrors) {
     Write-Host ""
     Write-Host "Fix the errors above and rerun." -ForegroundColor Yellow
+    Write-Host "Press any key to exit..." -ForegroundColor Yellow
+    [void][System.Console]::ReadKey($true)
     exit 1
 }
 
@@ -480,6 +482,8 @@ Write-Host "[WARNING] Tests may take several minutes to complete. Please wait...
 # Ensure we have configs to run
 if (-not $batFiles -or $batFiles.Count -eq 0) {
     Write-Host "[ERROR] No general*.bat files found" -ForegroundColor Red
+    Write-Host "Press any key to exit..." -ForegroundColor Yellow
+    [void][System.Console]::ReadKey($true)
     exit 1
 }
 
