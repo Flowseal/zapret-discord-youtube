@@ -25,10 +25,15 @@ if "%~1"=="load_game_filter" (
     exit /b
 )
 
-
 if "%1"=="admin" (
+    call :check_command chcp
+    call :check_command find
+    call :check_command findstr
+    call :check_command netsh
+
     echo Started with admin rights
 ) else (
+    call :check_command powershell
     echo Requesting admin rights...
     powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/c \"\"%~f0\" admin\"' -Verb RunAs"
     exit
@@ -809,35 +814,11 @@ echo Finished
 pause
 goto menu
 
-:: Utility functions
-
-:PrintGreen
-powershell -Command "Write-Host \"%~1\" -ForegroundColor Green"
-exit /b
-
-:PrintRed
-powershell -Command "Write-Host \"%~1\" -ForegroundColor Red"
-exit /b
-
-:PrintYellow
-powershell -Command "Write-Host \"%~1\" -ForegroundColor Yellow"
-exit /b
-
 
 :: RUN TESTS =============================
 :run_tests
 chcp 65001 >nul
 cls
-
-:: Check PowerShell
-where powershell >nul 2>&1
-if %errorLevel% neq 0 (
-    echo PowerShell is not installed or not in PATH.
-    echo Please install PowerShell and rerun this script.
-    echo.
-    pause
-    goto menu
-)
 
 :: Require PowerShell 2.0+
 powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -ge 2) { exit 0 } else { exit 1 }" >nul 2>&1
@@ -854,3 +835,28 @@ echo.
 start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test zapret.ps1"
 pause
 goto menu
+
+
+:: Utility functions
+
+:PrintGreen
+powershell -Command "Write-Host \"%~1\" -ForegroundColor Green"
+exit /b
+
+:PrintRed
+powershell -Command "Write-Host \"%~1\" -ForegroundColor Red"
+exit /b
+
+:PrintYellow
+powershell -Command "Write-Host \"%~1\" -ForegroundColor Yellow"
+exit /b
+
+:check_command
+where %1 >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [ERROR] %1 not found in PATH
+    echo Fix your PATH variable with instructions here https://github.com/Flowseal/zapret-discord-youtube/issues/7490
+    pause
+    exit /b 1
+)
+exit /b 0
