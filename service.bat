@@ -869,7 +869,7 @@ set "extracted=1"
 if not exist "%~dp0bin\" set "extracted=0"
 
 if "%extracted%"=="0" (
-    call :PrintRed "Zapret must be extracted from archive first"
+    echo Zapret must be extracted from archive first or bin folder not found for some reason
     pause
     exit
 )
