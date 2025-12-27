@@ -355,7 +355,7 @@ $dpiTargets = Build-DpiTargets -CustomUrl $dpiCustomUrl
 # Config
 $targetDir = $rootDir
 if (-not $targetDir) { $targetDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
-$batFiles = Get-ChildItem -Path $targetDir -Filter "*.bat" | Where-Object { $_.Name -ne "service.bat" } | Sort-Object Name
+$batFiles = Get-ChildItem -Path $targetDir -Filter "*.bat" | Where-Object { $_.Name -notlike "service*" } | Sort-Object Name
 
 $globalResults = @()
 
