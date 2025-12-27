@@ -117,7 +117,7 @@ function Show-DiagnosticsDialog {
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Diagnostics" 
-        Height="500" Width="450"
+        Height="550" Width="520"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -222,6 +222,7 @@ function Show-DiagnosticsDialog {
         $msgText.Text = $r.Message
         $msgText.Foreground = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#666666"))
         $msgText.FontSize = 10
+        $msgText.TextWrapping = [System.Windows.TextWrapping]::Wrap
         $infoPanel.Children.Add($msgText) | Out-Null
         
         [System.Windows.Controls.Grid]::SetColumn($infoPanel, 1)
