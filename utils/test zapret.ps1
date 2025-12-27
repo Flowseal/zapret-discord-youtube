@@ -182,7 +182,7 @@ function Invoke-DpiSuite {
             if ($text -match '^(?<code>\d{3})\s+(?<size>\d+)$') {
                 $code = $matches['code']
                 $sizeBytes = [int64]$matches['size']
-            } elseif ($text -match 'not supported|does not support') {
+            } elseif (($exit -eq 35) -or ($text -match 'not supported|does not support|protocol\s+\'.+\'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel|SSL')) {
                 $code = "UNSUP"
             } elseif ($text) {
                 $code = "ERR"
@@ -622,7 +622,7 @@ try {
                         $curlArgs = $baseArgs + $test.Args
                         $output = & curl.exe @curlArgs $t.Url 2>&1
                         $text = ($output | Out-String).Trim()
-                        $unsupported = $text -match "does not support|not supported"
+                        $unsupported = (($LASTEXITCODE -eq 35) -or ($text -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel|SSL"))
                         if ($unsupported) {
                             $httpPieces += "$($test.Label):UNSUP"
                             continue
