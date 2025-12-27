@@ -182,7 +182,7 @@ function Invoke-DpiSuite {
             if ($text -match '^(?<code>\d{3})\s+(?<size>\d+)$') {
                 $code = $matches['code']
                 $sizeBytes = [int64]$matches['size']
-            } elseif ($text -match 'not supported|does not support') {
+            } elseif (($exit -eq 35) -or ($text -match "not supported|does not support|protocol\s+'.+'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel|SSL")) {
                 $code = "UNSUP"
             } elseif ($text) {
                 $code = "ERR"
@@ -246,7 +246,36 @@ function Invoke-DpiSuite {
 
     $results = @()
     foreach ($rs in $runspaces) {
-        $results += $rs.Powershell.EndInvoke($rs.Handle)
+        # Wait for the runspace to complete with a small grace period beyond curl's timeout
+        try {
+            $waitMs = ([int]$TimeoutSeconds + 5) * 1000
+            $handle = $rs.Handle
+            if ($handle -and $handle.AsyncWaitHandle) {
+                $completed = $handle.AsyncWaitHandle.WaitOne($waitMs)
+                if (-not $completed) {
+                    Write-Host "[WARN] Runspace for target timed out after $waitMs ms; stopping runspace..." -ForegroundColor Yellow
+                    try { $rs.Powershell.Stop() } catch {}
+                }
+            }
+        } catch {
+            # ignore wait errors and attempt to EndInvoke
+        }
+
+        try {
+            $results += $rs.Powershell.EndInvoke($rs.Handle)
+        } catch {
+            Write-Host "[WARN] EndInvoke failed for a runspace; treating as failure." -ForegroundColor Yellow
+            $failedLine = [PSCustomObject]@{
+                TestLabel  = 'RUNSPACE'
+                Code       = 'ERR'
+                SizeBytes  = 0
+                SizeKB     = 0
+                Status     = 'FAIL'
+                Color      = 'Red'
+                Warned     = $false
+            }
+            $results += [PSCustomObject]@{ TargetId = 'UNKNOWN'; Provider = 'UNKNOWN'; Lines = @($failedLine); Warned = $false }
+        }
         $rs.Powershell.Dispose()
     }
     $runspacePool.Close()
@@ -477,8 +506,6 @@ if ($testType -eq 'standard') {
     if (-not $maxNameLen -or $maxNameLen -lt 10) { $maxNameLen = 10 }
 }
 
-Write-Host "[WARNING] Tests may take several minutes to complete. Please wait..." -ForegroundColor Yellow
-
 # Ensure we have configs to run
 if (-not $batFiles -or $batFiles.Count -eq 0) {
     Write-Host "[ERROR] No general*.bat files found" -ForegroundColor Red
@@ -549,6 +576,7 @@ try {
         # Create flag file to indicate ipset was switched
         "" | Out-File -FilePath $ipsetFlagFile -Encoding UTF8
     }
+    Write-Host "[WARNING] Tests may take several minutes to complete. Please wait..." -ForegroundColor Yellow
 
     $configNum = 0
     foreach ($file in $batFiles) {
@@ -594,7 +622,7 @@ try {
                         $curlArgs = $baseArgs + $test.Args
                         $output = & curl.exe @curlArgs $t.Url 2>&1
                         $text = ($output | Out-String).Trim()
-                        $unsupported = $text -match "does not support|not supported"
+                        $unsupported = (($LASTEXITCODE -eq 35) -or ($text -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel|SSL"))
                         if ($unsupported) {
                             $httpPieces += "$($test.Label):UNSUP"
                             continue
@@ -649,7 +677,26 @@ try {
 
         $targetResults = @()
         foreach ($rs in $runspaces) {
-            $targetResults += $rs.Powershell.EndInvoke($rs.Handle)
+            try {
+                $waitMs = ([int]$curlTimeoutSeconds + 5) * 1000
+                $handle = $rs.Handle
+                if ($handle -and $handle.AsyncWaitHandle) {
+                    $completed = $handle.AsyncWaitHandle.WaitOne($waitMs)
+                    if (-not $completed) {
+                        Write-Host "[WARN] Runspace for target timed out after $waitMs ms; stopping runspace..." -ForegroundColor Yellow
+                        try { $rs.Powershell.Stop() } catch {}
+                    }
+                }
+            } catch {
+                # ignore
+            }
+
+            try {
+                $targetResults += $rs.Powershell.EndInvoke($rs.Handle)
+            } catch {
+                Write-Host "[WARN] EndInvoke failed for a runspace; treating as failure." -ForegroundColor Yellow
+                $targetResults += [PSCustomObject]@{ Name = 'UNKNOWN'; HttpTokens = @('HTTP:ERROR'); PingResult = 'Timeout'; IsUrl = $true }
+            }
             $rs.Powershell.Dispose()
         }
 
@@ -752,12 +799,24 @@ try {
     # Determine best strategy
     $bestConfig = $null
     $maxScore = 0
+    $maxPing = -1
     foreach ($config in $analytics.Keys) {
         $a = $analytics[$config]
         $score = $a.OK
-        $score -gt $maxScore
-        $maxScore = $score
-        $bestConfig = $config
+        $pingScore = 0
+        if ($a.ContainsKey('PingOK')) {
+            $pingScore = $a.PingOK
+        }
+        if ($score -gt $maxScore) {
+            $maxScore = $score
+            $maxPing = $pingScore
+            $bestConfig = $config
+        } elseif ($score -eq $maxScore) {
+            if ($pingScore -gt $maxPing) {
+                $maxPing = $pingScore
+                $bestConfig = $config
+            }
+        }
     }
     Write-Host ""
     Write-Host "Best config: $bestConfig" -ForegroundColor Green
@@ -818,7 +877,6 @@ try {
         Set-IpsetMode -mode "restore"
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
-    throw  # Re-throw the error
 } finally {
     Stop-Zapret
     Restore-WinwsSnapshot -snapshot $originalWinws
