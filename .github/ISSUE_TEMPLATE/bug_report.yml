@@ -1,4 +1,4 @@
-name: 🐛 Проблема
+name: Проблема
 title: '[Проблема] '
 description: Сообщить о проблеме
 labels: ['type: проблема', 'status: нуждается в сортировке']
@@ -7,7 +7,7 @@ body:
   - type: checkboxes
     id: checklist
     attributes:
-      label: ⚠️ Чеклист
+      label: Чеклист
       description: Перед созданием нового Issue, удостоверьтесь что выполнили следующие пункты
       options:
         - label: Я искал решение проблемы в [README](https://github.com/Flowseal/zapret-discord-youtube/blob/main/README.md) и среди [Issues](https://github.com/Flowseal/zapret-discord-youtube/issues)
