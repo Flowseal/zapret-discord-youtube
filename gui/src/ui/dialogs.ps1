@@ -117,7 +117,7 @@ function Show-DiagnosticsDialog {
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Diagnostics" 
-        Height="550" Width="520"
+        Height="500" Width="550"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -138,9 +138,11 @@ function Show-DiagnosticsDialog {
                 </Grid>
             </Border>
             
-            <ScrollViewer Grid.Row="1" Margin="16,8" VerticalScrollBarVisibility="Auto">
-                <StackPanel Name="resultsPanel"/>
-            </ScrollViewer>
+            <Border Grid.Row="1" Background="#050505" Margin="16,8" CornerRadius="8" Padding="12">
+                <ScrollViewer Name="outputScroll" VerticalScrollBarVisibility="Auto">
+                    <TextBlock Name="txtOutput" Foreground="#888888" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"/>
+                </ScrollViewer>
+            </Border>
             
             <Border Grid.Row="2" Background="#050505" CornerRadius="0,0,12,12" Padding="16,12">
                 <Grid>
@@ -160,7 +162,7 @@ function Show-DiagnosticsDialog {
     $titleBar = $dialog.FindName("DialogTitleBar")
     $btnClose = $dialog.FindName("btnDialogClose")
     $btnOk = $dialog.FindName("btnOk")
-    $resultsPanel = $dialog.FindName("resultsPanel")
+    $txtOutput = $dialog.FindName("txtOutput")
     $txtSummary = $dialog.FindName("txtSummary")
     
     $titleBar.Add_MouseLeftButtonDown({ $dialog.DragMove() })
@@ -172,65 +174,21 @@ function Show-DiagnosticsDialog {
     $errCount = @($Results | Where-Object { $_.Status -eq "Error" }).Count
     $txtSummary.Text = "$okCount OK  |  $warnCount Warnings  |  $errCount Errors"
     
+    # Build console-style output
+    $output = @()
     foreach ($r in $Results) {
-        $border = New-Object System.Windows.Controls.Border
-        $border.Background = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#111111"))
-        $border.CornerRadius = New-Object System.Windows.CornerRadius(6)
-        $border.Padding = New-Object System.Windows.Thickness(12, 10, 12, 10)
-        $border.Margin = New-Object System.Windows.Thickness(0, 0, 0, 6)
-        
-        $grid = New-Object System.Windows.Controls.Grid
-        $col1 = New-Object System.Windows.Controls.ColumnDefinition
-        $col1.Width = [System.Windows.GridLength]::Auto
-        $col2 = New-Object System.Windows.Controls.ColumnDefinition
-        $grid.ColumnDefinitions.Add($col1)
-        $grid.ColumnDefinitions.Add($col2)
-        
-        $statusText = New-Object System.Windows.Controls.TextBlock
-        $statusText.FontSize = 11
-        $statusText.FontWeight = [System.Windows.FontWeights]::Bold
-        $statusText.Margin = New-Object System.Windows.Thickness(0, 0, 10, 0)
-        $statusText.VerticalAlignment = [System.Windows.VerticalAlignment]::Center
-        
-        switch ($r.Status) {
-            "OK" { 
-                $statusText.Text = "[OK]"
-                $statusText.Foreground = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#4ade80"))
-            }
-            "Warning" { 
-                $statusText.Text = "[!]"
-                $statusText.Foreground = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#fbbf24"))
-            }
-            "Error" { 
-                $statusText.Text = "[X]"
-                $statusText.Foreground = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#ef4444"))
-            }
+        $prefix = switch ($r.Status) {
+            "OK" { "[OK]" }
+            "Warning" { "[?]" }
+            "Error" { "[X]" }
         }
-        [System.Windows.Controls.Grid]::SetColumn($statusText, 0)
-        $grid.Children.Add($statusText) | Out-Null
-        
-        $infoPanel = New-Object System.Windows.Controls.StackPanel
-        
-        $nameText = New-Object System.Windows.Controls.TextBlock
-        $nameText.Text = $r.Name
-        $nameText.Foreground = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#ffffff"))
-        $nameText.FontSize = 11
-        $nameText.FontWeight = [System.Windows.FontWeights]::SemiBold
-        $infoPanel.Children.Add($nameText) | Out-Null
-        
-        $msgText = New-Object System.Windows.Controls.TextBlock
-        $msgText.Text = $r.Message
-        $msgText.Foreground = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#666666"))
-        $msgText.FontSize = 10
-        $msgText.TextWrapping = [System.Windows.TextWrapping]::Wrap
-        $infoPanel.Children.Add($msgText) | Out-Null
-        
-        [System.Windows.Controls.Grid]::SetColumn($infoPanel, 1)
-        $grid.Children.Add($infoPanel) | Out-Null
-        
-        $border.Child = $grid
-        $resultsPanel.Children.Add($border) | Out-Null
+        $output += "$prefix $($r.Name)"
+        if ($r.Message) {
+            $output += "    $($r.Message)"
+        }
     }
+    
+    $txtOutput.Text = $output -join "`n"
     
     if ($Owner) { $dialog.Owner = $Owner }
     $dialog.ShowDialog() | Out-Null
