@@ -182,7 +182,7 @@ function Invoke-DpiSuite {
             if ($text -match '^(?<code>\d{3})\s+(?<size>\d+)$') {
                 $code = $matches['code']
                 $sizeBytes = [int64]$matches['size']
-            } elseif (($exit -eq 35) -or ($text -match 'not supported|does not support|protocol\s+\'.+\'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel|SSL')) {
+            } elseif (($exit -eq 35) -or ($text -match "not supported|does not support|protocol\s+'.+'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel|SSL")) {
                 $code = "UNSUP"
             } elseif ($text) {
                 $code = "ERR"
