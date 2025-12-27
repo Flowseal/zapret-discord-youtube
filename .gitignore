@@ -1,0 +1,5 @@
+# Kiro (private config)
+.kiro/
+
+# GUI temp files
+utils/gui_welcome_shown
