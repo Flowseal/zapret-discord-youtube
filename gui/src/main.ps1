@@ -1,24 +1,41 @@
 # Zapret GUI - Main Entry Point
 # Requires PowerShell 5.1+ and Windows 10/11
 
+#region Hide Console Window Immediately
+Add-Type -Name Win32 -Namespace Native -MemberDefinition @"
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetConsoleWindow();
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+"@ -ErrorAction SilentlyContinue
+
+$consolePtr = [Native.Win32]::GetConsoleWindow()
+[Native.Win32]::ShowWindow($consolePtr, 0) | Out-Null
+#endregion
+
 #region Admin Check
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 if (-not $isAdmin) {
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$($MyInvocation.MyCommand.Path)`"" -Verb RunAs
+    # Request elevation via UAC
+    try {
+        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$($MyInvocation.MyCommand.Path)`"" -Verb RunAs -WindowStyle Hidden
+    } catch { }
     exit
 }
 #endregion
 
 #region Load Modules
 $scriptRoot = $PSScriptRoot
+$script:scriptRoot = $scriptRoot
 
 . "$scriptRoot\config.ps1"
 . "$scriptRoot\services.ps1"
 . "$scriptRoot\settings.ps1"
 . "$scriptRoot\diagnostics.ps1"
 . "$scriptRoot\updates.ps1"
+. "$scriptRoot\icon.ps1"
 . "$scriptRoot\ui\theme.ps1"
 . "$scriptRoot\ui\xaml.ps1"
 . "$scriptRoot\ui\dialogs.ps1"
@@ -28,6 +45,11 @@ $scriptRoot = $PSScriptRoot
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
+
+# Set AppUserModelID BEFORE creating window (critical for taskbar icon)
+try {
+    [WindowsAPI]::SetCurrentProcessExplicitAppUserModelID("ZapretGUI.App")
+} catch { }
 #endregion
 
 #region Create Window
@@ -35,6 +57,27 @@ Add-Type -AssemblyName WindowsBase
 $reader = New-Object System.Xml.XmlNodeReader $xaml
 $script:window = [Windows.Markup.XamlReader]::Load($reader)
 $window = $script:window
+
+# Generate icon if needed
+$iconPath = Join-Path $scriptRoot "zapret.ico"
+if (-not (Test-Path $iconPath)) {
+    New-ZapretIcon -OutputPath $iconPath | Out-Null
+}
+
+# Set icon after window is loaded (required for taskbar icon)
+$window.Add_Loaded({
+    param($sender, $e)
+    $icoPath = Join-Path $script:scriptRoot "zapret.ico"
+    Set-TaskbarIcon -Window $sender -IconPath $icoPath | Out-Null
+})
+
+# Also set WPF icon immediately
+if (Test-Path $iconPath) {
+    try {
+        $uri = New-Object System.Uri($iconPath, [System.UriKind]::Absolute)
+        $window.Icon = [System.Windows.Media.Imaging.BitmapFrame]::Create($uri)
+    } catch { }
+}
 
 # Get controls
 $titleBar = $window.FindName("TitleBar")
