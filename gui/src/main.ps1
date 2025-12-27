@@ -104,6 +104,7 @@ $txtHint = $window.FindName("txtHint")
 
 $txtLog = $window.FindName("txtLog")
 $logScroll = $window.FindName("logScroll")
+$btnCopyLog = $window.FindName("btnCopyLog")
 $btnClear = $window.FindName("btnClear")
 
 $linkGH = $window.FindName("linkGH")
@@ -206,14 +207,9 @@ $btnRemove.Add_Click({
 
 # Diagnostics
 $btnDiag.Add_Click({
-    Write-Log "Running diagnostics..."
-    $results = Invoke-Diagnostics
-    $ok = @($results | Where-Object { $_.Status -eq "OK" }).Count
-    $warn = @($results | Where-Object { $_.Status -eq "Warning" }).Count
-    $err = @($results | Where-Object { $_.Status -eq "Error" }).Count
-    Write-Log "Results: $ok OK, $warn warnings, $err errors"
-    
-    Show-DiagnosticsDialog -Owner $script:window -Results $results
+    Write-Log "Opening diagnostics..."
+    $serviceBat = Join-Path $script:RootDir "service.bat"
+    Show-DiagnosticsDialog -Owner $script:window -ServiceBat $serviceBat
 })
 
 # Tests
@@ -275,6 +271,15 @@ $btnIPset.Add_Click({
 # Clear Log
 $btnClear.Add_Click({
     $txtLog.Text = ""
+})
+
+# Copy Log
+$btnCopyLog.Add_Click({
+    $text = $txtLog.Text
+    if ($text -and $text.Trim()) {
+        [System.Windows.Clipboard]::SetText($text)
+        Write-Log "Log copied to clipboard"
+    }
 })
 #endregion
 

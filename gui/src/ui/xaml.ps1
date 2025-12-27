@@ -360,7 +360,10 @@ function Get-MainWindowXaml {
                         <StackPanel>
                             <Grid Margin="0,0,0,8">
                                 <TextBlock Style="{StaticResource Header}" Text="LOG" Margin="0"/>
-                                <Button Name="btnClear" Content="CLEAR" HorizontalAlignment="Right" Background="Transparent" Foreground="#333333" BorderThickness="0" Padding="6,2" FontSize="9" FontWeight="Bold" Cursor="Hand" VerticalAlignment="Top"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                    <Button Name="btnCopyLog" Content="COPY" Background="Transparent" Foreground="#333333" BorderThickness="0" Padding="6,2" FontSize="9" FontWeight="Bold" Cursor="Hand" Margin="0,0,8,0"/>
+                                    <Button Name="btnClear" Content="CLEAR" Background="Transparent" Foreground="#333333" BorderThickness="0" Padding="6,2" FontSize="9" FontWeight="Bold" Cursor="Hand"/>
+                                </StackPanel>
                             </Grid>
                             <Border Background="#050505" CornerRadius="8" Padding="10">
                                 <ScrollViewer Name="logScroll" Height="70" Style="{StaticResource CustomScrollViewer}">

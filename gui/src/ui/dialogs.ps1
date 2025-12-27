@@ -110,7 +110,7 @@ function Show-CustomDialog {
 function Show-DiagnosticsDialog {
     param(
         [System.Windows.Window]$Owner,
-        [array]$Results
+        [string]$ServiceBat
     )
     
     $dialogXaml = @"
@@ -146,8 +146,13 @@ function Show-DiagnosticsDialog {
             
             <Border Grid.Row="2" Background="#050505" CornerRadius="0,0,12,12" Padding="16,12">
                 <Grid>
-                    <TextBlock Name="txtSummary" Foreground="#666666" FontSize="11" VerticalAlignment="Center"/>
-                    <Button Name="btnOk" Content="OK" HorizontalAlignment="Right" Padding="24,10" Background="#ffffff" Foreground="#000000" BorderThickness="0" Cursor="Hand" FontSize="11" FontWeight="Bold"/>
+                    <TextBlock Name="txtStatus" Foreground="#666666" FontSize="11" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Name="btnCopy" Content="COPY" Padding="20,10" Margin="0,0,6,0" Background="Transparent" Foreground="#888888" BorderThickness="1" Cursor="Hand" FontSize="11" FontWeight="Bold"/>
+                        <Button Name="btnQuickCheck" Content="QUICK CHECK" Padding="20,10" Margin="0,0,6,0" Background="#ffffff" Foreground="#000000" BorderThickness="0" Cursor="Hand" FontSize="11" FontWeight="Bold"/>
+                        <Button Name="btnFullDiag" Content="FULL DIAGNOSTICS" Padding="20,10" Margin="0,0,6,0" Background="Transparent" Foreground="#888888" BorderThickness="1" Cursor="Hand" FontSize="11" FontWeight="Bold"/>
+                        <Button Name="btnClose" Content="CLOSE" Padding="20,10" Background="Transparent" Foreground="#666666" BorderThickness="1" Cursor="Hand" FontSize="11" FontWeight="Bold"/>
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>
@@ -160,35 +165,190 @@ function Show-DiagnosticsDialog {
     $dialog = [Windows.Markup.XamlReader]::Load($reader)
     
     $titleBar = $dialog.FindName("DialogTitleBar")
-    $btnClose = $dialog.FindName("btnDialogClose")
-    $btnOk = $dialog.FindName("btnOk")
+    $btnDialogClose = $dialog.FindName("btnDialogClose")
+    $btnCopy = $dialog.FindName("btnCopy")
+    $btnQuickCheck = $dialog.FindName("btnQuickCheck")
+    $btnFullDiag = $dialog.FindName("btnFullDiag")
+    $btnClose = $dialog.FindName("btnClose")
     $txtOutput = $dialog.FindName("txtOutput")
-    $txtSummary = $dialog.FindName("txtSummary")
+    $txtStatus = $dialog.FindName("txtStatus")
+    $outputScroll = $dialog.FindName("outputScroll")
     
     $titleBar.Add_MouseLeftButtonDown({ $dialog.DragMove() })
+    $btnDialogClose.Add_Click({ $dialog.Close() })
     $btnClose.Add_Click({ $dialog.Close() })
-    $btnOk.Add_Click({ $dialog.Close() })
+    $btnClose.BorderBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#333333"))
+    $btnFullDiag.BorderBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#333333"))
+    $btnCopy.BorderBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#333333"))
     
-    $okCount = @($Results | Where-Object { $_.Status -eq "OK" }).Count
-    $warnCount = @($Results | Where-Object { $_.Status -eq "Warning" }).Count
-    $errCount = @($Results | Where-Object { $_.Status -eq "Error" }).Count
-    $txtSummary.Text = "$okCount OK  |  $warnCount Warnings  |  $errCount Errors"
+    # Copy button handler
+    $btnCopy.Add_Click({
+        $text = $txtOutput.Text
+        if ($text -and $text.Trim()) {
+            [System.Windows.Clipboard]::SetText($text)
+            $txtStatus.Text = "Copied to clipboard"
+        } else {
+            $txtStatus.Text = "Nothing to copy"
+        }
+    })
     
-    # Build console-style output
-    $output = @()
-    foreach ($r in $Results) {
-        $prefix = switch ($r.Status) {
-            "OK" { "[OK]" }
-            "Warning" { "[?]" }
-            "Error" { "[X]" }
-        }
-        $output += "$prefix $($r.Name)"
-        if ($r.Message) {
-            $output += "    $($r.Message)"
-        }
+    $scriptExists = Test-Path $ServiceBat
+    if (-not $scriptExists) {
+        $txtOutput.Text = "service.bat not found:`n$ServiceBat"
+        $txtStatus.Text = "Error"
+        $btnQuickCheck.IsEnabled = $false
+        $btnFullDiag.IsEnabled = $false
+    } else {
+        $txtOutput.Text = "Click QUICK CHECK for basic diagnostics in this window.`nClick FULL DIAGNOSTICS to open interactive diagnostics in CMD."
+        $txtStatus.Text = "Ready"
     }
     
-    $txtOutput.Text = $output -join "`n"
+    # Quick check (non-interactive checks)
+    $btnQuickCheck.Add_Click({
+        $txtOutput.Text = "Running quick diagnostics...`n"
+        $txtStatus.Text = "Checking..."
+        $btnQuickCheck.IsEnabled = $false
+        [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Background, [Action]{})
+        
+        $output = @()
+        
+        # BFE check
+        $bfe = sc.exe query BFE 2>&1
+        if (($bfe -join "`n") -match "RUNNING") {
+            $output += "[OK] Base Filtering Engine check passed"
+        } else {
+            $output += "[X] Base Filtering Engine is not running"
+        }
+        
+        # Proxy check
+        $proxyEnabled = (Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable -ErrorAction SilentlyContinue).ProxyEnable
+        if ($proxyEnabled -eq 1) {
+            $proxyServer = (Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyServer -ErrorAction SilentlyContinue).ProxyServer
+            $output += "[?] System proxy is enabled: $proxyServer"
+        } else {
+            $output += "[OK] Proxy check passed"
+        }
+        
+        # TCP timestamps
+        $tcp = netsh interface tcp show global 2>&1
+        if (($tcp -join "`n") -match "timestamps.*enabled" -or ($tcp -join "`n") -match "Timestamps.*enabled") {
+            $output += "[OK] TCP timestamps check passed"
+        } else {
+            $output += "[?] TCP timestamps disabled, enabling..."
+            $null = netsh interface tcp set global timestamps=enabled 2>&1
+        }
+        
+        # Adguard
+        $adguard = Get-Process -Name "AdguardSvc" -ErrorAction SilentlyContinue
+        if ($adguard) {
+            $output += "[X] Adguard process found - may cause problems"
+        } else {
+            $output += "[OK] Adguard check passed"
+        }
+        
+        # Killer services
+        $sc = sc.exe query 2>&1
+        if (($sc -join "`n") -match "Killer") {
+            $output += "[X] Killer services found - conflicts with zapret"
+        } else {
+            $output += "[OK] Killer check passed"
+        }
+        
+        # Intel Connectivity
+        if (($sc -join "`n") -match "Intel.*Connectivity") {
+            $output += "[X] Intel Connectivity found - conflicts with zapret"
+        } else {
+            $output += "[OK] Intel Connectivity check passed"
+        }
+        
+        # Check Point
+        if (($sc -join "`n") -match "TracSrvWrapper|EPWD") {
+            $output += "[X] Check Point found - conflicts with zapret"
+        } else {
+            $output += "[OK] Check Point check passed"
+        }
+        
+        # SmartByte
+        if (($sc -join "`n") -match "SmartByte") {
+            $output += "[X] SmartByte found - conflicts with zapret"
+        } else {
+            $output += "[OK] SmartByte check passed"
+        }
+        
+        # VPN
+        if (($sc -join "`n") -match "VPN") {
+            $output += "[?] VPN services found - may conflict with zapret"
+        } else {
+            $output += "[OK] VPN check passed"
+        }
+        
+        # WinDivert driver
+        $binDir = Join-Path $script:RootDir "bin"
+        $sysFiles = Get-ChildItem -Path $binDir -Filter "*.sys" -ErrorAction SilentlyContinue
+        if ($sysFiles -and $sysFiles.Count -gt 0) {
+            $output += "[OK] WinDivert driver found"
+        } else {
+            $output += "[X] WinDivert64.sys not found in bin folder"
+        }
+        
+        # Conflicting bypasses
+        $conflicts = @("GoodbyeDPI", "discordfix_zapret", "winws1", "winws2")
+        $found = @()
+        foreach ($svc in $conflicts) {
+            $out = sc.exe query $svc 2>&1
+            if (($out -join "`n") -notmatch "FAILED 1060") {
+                $found += $svc
+            }
+        }
+        if ($found.Count -gt 0) {
+            $output += "[X] Conflicting bypasses: $($found -join ', ')"
+        } else {
+            $output += "[OK] No conflicting bypasses"
+        }
+        
+        $output += ""
+        $hasErrors = ($output -join "`n") -match "\[X\]"
+        $hasWarnings = ($output -join "`n") -match "\[\?\]"
+        if ($hasErrors) {
+            $output += "Errors found. Use FULL DIAGNOSTICS for interactive fixes."
+            $txtStatus.Text = "Errors found"
+        } elseif ($hasWarnings) {
+            $output += "Warnings found. Check details above."
+            $txtStatus.Text = "Warnings"
+        } else {
+            $output += "All checks passed!"
+            $txtStatus.Text = "All OK"
+        }
+        
+        $txtOutput.Text = $output -join "`n"
+        $btnQuickCheck.IsEnabled = $true
+        $outputScroll.ScrollToEnd()
+    })
+    
+    # Full diagnostics in separate CMD window
+    $btnFullDiag.Add_Click({
+        $txtStatus.Text = "Launching..."
+        [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Background, [Action]{})
+        
+        try {
+            # Create a temp batch file that runs diagnostics directly
+            $tempBat = Join-Path $env:TEMP "zapret_diag_temp.bat"
+            $batContent = @"
+@echo off
+cd /d "$script:RootDir"
+call service.bat admin
+goto service_diagnostics
+"@
+            # Actually just run service.bat and let user choose option 4
+            Start-Process "cmd.exe" -ArgumentList "/c `"$ServiceBat`"" -WorkingDirectory $script:RootDir -Verb RunAs
+            $txtOutput.Text += "`n`n[INFO] Full diagnostics launched in CMD window.`nSelect option 4 (Run Diagnostics) from the menu."
+            $txtStatus.Text = "Launched"
+        } catch {
+            $txtOutput.Text += "`n`n[ERROR] Failed to launch: $($_.Exception.Message)"
+            $txtStatus.Text = "Error"
+        }
+        $outputScroll.ScrollToEnd()
+    })
     
     if ($Owner) { $dialog.Owner = $Owner }
     $dialog.ShowDialog() | Out-Null
@@ -235,6 +395,7 @@ function Show-TestsDialog {
                 <Grid>
                     <TextBlock Name="txtStatus" Foreground="#666666" FontSize="11" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Name="btnCopy" Content="COPY" Padding="20,10" Margin="0,0,6,0" Background="Transparent" Foreground="#888888" BorderThickness="1" Cursor="Hand" FontSize="11" FontWeight="Bold"/>
                         <Button Name="btnCheck" Content="CHECK" Padding="20,10" Margin="0,0,6,0" Background="#ffffff" Foreground="#000000" BorderThickness="0" Cursor="Hand" FontSize="11" FontWeight="Bold"/>
                         <Button Name="btnRunFull" Content="RUN FULL TEST" Padding="20,10" Margin="0,0,6,0" Background="Transparent" Foreground="#888888" BorderThickness="1" Cursor="Hand" FontSize="11" FontWeight="Bold"/>
                         <Button Name="btnClose" Content="CLOSE" Padding="20,10" Background="Transparent" Foreground="#666666" BorderThickness="1" Cursor="Hand" FontSize="11" FontWeight="Bold"/>
@@ -252,6 +413,7 @@ function Show-TestsDialog {
     
     $titleBar = $dialog.FindName("DialogTitleBar")
     $btnDialogClose = $dialog.FindName("btnDialogClose")
+    $btnCopy = $dialog.FindName("btnCopy")
     $btnCheck = $dialog.FindName("btnCheck")
     $btnRunFull = $dialog.FindName("btnRunFull")
     $btnClose = $dialog.FindName("btnClose")
@@ -264,6 +426,18 @@ function Show-TestsDialog {
     $btnClose.Add_Click({ $dialog.Close() })
     $btnClose.BorderBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#333333"))
     $btnRunFull.BorderBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#333333"))
+    $btnCopy.BorderBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.ColorConverter]::ConvertFromString("#333333"))
+    
+    # Copy button handler
+    $btnCopy.Add_Click({
+        $text = $txtOutput.Text
+        if ($text -and $text.Trim()) {
+            [System.Windows.Clipboard]::SetText($text)
+            $txtStatus.Text = "Copied to clipboard"
+        } else {
+            $txtStatus.Text = "Nothing to copy"
+        }
+    })
     
     $scriptExists = Test-Path $TestScript
     if (-not $scriptExists) {
