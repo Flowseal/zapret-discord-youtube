@@ -822,10 +822,10 @@ goto menu
 chcp 65001 >nul
 cls
 
-:: Require PowerShell 2.0+
-powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -ge 2) { exit 0 } else { exit 1 }" >nul 2>&1
+:: Require PowerShell 3.0+
+powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -ge 3) { exit 0 } else { exit 1 }" >nul 2>&1
 if %errorLevel% neq 0 (
-    echo PowerShell 2.0 or newer is required.
+    echo PowerShell 3.0 or newer is required.
     echo Please upgrade PowerShell and rerun this script.
     echo.
     pause
