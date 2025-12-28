@@ -847,6 +847,7 @@ if exist "%SystemRoot%\System32\curl.exe" (
 
 if not exist "%tempFile%" (
     call :PrintRed "Failed to download hosts file from repository"
+    call :PrintYellow "Copy hosts file manually from %hostsUrl%"
     pause
     goto menu
 )
