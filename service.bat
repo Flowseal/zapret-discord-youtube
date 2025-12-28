@@ -54,29 +54,31 @@ set "menu_choice=null"
 echo =========  v!LOCAL_VERSION!  =========
 echo 1. Install Service
 echo 2. Remove Services
-echo 3. Check Status
-echo 4. Run Diagnostics
-echo 5. Check Updates
-echo 6. Switch Check Updates (%CheckUpdatesStatus%)
-echo 7. Switch Game Filter (%GameFilterStatus%)
-echo 8. Switch ipset (%IPsetStatus%)
-echo 9. Update ipset list
-echo 10. Update hosts file (for discord voice)
-echo 11. Run Tests
+echo 3. Restart Service
+echo 4. Check Status
+echo 5. Run Diagnostics
+echo 6. Check Updates
+echo 7. Switch Check Updates (%CheckUpdatesStatus%)
+echo 8. Switch Game Filter (%GameFilterStatus%)
+echo 9. Switch ipset (%IPsetStatus%)
+echo 10. Update ipset list
+echo 11. Update hosts file (for discord voice)
+echo 12. Run Tests
 echo 0. Exit
-set /p menu_choice=Enter choice (0-11): 
+set /p menu_choice=Enter choice (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
-if "%menu_choice%"=="3" goto service_status
-if "%menu_choice%"=="4" goto service_diagnostics
-if "%menu_choice%"=="5" goto service_check_updates
-if "%menu_choice%"=="6" goto check_updates_switch
-if "%menu_choice%"=="7" goto game_switch
-if "%menu_choice%"=="8" goto ipset_switch
-if "%menu_choice%"=="9" goto ipset_update
-if "%menu_choice%"=="10" goto hosts_update
-if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="3" goto service_restart
+if "%menu_choice%"=="4" goto service_status
+if "%menu_choice%"=="5" goto service_diagnostics
+if "%menu_choice%"=="6" goto service_check_updates
+if "%menu_choice%"=="7" goto check_updates_switch
+if "%menu_choice%"=="8" goto game_switch
+if "%menu_choice%"=="9" goto ipset_switch
+if "%menu_choice%"=="10" goto ipset_update
+if "%menu_choice%"=="11" goto hosts_update
+if "%menu_choice%"=="12" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -139,6 +141,24 @@ if "%ServiceStatus%"=="RUNNING" (
 
 exit /b
 
+:: RESTART SERVICE ====================
+:service_restart
+cls
+chcp 65001 > nul
+set SRVCNAME=zapret
+
+sc query "%SRVCNAME%" >nul 2>&1
+if !errorlevel! neq 0 (
+    call :PrintRed "Service %SRVCNAME% is not installed."
+) else (
+    echo Stopping %SRVCNAME%...
+    net stop %SRVCNAME%
+    echo Starting %SRVCNAME%...
+    sc start %SRVCNAME%
+    call :PrintGreen "Service restarted successfully."
+)
+pause
+goto menu
 
 :: REMOVE ==============================
 :service_remove
@@ -332,7 +352,7 @@ for /f "delims=" %%A in ('powershell -command "(Invoke-WebRequest -Uri \"%GITHUB
 if not defined GITHUB_VERSION (
     echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
     timeout /T 9
-    if "%1"=="soft" exit 
+    if "%1"=="soft" exit /b
     goto menu
 )
 
@@ -340,7 +360,7 @@ if not defined GITHUB_VERSION (
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     echo Latest version installed: %LOCAL_VERSION%
     
-    if "%1"=="soft" exit 
+    if "%1"=="soft" exit /b
     pause
     goto menu
 ) 
@@ -359,7 +379,7 @@ if /i "%CHOICE%"=="Y" (
 )
 
 
-if "%1"=="soft" exit 
+if "%1"=="soft" exit /b
 pause
 goto menu
 
@@ -403,10 +423,10 @@ echo:
 where netsh >nul 2>nul
 if !errorlevel! neq 0  (
     call :PrintRed "[X] netsh command not found, check your PATH variable"
-	echo PATH = "%PATH%"
-	echo:
-	pause
-	goto menu
+    echo PATH = "%PATH%"
+    echo:
+    pause
+    goto menu
 )
 
 :: TCP timestamps check
@@ -536,6 +556,7 @@ if !winws_running! neq 0 if !windivert_running!==0 (
     
     net stop "WinDivert" >nul 2>&1
     sc delete "WinDivert" >nul 2>&1
+    timeout /t 2 /nobreak >nul
     sc query "WinDivert" >nul 2>&1
     if !errorlevel!==0 (
         call :PrintRed "[X] Failed to delete WinDivert. Checking for conflicting services..."
@@ -688,11 +709,11 @@ cls
 if not exist "%gameFlagFile%" (
     echo Enabling game filter...
     echo ENABLED > "%gameFlagFile%"
-    call :PrintYellow "Restart the zapret to apply the changes"
+    call :PrintYellow "Reinstall the service (Menu item 1) to apply the changes"
 ) else (
     echo Disabling game filter...
     del /f /q "%gameFlagFile%"
-    call :PrintYellow "Restart the zapret to apply the changes"
+    call :PrintYellow "Reinstall the service (Menu item 1) to apply the changes"
 )
 
 pause
@@ -718,10 +739,10 @@ chcp 437 > nul
 cls
 
 if not exist "%checkUpdatesFlag%" (
-    echo Enabling check updates...
+    echo Enabling check updates (will be active after service reinstall)...
     echo ENABLED > "%checkUpdatesFlag%"
 ) else (
-    echo Disabling check updates...
+    echo Disabling check updates (will be active after service reinstall)...
     del /f /q "%checkUpdatesFlag%"
 )
 
@@ -860,13 +881,13 @@ for /f "usebackq delims=" %%a in ("%tempFile%") do (
     set "lastLine=%%a"
 )
 
-findstr /C:"!firstLine!" "%hostsFile%" >nul 2>&1
+findstr /L /C:"!firstLine!" "%hostsFile%" >nul 2>&1
 if !errorlevel! neq 0 (
     echo First line from repository not found in hosts file
     set "needsUpdate=1"
 )
 
-findstr /C:"!lastLine!" "%hostsFile%" >nul 2>&1
+findstr /L /C:"!lastLine!" "%hostsFile%" >nul 2>&1
 if !errorlevel! neq 0 (
     echo Last line from repository not found in hosts file
     set "needsUpdate=1"
