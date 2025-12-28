@@ -61,9 +61,10 @@ echo 6. Switch Check Updates (%CheckUpdatesStatus%)
 echo 7. Switch Game Filter (%GameFilterStatus%)
 echo 8. Switch ipset (%IPsetStatus%)
 echo 9. Update ipset list
-echo 10. Run Tests
+echo 10. Update hosts file (for discord voice)
+echo 11. Run Tests
 echo 0. Exit
-set /p menu_choice=Enter choice (0-10): 
+set /p menu_choice=Enter choice (0-11): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -74,7 +75,8 @@ if "%menu_choice%"=="6" goto check_updates_switch
 if "%menu_choice%"=="7" goto game_switch
 if "%menu_choice%"=="8" goto ipset_switch
 if "%menu_choice%"=="9" goto ipset_update
-if "%menu_choice%"=="10" goto run_tests
+if "%menu_choice%"=="10" goto hosts_update
+if "%menu_choice%"=="11" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -817,6 +819,72 @@ if exist "%SystemRoot%\System32\curl.exe" (
 
 echo Finished
 
+pause
+goto menu
+
+
+:: HOSTS UPDATE =======================
+:hosts_update
+chcp 437 > nul
+cls
+
+set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
+set "hostsUrl=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/hosts"
+set "tempFile=%TEMP%\zapret_hosts.txt"
+set "needsUpdate=0"
+
+echo Checking hosts file...
+
+if exist "%SystemRoot%\System32\curl.exe" (
+    curl -L -s -o "%tempFile%" "%hostsUrl%"
+) else (
+    powershell -Command ^
+        "$url = '%hostsUrl%';" ^
+        "$out = '%tempFile%';" ^
+        "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
+        "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
+)
+
+if not exist "%tempFile%" (
+    call :PrintRed "Failed to download hosts file from repository"
+    pause
+    goto menu
+)
+
+set "firstLine="
+set "lastLine="
+for /f "usebackq delims=" %%a in ("%tempFile%") do (
+    if not defined firstLine (
+        set "firstLine=%%a"
+    )
+    set "lastLine=%%a"
+)
+
+findstr /C:"!firstLine!" "%hostsFile%" >nul 2>&1
+if !errorlevel! neq 0 (
+    echo First line from repository not found in hosts file
+    set "needsUpdate=1"
+)
+
+findstr /C:"!lastLine!" "%hostsFile%" >nul 2>&1
+if !errorlevel! neq 0 (
+    echo Last line from repository not found in hosts file
+    set "needsUpdate=1"
+)
+
+if "%needsUpdate%"=="1" (
+    echo:
+    call :PrintYellow "Hosts file needs to be updated"
+    call :PrintYellow "Please manually copy the content from the downloaded file to your hosts file"
+    
+    start notepad "%tempFile%"
+    explorer /select,"%hostsFile%"
+) else (
+    call :PrintGreen "Hosts file is up to date"
+    if exist "%tempFile%" del /f /q "%tempFile%"
+)
+
+echo:
 pause
 goto menu
 
