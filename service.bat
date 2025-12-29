@@ -213,7 +213,7 @@ echo 0. Return Back
 
 :: Choosing file
 set "choice="
-set /p "choice=Input file index (number): "
+set /p "choice=Input file index (0-!count!): "
 if "!choice!"=="" (
     echo The choice is empty, exiting...
     pause
