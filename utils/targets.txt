@@ -27,6 +27,10 @@ GoogleGstatic         = "https://www.gstatic.com"
 CloudflareWeb         = "https://www.cloudflare.com"
 CloudflareCDN         = "https://cdnjs.cloudflare.com"
 
+### WhatsApp
+WhatsAppWeb           = "https://web.whatsapp.com"
+WhatsAppPage          = "https://whatsapp.com"
+
 ### Public DNS (PING-only)
 CloudflareDNS1111     = "PING:1.1.1.1"
 CloudflareDNS1001     = "PING:1.0.0.1"
