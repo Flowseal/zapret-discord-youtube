@@ -197,14 +197,18 @@ for %%f in (*.bat) do (
     )
 )
 
+echo 0. Return Back
+
 :: Choosing file
 set "choice="
-set /p "choice=Input file index (number): "
+set /p "choice=Input file index (0-!count!): "
 if "!choice!"=="" (
     echo The choice is empty, exiting...
     pause
     goto menu
 )
+
+if "!choice!"=="0" goto menu
 
 set "selectedFile=!file%choice%!"
 if not defined selectedFile (
