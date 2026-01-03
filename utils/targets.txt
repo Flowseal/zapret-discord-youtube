@@ -30,6 +30,7 @@ CloudflareCDN         = "https://cdnjs.cloudflare.com"
 ### WhatsApp
 WhatsAppWeb           = "https://web.whatsapp.com"
 WhatsAppPage          = "https://whatsapp.com"
+WhatsAppLink          = "https://wa.me"
 
 ### Public DNS (PING-only)
 CloudflareDNS1111     = "PING:1.1.1.1"
