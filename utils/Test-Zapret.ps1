@@ -3,7 +3,7 @@ $hasErrors = $false
 $rootDir = Split-Path $PSScriptRoot
 $listsDir = Join-Path $rootDir "lists"
 $utilsDir = Join-Path $rootDir "utils"
-$resultsDir = Join-Path $utilsDir "test results"
+$resultsDir = Join-Path $utilsDir "test_results"
 if (-not (Test-Path $resultsDir)) { New-Item -ItemType Directory -Path $resultsDir | Out-Null }
 
 # Define functions early
