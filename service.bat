@@ -907,7 +907,7 @@ if %errorLevel% neq 0 (
 
 echo Starting configuration tests in PowerShell window...
 echo.
-start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test zapret.ps1"
+start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\Test-Zapret.ps1"
 pause
 goto menu
 
