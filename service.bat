@@ -488,8 +488,8 @@ echo:
 set "BIN_PATH=%~dp0bin\"
 if not exist "%BIN_PATH%\*.sys" (
     call :PrintRed "WinDivert64.sys file NOT found."
+    echo:
 )
-echo:
 
 :: VPN
 set "VPN_SERVICES="
