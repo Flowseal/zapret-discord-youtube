@@ -411,16 +411,6 @@ if !proxyEnabled!==1 (
 )
 echo:
 
-:: Check netsh
-where netsh >nul 2>nul
-if !errorlevel! neq 0  (
-    call :PrintRed "[X] netsh command not found, check your PATH variable"
-    echo PATH = "%PATH%"
-    echo:
-    pause
-    goto menu
-)
-
 :: TCP timestamps check
 netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul
 if !errorlevel!==0 (
