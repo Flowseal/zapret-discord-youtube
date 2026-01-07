@@ -203,13 +203,10 @@ set "LISTS_PATH=%~dp0lists\"
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
 set "count=0"
-for %%f in (*.bat) do (
-    set "filename=%%~nxf"
-    if /i not "!filename:~0,7!"=="service" (
-        set /a count+=1
-        echo !count!. %%f
-        set "file!count!=%%f"
-    )
+for /f "delims=" %%F in ('powershell -Command "Get-ChildItem -Filter '*.bat' | Where-Object { $_.Name -notlike 'service*' } | Sort-Object { [Regex]::Replace($_.Name, '\d+', { $args[0].Value.PadLeft(8, '0') }) } | ForEach-Object { $_.Name }"') do (
+    set /a count+=1
+    echo !count!. %%F
+    set "file!count!=%%F"
 )
 
 :: Choosing file
