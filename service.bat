@@ -51,31 +51,46 @@ call :game_switch_status
 call :check_updates_switch_status
 
 set "menu_choice=null"
-echo =========  v!LOCAL_VERSION!  =========
-echo 1. Install Service
-echo 2. Remove Services
-echo 3. Check Status
-echo 4. Run Diagnostics
-echo 5. Check Updates
-echo 6. Switch Check Updates (%CheckUpdatesStatus%)
-echo 7. Switch Game Filter (%GameFilterStatus%)
-echo 8. Switch ipset (%IPsetStatus%)
-echo 9. Update ipset list
-echo 10. Update hosts file (for discord voice)
-echo 11. Run Tests
-echo 0. Exit
-set /p menu_choice=Enter choice (0-11): 
+
+echo.
+echo   ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
+echo   ----------------------------------------
+echo.
+echo   :: SERVICE
+echo      1. Install Service
+echo      2. Remove Services
+echo      3. Check Status
+echo.
+echo   :: SETTINGS
+echo      4. Game Filter         [!GameFilterStatus!]
+echo      5. IPSet Filter        [!IPsetStatus!]
+echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
+echo.
+echo   :: UPDATES
+echo      7. Update IPSet List
+echo      8. Update Hosts File
+echo      9. Check for Updates
+echo.
+echo   :: TOOLS
+echo      10. Run Diagnostics
+echo      11. Run Tests
+echo.
+echo   ----------------------------------------
+echo      0. Exit
+echo.
+
+set /p menu_choice=   Select option (0-11): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
 if "%menu_choice%"=="3" goto service_status
-if "%menu_choice%"=="4" goto service_diagnostics
-if "%menu_choice%"=="5" goto service_check_updates
+if "%menu_choice%"=="4" goto game_switch
+if "%menu_choice%"=="5" goto ipset_switch
 if "%menu_choice%"=="6" goto check_updates_switch
-if "%menu_choice%"=="7" goto game_switch
-if "%menu_choice%"=="8" goto ipset_switch
-if "%menu_choice%"=="9" goto ipset_update
-if "%menu_choice%"=="10" goto hosts_update
+if "%menu_choice%"=="7" goto ipset_update
+if "%menu_choice%"=="8" goto hosts_update
+if "%menu_choice%"=="9" goto service_check_updates
+if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
@@ -403,10 +418,10 @@ echo:
 where netsh >nul 2>nul
 if !errorlevel! neq 0  (
     call :PrintRed "[X] netsh command not found, check your PATH variable"
-	echo PATH = "%PATH%"
-	echo:
-	pause
-	goto menu
+    echo PATH = "%PATH%"
+    echo:
+    pause
+    goto menu
 )
 
 :: TCP timestamps check
@@ -488,8 +503,8 @@ echo:
 set "BIN_PATH=%~dp0bin\"
 if not exist "%BIN_PATH%\*.sys" (
     call :PrintRed "WinDivert64.sys file NOT found."
-    echo:
 )
+echo:
 
 :: VPN
 set "VPN_SERVICES="
@@ -847,7 +862,6 @@ if exist "%SystemRoot%\System32\curl.exe" (
 
 if not exist "%tempFile%" (
     call :PrintRed "Failed to download hosts file from repository"
-    call :PrintYellow "Copy hosts file manually from %hostsUrl%"
     pause
     goto menu
 )
