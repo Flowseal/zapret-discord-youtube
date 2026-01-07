@@ -503,6 +503,7 @@ echo:
 set "BIN_PATH=%~dp0bin\"
 if not exist "%BIN_PATH%\*.sys" (
     call :PrintRed "WinDivert64.sys file NOT found."
+    echo:
 )
 echo:
 
@@ -862,6 +863,7 @@ if exist "%SystemRoot%\System32\curl.exe" (
 
 if not exist "%tempFile%" (
     call :PrintRed "Failed to download hosts file from repository"
+    call :PrintYellow "Copy hosts file manually from %hostsUrl%"
     pause
     goto menu
 )
