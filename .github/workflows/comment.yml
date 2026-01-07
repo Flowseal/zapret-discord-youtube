@@ -16,7 +16,7 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number }}
           body: |
-            Пожалуйста, ознакомтесь с README. В нем есть ответы на распространенные вопросы и описание файлов: [README.md](https://github.com/Flowseal/zapret-discord-youtube/blob/main/README.md)
+            Пожалуйста, ознакомьтесь с README. В нем есть ответы на распространенные вопросы и описание файлов: [README.md](https://github.com/Flowseal/zapret-discord-youtube/blob/main/README.md)
 
             ##
             ### Прежде всего
