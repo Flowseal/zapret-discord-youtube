@@ -545,17 +545,17 @@ function Restore-WinwsSnapshot {
         if ($current -and $current -contains $p.CommandLine) { continue }
 
         $exe = $p.ExecutablePath
-        $args = ""
+        $processArgs = ""
         if ($p.CommandLine) {
             $quotedExe = '"' + $exe + '"'
             if ($p.CommandLine.StartsWith($quotedExe)) {
-                $args = $p.CommandLine.Substring($quotedExe.Length).Trim()
+                $processArgs = $p.CommandLine.Substring($quotedExe.Length).Trim()
             } elseif ($p.CommandLine.StartsWith($exe)) {
-                $args = $p.CommandLine.Substring($exe.Length).Trim()
+                $processArgs = $p.CommandLine.Substring($exe.Length).Trim()
             }
         }
 
-        Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null
+        Start-Process -FilePath $exe -ArgumentList $processArgs -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null
     }
 }
 
