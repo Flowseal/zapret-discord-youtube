@@ -339,7 +339,7 @@ set SRVCNAME=zapret
 sc query "!SRVCNAME!" >nul 2>&1
 if not !errorlevel!==0 (
     echo [Error] Service "%SRVCNAME%" is not installed.
-		echo.
+    echo.
 
     pause
     goto menu
