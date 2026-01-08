@@ -45,3 +45,6 @@ betterttv.net
 7tv.app
 7tv.io
 localizeapi.com
+modrinth.com
+api.modrinth.com
+cdn.modrinth.com
