@@ -59,39 +59,41 @@ echo.
 echo   :: SERVICE
 echo      1. Install Service
 echo      2. Remove Services
-echo      3. Check Status
+echo      3. Restart Service
+echo      4. Check Status
 echo.
 echo   :: SETTINGS
-echo      4. Game Filter         [!GameFilterStatus!]
-echo      5. IPSet Filter        [!IPsetStatus!]
-echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
+echo      5. Game Filter         [!GameFilterStatus!]
+echo      6. IPSet Filter        [!IPsetStatus!]
+echo      7. Auto-Update Check   [!CheckUpdatesStatus!]
 echo.
 echo   :: UPDATES
-echo      7. Update IPSet List
-echo      8. Update Hosts File
-echo      9. Check for Updates
+echo      8. Update IPSet List
+echo      9. Update Hosts File
+echo      10. Check for Updates
 echo.
 echo   :: TOOLS
-echo      10. Run Diagnostics
-echo      11. Run Tests
+echo      11. Run Diagnostics
+echo      12. Run Tests
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
-if "%menu_choice%"=="3" goto service_status
-if "%menu_choice%"=="4" goto game_switch
-if "%menu_choice%"=="5" goto ipset_switch
-if "%menu_choice%"=="6" goto check_updates_switch
-if "%menu_choice%"=="7" goto ipset_update
-if "%menu_choice%"=="8" goto hosts_update
-if "%menu_choice%"=="9" goto service_check_updates
-if "%menu_choice%"=="10" goto service_diagnostics
-if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="3" goto service_restart
+if "%menu_choice%"=="4" goto service_status
+if "%menu_choice%"=="5" goto game_switch
+if "%menu_choice%"=="6" goto ipset_switch
+if "%menu_choice%"=="7" goto check_updates_switch
+if "%menu_choice%"=="8" goto ipset_update
+if "%menu_choice%"=="9" goto hosts_update
+if "%menu_choice%"=="10" goto service_check_updates
+if "%menu_choice%"=="11" goto service_diagnostics
+if "%menu_choice%"=="12" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -322,6 +324,36 @@ for %%F in ("!file%choice%!") do (
     set "filename=%%~nF"
 )
 reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
+
+pause
+goto menu
+
+
+:: RESTART =============================
+:service_restart
+cls
+chcp 65001 > nul
+
+set SRVCNAME=zapret
+
+sc query "!SRVCNAME!" >nul 2>&1
+if not !errorlevel!==0 (
+    echo Service "%SRVCNAME%" is not installed.
+    pause
+    goto menu
+)
+
+echo Restarting service ...
+
+net stop %SRVCNAME% >nul 2>&1
+
+sc query "!SRVCNAME!" >nul 2>&1
+if !errorlevel!==0 (
+    net start %SRVCNAME% >nul 2>&1
+    echo Service restarted successfully.
+) else (
+    echo Failed to stop service "%SRVCNAME%".
+)
 
 pause
 goto menu
