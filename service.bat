@@ -338,7 +338,9 @@ set SRVCNAME=zapret
 
 sc query "!SRVCNAME!" >nul 2>&1
 if not !errorlevel!==0 (
-    echo Service "%SRVCNAME%" is not installed.
+    echo [Error] Service "%SRVCNAME%" is not installed.
+		echo.
+
     pause
     goto menu
 )
@@ -350,10 +352,12 @@ net stop %SRVCNAME% >nul 2>&1
 sc query "!SRVCNAME!" >nul 2>&1
 if !errorlevel!==0 (
     net start %SRVCNAME% >nul 2>&1
-    echo Service restarted successfully.
+    echo [Success] Service restarted successfully.
 ) else (
     echo Failed to stop service "%SRVCNAME%".
 )
+
+echo.
 
 pause
 goto menu
