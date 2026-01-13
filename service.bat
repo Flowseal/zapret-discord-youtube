@@ -209,11 +209,19 @@ for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -Literal
     set "file!count!=%%F"
 )
 
+if "!count!"=="0" (
+    echo:
+    call :PrintRed "Strategies not found."
+    echo:
+    pause
+    goto menu
+)
+
 :: Choosing file
 set "choice="
 set /p "choice=Input file index (number): "
-if "!choice!"=="" (
-    echo The choice is empty, exiting...
+if not defined choice (
+    echo No choice was specified, exiting...
     pause
     goto menu
 )
