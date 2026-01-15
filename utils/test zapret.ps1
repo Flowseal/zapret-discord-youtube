@@ -76,7 +76,8 @@ function Convert-Target {
 }
 
 function Get-DpiSuite {
-    # Suite sourced from monitor.ps1 (DPI TCP 16-20)
+    # Suite sourced from https://github.com/hyperion-cs/dpi-checkers (Apache-2.0 license)
+    # Original copyright retained from dpi-checkers repository
     return @(
         @{ Id = "US.CF-01"; Provider = "Cloudflare"; Url = "https://cdn.cookielaw.org/scripttemplates/202501.2.0/otBannerSdk.js"; Times = 1 }
         @{ Id = "US.CF-02"; Provider = "Cloudflare"; Url = "https://genshin.jmp.blue/characters/all#"; Times = 1 }
@@ -101,8 +102,6 @@ function Get-DpiSuite {
         @{ Id = "DE.CNTB-01"; Provider = "Contabo"; Url = "https://cloudlets.io/wp-content/themes/Avada/includes/lib/assets/fonts/fontawesome/webfonts/fa-solid-900.woff2"; Times = 1 }
         @{ Id = "FR.SW-01"; Provider = "Scaleway"; Url = "https://renklisigorta.com.tr/teklif-al"; Times = 1 }
         @{ Id = "US.CNST-01"; Provider = "Constant"; Url = "https://cdn.xuansiwei.com/common/lib/font-awesome/4.7.0/fontawesome-webfont.woff2?v=4.7.0"; Times = 1 }
-        # Local test payload (requires: run make-test-payload.ps1 and serve via python -m http.server 8000)
-        # @{ Id = "LOCAL.TEST-16K"; Provider = "LocalTest"; Url = "http://127.0.0.1:8000/test-payload-16384b.bin"; Times = 1 }
     )
 }
 
