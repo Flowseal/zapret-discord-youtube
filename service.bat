@@ -74,12 +74,13 @@ echo.
 echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
+echo      12. Run Tests Until Working
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -92,6 +93,7 @@ if "%menu_choice%"=="8" goto hosts_update
 if "%menu_choice%"=="9" goto service_check_updates
 if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="12" goto run_tests_until_working
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -910,6 +912,28 @@ if %errorLevel% neq 0 (
 echo Starting configuration tests in PowerShell window...
 echo.
 start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test zapret.ps1"
+pause
+goto menu
+
+
+:: RUN TESTS UNTIL WORKING ==============
+:run_tests_until_working
+chcp 65001 >nul
+cls
+
+:: Require PowerShell 3.0+
+powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -ge 3) { exit 0 } else { exit 1 }" >nul 2>&1
+if %errorLevel% neq 0 (
+    echo PowerShell 3.0 or newer is required.
+    echo Please upgrade PowerShell and rerun this script.
+    echo.
+    pause
+    goto menu
+)
+
+echo Searching for a fully working config (stop on first success)...
+echo.
+start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test zapret.ps1" -UntilWorking
 pause
 goto menu
 

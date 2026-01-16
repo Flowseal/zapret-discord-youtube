@@ -1,3 +1,5 @@
+param([switch]$UntilWorking)
+
 $hasErrors = $false
 
 $rootDir = Split-Path $PSScriptRoot
@@ -76,8 +78,7 @@ function Convert-Target {
 }
 
 function Get-DpiSuite {
-    # Suite sourced from https://github.com/hyperion-cs/dpi-checkers (Apache-2.0 license)
-    # Original copyright retained from dpi-checkers repository
+    # Suite sourced from monitor.ps1 (DPI TCP 16-20)
     return @(
         @{ Id = "US.CF-01"; Provider = "Cloudflare"; Url = "https://cdn.cookielaw.org/scripttemplates/202501.2.0/otBannerSdk.js"; Times = 1 }
         @{ Id = "US.CF-02"; Provider = "Cloudflare"; Url = "https://genshin.jmp.blue/characters/all#"; Times = 1 }
@@ -102,6 +103,8 @@ function Get-DpiSuite {
         @{ Id = "DE.CNTB-01"; Provider = "Contabo"; Url = "https://cloudlets.io/wp-content/themes/Avada/includes/lib/assets/fonts/fontawesome/webfonts/fa-solid-900.woff2"; Times = 1 }
         @{ Id = "FR.SW-01"; Provider = "Scaleway"; Url = "https://renklisigorta.com.tr/teklif-al"; Times = 1 }
         @{ Id = "US.CNST-01"; Provider = "Constant"; Url = "https://cdn.xuansiwei.com/common/lib/font-awesome/4.7.0/fontawesome-webfont.woff2?v=4.7.0"; Times = 1 }
+        # Local test payload (requires: run make-test-payload.ps1 and serve via python -m http.server 8000)
+        # @{ Id = "LOCAL.TEST-16K"; Provider = "LocalTest"; Url = "http://127.0.0.1:8000/test-payload-16384b.bin"; Times = 1 }
     )
 }
 
@@ -451,8 +454,16 @@ function Read-ConfigSelection {
 
 while ($true) {
     $globalResults = @()
-$testType = Read-TestType
-$mode = Read-ModeSelection
+
+    if ($UntilWorking) {
+        $testType = 'standard'
+        $mode = 'all'
+        Write-Host ''
+        Write-Host '[INFO] Auto mode: run configs sequentially until a fully working one is found.' -ForegroundColor Cyan
+    } else {
+        $testType = Read-TestType
+        $mode = Read-ModeSelection
+    }
 if ($mode -eq 'select') {
     $selected = Read-ConfigSelection -allFiles $batFiles
     $batFiles = @($selected)
@@ -576,6 +587,11 @@ try {
         "" | Out-File -FilePath $ipsetFlagFile -Encoding UTF8
     }
     Write-Host "[WARNING] Tests may take several minutes to complete. Please wait..." -ForegroundColor Yellow
+
+    $keepRunning = $false
+    $foundConfig = $null
+
+
 
     $configNum = 0
     foreach ($file in $batFiles) {
@@ -740,18 +756,52 @@ try {
         }
 
         $globalResults += @{ Config = $file.Name; Type = 'standard'; Results = $targetResults }
+
+        if ($UntilWorking) {
+            $httpBad = $false
+            foreach ($tr in $targetResults) {
+                if ($tr.IsUrl -and $tr.HttpTokens) {
+                    foreach ($tok in $tr.HttpTokens) {
+                        if ($tok -match 'ERROR') { $httpBad = $true }
+                    }
+                }
+            }
+            $pingBad = ($targetResults | Where-Object { $_.PingResult -eq 'Timeout' }).Count -gt 0
+
+            if (-not $httpBad -and -not $pingBad) {
+                $keepRunning = $true
+                $foundConfig = $file.Name
+                Write-Host ''
+                Write-Host ('[SUCCESS] Fully working config found: ' + $file.Name) -ForegroundColor Green
+                Write-Host '[INFO] Leaving it running and stopping further tests.' -ForegroundColor Cyan
+                break
+            }
+        }
     } else {
         Write-Host "  > Running DPI checkers..." -ForegroundColor DarkGray
         $dpiResults = Invoke-DpiSuite -Targets $dpiTargets -TimeoutSeconds $dpiTimeoutSeconds -RangeBytes $dpiRangeBytes -WarnMinKB $dpiWarnMinKB -WarnMaxKB $dpiWarnMaxKB -MaxParallel $dpiMaxParallel
         $globalResults += @{ Config = $file.Name; Type = 'dpi'; Results = $dpiResults }
     }
-    
     # Stop
-    Stop-Zapret
-    if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+    if (-not ($UntilWorking -and $keepRunning)) {
+        Stop-Zapret
+        if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+    }
 }
 
     Write-Host ""
+    if ($UntilWorking) {
+        if ($keepRunning) {
+            Write-Host ''
+            Write-Host ('Config kept running: ' + $foundConfig) -ForegroundColor Green
+            exit 0
+        } else {
+            Write-Host ''
+            Write-Host '[FAIL] No fully working config found.' -ForegroundColor Red
+            exit 1
+        }
+    }
+
     Write-Host "All tests finished." -ForegroundColor Green
 
     # Analytics
@@ -877,8 +927,10 @@ try {
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 } finally {
-    Stop-Zapret
-    Restore-WinwsSnapshot -snapshot $originalWinws
+    if (-not ($UntilWorking -and $keepRunning)) {
+        Stop-Zapret
+        Restore-WinwsSnapshot -snapshot $originalWinws
+    }
     if ($originalIpsetStatus -ne "any") {
         Write-Host "[INFO] Restoring original ipset mode..." -ForegroundColor DarkGray
         Set-IpsetMode -mode "restore"
