@@ -74,6 +74,7 @@ echo.
 echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
+echo      12. Export Log for Support
 echo.
 echo   ----------------------------------------
 echo      0. Exit
@@ -92,6 +93,7 @@ if "%menu_choice%"=="8" goto hosts_update
 if "%menu_choice%"=="9" goto service_check_updates
 if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="12" goto export_logs
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -913,6 +915,35 @@ start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test za
 pause
 goto menu
 
+:: EXPORT LOGS =========================
+:export_logs
+chcp 65001 >nul
+cls
+echo Gathering system information and diagnostics...
+echo Please wait, this may take a few seconds.
+echo.
+
+:: Require PowerShell 3.0+
+powershell -NoProfile -Command "if ($PSVersionTable.PSVersion.Major -ge 3) { exit 0 } else { exit 1 }" >nul 2>&1
+if %errorLevel% neq 0 (
+    echo.
+    call :PrintRed "[ERROR] PowerShell 3.0 or newer is required for this function."
+    echo Please upgrade PowerShell and rerun the script.
+    pause
+    goto menu
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& {& '%~dp0utils\support_log.ps1' -LocalVersion '%LOCAL_VERSION%' -RootPath '%~dp0.'}"
+
+if %errorLevel% neq 0 (
+    echo.
+    call :PrintRed "[ERROR] An error occurred while creating the log."
+    echo Check folder permissions or diagnostic messages above.
+    pause
+    goto menu
+)
+pause
+goto menu
 
 :: Utility functions
 
