@@ -8,6 +8,10 @@ if "%~1"=="status_zapret" (
     exit /b
 )
 
+if not exist "addons" (
+	mkdir "addons"
+)
+
 if "%~1"=="check_updates" (
     if exist "%~dp0utils\check_updates.enabled" (
         if not "%~2"=="soft" (
@@ -48,6 +52,7 @@ setlocal EnableDelayedExpansion
 cls
 call :ipset_switch_status
 call :game_switch_status
+call :check_addons_switch_status
 call :check_updates_switch_status
 
 set "menu_choice=null"
@@ -62,18 +67,19 @@ echo      2. Remove Services
 echo      3. Check Status
 echo.
 echo   :: SETTINGS
-echo      4. Game Filter         [!GameFilterStatus!]
-echo      5. IPSet Filter        [!IPsetStatus!]
-echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
+echo      4. Zapret Addons       [!AllowAddons!]
+echo      5. Game Filter         [!GameFilterStatus!]
+echo      6. IPSet Filter        [!IPsetStatus!]
+echo      7. Auto-Update Check   [!CheckUpdatesStatus!]
 echo.
 echo   :: UPDATES
-echo      7. Update IPSet List
-echo      8. Update Hosts File
-echo      9. Check for Updates
+echo      8. Update IPSet List
+echo      9. Update Hosts File
+echo      10. Check for Updates
 echo.
 echo   :: TOOLS
-echo      10. Run Diagnostics
-echo      11. Run Tests
+echo      11. Run Diagnostics
+echo      12. Run Tests
 echo.
 echo   ----------------------------------------
 echo      0. Exit
@@ -84,14 +90,15 @@ set /p menu_choice=   Select option (0-11):
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
 if "%menu_choice%"=="3" goto service_status
-if "%menu_choice%"=="4" goto game_switch
-if "%menu_choice%"=="5" goto ipset_switch
-if "%menu_choice%"=="6" goto check_updates_switch
-if "%menu_choice%"=="7" goto ipset_update
-if "%menu_choice%"=="8" goto hosts_update
-if "%menu_choice%"=="9" goto service_check_updates
-if "%menu_choice%"=="10" goto service_diagnostics
-if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="4" goto check_addons_switch
+if "%menu_choice%"=="5" goto game_switch
+if "%menu_choice%"=="6" goto ipset_switch
+if "%menu_choice%"=="7" goto check_updates_switch
+if "%menu_choice%"=="8" goto ipset_update
+if "%menu_choice%"=="9" goto hosts_update
+if "%menu_choice%"=="10" goto service_check_updates
+if "%menu_choice%"=="11" goto service_diagnostics
+if "%menu_choice%"=="12" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -233,8 +240,24 @@ set "args="
 set "capture=0"
 set "mergeargs=0"
 set QUOTE="
+set "addons="
 
-for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
+
+:: get addons/*.bypass file path's
+
+if "!AllowAddons!"=="enabled" (
+	echo [INFO] Addons enabled
+	
+	if exist "addons\" (
+		for %%F in ("addons\*.bypass") do (
+			set "addons=!addons! "%%~fF""
+		)
+	)
+)
+
+:: Use this line below if if the need arises to hide processing files: 
+:: for /f "tokens=*" %%a in ('type "%selectedFile%" !addons! 2^>nul') do (
+for /f "tokens=*" %%a in ('type "%selectedFile%" !addons!') do (
     set "line=%%a"
     call set "line=%%line:^!=EXCL_MARK%%"
 
@@ -310,6 +333,7 @@ call :tcp_enable
 
 set ARGS=%args%
 call set "ARGS=%%ARGS:EXCL_MARK=^!%%"
+echo.
 echo Final args: !ARGS!
 set SRVCNAME=zapret
 
@@ -699,6 +723,35 @@ if not exist "%gameFlagFile%" (
 
 pause
 goto menu
+
+
+:: CHECK ADDONS SWITCH =================
+:check_addons_switch_status
+chcp 437 > nul
+
+set "allowAddonsFlag=%~dp0utils\addons.enabled"
+
+if exist "%allowAddonsFlag%" (
+    set "AllowAddons=enabled"
+) else (
+    set "AllowAddons=disabled"
+)
+exit /b
+
+
+:check_addons_switch
+chcp 437 > nul
+cls
+
+if not exist "%allowAddonsFlag%" (
+    echo Enabling check updates...
+    echo ENABLED > "%allowAddonsFlag%"
+) else (
+    echo Disabling check updates...
+    del /f /q "%allowAddonsFlag%"
+)
+goto menu
+
 
 
 :: CHECK UPDATES SWITCH =================
