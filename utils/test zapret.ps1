@@ -857,6 +857,8 @@ try {
 
     # Add analytics
     Add-Content $resultFile "=== ANALYTICS ==="
+    $stats_filename="test results\test_results_" + (Get-Date -UFormat '%Y-%M-%d-%T').Replace(':','-') + ".csv"
+    "NAME	OK	FAIL	UNSUP	BLOCKED" > $stats_filename
     foreach ($config in $analytics.Keys) {
         $a = $analytics[$config]
         if ($a.ContainsKey('PingOK')) {
@@ -864,6 +866,7 @@ try {
         } else {
             Add-Content $resultFile "$config : OK: $($a.OK), FAIL: $($a.FAIL), UNSUP: $($a.UNSUPPORTED), BLOCKED: $($a.LIKELY_BLOCKED)"
         }
+        "$config	$($a.OK)	$($a.FAIL)	$($a.UNSUPPORTED)	$($a.LIKELY_BLOCKED)" >> $stats_filename
     }
 
     Add-Content $resultFile "Best strategy: $bestConfig"
