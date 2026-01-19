@@ -1,6 +1,51 @@
 @echo off
 set "LOCAL_VERSION=1.9.3"
 
+:: Authentication check - Require administrator privileges
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo ERROR: This script requires administrator privileges.
+    echo Please run as administrator.
+    pause
+    exit /b 1
+)
+
+:: User authentication and authorization
+set "AUTHORIZED_USER=%USERNAME%"
+set "EXECUTION_TIME=%DATE% %TIME%"
+set "AUTH_FILE=%~dp0.service\authorized_users.txt"
+set "USER_AUTHORIZED=0"
+
+:: Check if user is in authorized users list
+if exist "%AUTH_FILE%" (
+    for /f "tokens=*" %%a in (%AUTH_FILE%) do (
+        if /i "%%a"=="%USERNAME%" set "USER_AUTHORIZED=1"
+    )
+) else (
+    echo WARNING: Authorization file not found. Initializing access control...
+    echo %USERNAME%> "%AUTH_FILE%"
+    set "USER_AUTHORIZED=1"
+)
+
+:: Deny access if user is not authorized
+if "%USER_AUTHORIZED%"=="0" (
+    echo ERROR: Access denied. Contact your system administrator.
+    echo [%EXECUTION_TIME%] UNAUTHORIZED ACCESS ATTEMPT by %USERNAME% >> "%~dp0.service\audit.log" 2>nul
+    pause
+    exit /b 1
+)
+
+:: Log authorized execution
+echo [%EXECUTION_TIME%] User: %AUTHORIZED_USER% executed service.bat >> "%~dp0.service\audit.log" 2>nul
+
+:: Verify authorized user access
+if not defined AUTHORIZED_USER (
+    echo ERROR: Unable to verify user identity.
+    echo Access denied.
+    pause
+    exit /b 1
+)
+
 :: External commands
 if "%~1"=="status_zapret" (
     call :test_service zapret soft
