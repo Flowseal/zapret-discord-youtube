@@ -45,3 +45,5 @@ betterttv.net
 7tv.app
 7tv.io
 localizeapi.com
+ntw.graphics
+api.ntw.graphics
