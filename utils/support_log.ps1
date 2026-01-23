@@ -1,4 +1,4 @@
-﻿param (
+param (
     [string]$LocalVersion = "Unknown",
     [string]$RootPath = ".\"
 )
@@ -59,28 +59,17 @@ try {
     $Content.Add("    ├─ ISP Provider    : $ISP")
     
     $BrowserName = "N/A"
-    $BrowserVer = "N/A"
+    $BrowserVer  = "N/A"
     try {
         $ProgId = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice" -ErrorAction SilentlyContinue).ProgId
-        if ($ProgId -match "Chrome") {
-            $BrowserName = "Google Chrome"
-            $BPath = "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe"
-            if (-not (Test-Path $BPath)) { $BPath = "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe" }
-        } elseif ($ProgId -match "MSEdge") {
-            $BrowserName = "Microsoft Edge"
-            $BPath = "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
-        } elseif ($ProgId -match "Firefox") {
-            $BrowserName = "Mozilla Firefox"
-            $BPath = "${env:ProgramFiles}\Mozilla Firefox\firefox.exe"
-        } elseif ($ProgId -match "Brave") {
-            $BrowserName = "Brave"
-            $BPath = "${env:ProgramFiles}\BraveSoftware\Brave-Browser\Application\brave.exe"
-        } elseif ($ProgId -match "Opera") {
-            $BrowserName = "Opera"
-        }
-
-        if ($BPath -and (Test-Path $BPath)) {
-            $BrowserVer = (Get-Item $BPath).VersionInfo.ProductVersion
+        if ($ProgId) {
+            $BrowserName = (Get-ItemProperty "Registry::HKEY_CLASSES_ROOT\$ProgId\Application" -ErrorAction SilentlyContinue).ApplicationName
+            $RawCmd = (Get-ItemProperty "Registry::HKEY_CLASSES_ROOT\$ProgId\shell\open\command" -ErrorAction SilentlyContinue).'(default)'
+            $BPath = if ($RawCmd -match '"(.*?)"') { $Matches[1] } else { $RawCmd.Split(' ')[0] }
+            if ($BPath -and (Test-Path $BPath)) {
+                $BrowserVer = (Get-Item $BPath).VersionInfo.ProductVersion
+                if (-not $BrowserName) { $BrowserName = (Get-Item $BPath).BaseName }
+            }
         }
     } catch { }
     $Content.Add("    └─ Browser         : $BrowserName ($BrowserVer)")
@@ -143,14 +132,19 @@ try {
     }
     
     $GF = if (Test-Path (Join-Path $CleanPath "utils\game_filter.enabled")) { "✓ enabled" } else { "✗ disabled" }
-    
     $IPSetMode = "none"
     $IPPath = Join-Path $CleanPath "lists\ipset-all.txt"
     if (Test-Path $IPPath) {
-        $linesCount = (Get-Content $IPPath | Measure-Object).Count
-        $IPSetMode = if ($linesCount -gt 1) { "✓ loaded ($linesCount entries)" } else { "empty" }
+        $lines = Get-Content $IPPath
+        $linesCount = ($lines | Measure-Object).Count
+        if ($linesCount -eq 0) { 
+            $IPSetMode = "✓ any" 
+        } elseif ($lines -match "203.0.113.113") { 
+            $IPSetMode = "none" 
+        } else { 
+            $IPSetMode = "✓ loaded ($linesCount entries)" 
+        }
     }
-    
     $AU = if (Test-Path (Join-Path $CleanPath "utils\check_updates.enabled")) { "✓ enabled" } else { "✗ disabled" }
     
     $Content.Add("    ┌─ Configuration Settings")
@@ -165,65 +159,22 @@ try {
     $Content.Add("└──────────────────────────────────────────────────────────────────────┘")
     $Content.Add("")
 
-    $Content.Add("    ┌─ DNS Resolution & Spoofing Check")
-    $DomainsToCheck = @("discord.com", "googlevideo.com")
-    $PublicDNS = "8.8.8.8"
-    
-    foreach ($Domain in $DomainsToCheck) {
-        $SystemIP = "N/A"
-        try {
-            $SystemIP = [System.Net.Dns]::GetHostAddresses($Domain)[0].IPAddressToString
-        } catch { }
-        
-        $PublicIP = "N/A"
-        try {
-            $Resolve = Resolve-DnsName -Name $Domain -Server $PublicDNS -ErrorAction SilentlyContinue
-            $PublicIP = $Resolve.IPAddress[0]
-        } catch { }
-        
-        $Status = if ($SystemIP -ne "N/A" -and $PublicIP -ne "N/A" -and $SystemIP -ne $PublicIP) {
-            "⚠ DNS SPOOFING DETECTED"
-        } else {
-            "✓ OK"
-        }
-        
-        $Content.Add("    ├─ $Domain")
-        $Content.Add("    │  ├─ System DNS : $(Mask-IP $SystemIP)")
-        $Content.Add("    │  ├─ Public DNS : $(Mask-IP $PublicIP)")
-        $Content.Add("    │  └─ Status     : $Status")
-    }
-    $Content.Add("    └─")
+    $CoreTargets = @("discord.com", "googlevideo.com", "google.com")
+    $PublicDNS   = "8.8.8.8"
 
-    $Content.Add("")
-    $Content.Add("    ┌─ Connectivity & Latency (Ping)")
-    $PingTargets = @("1.1.1.1", "google.com", "discord.com")
-    
-    foreach ($Target in $PingTargets) {
-        try {
-            $DisplayName = Mask-IP $Target
-            $PingResult = Test-Connection -ComputerName $Target -Count 2 -ErrorAction SilentlyContinue
-            if ($PingResult) {
-                $AvgRTT = ($PingResult | Measure-Object -Property ResponseTime -Average).Average
-                $Content.Add("    ├─ $DisplayName : ✓ Reachable ([$( [Math]::Round($AvgRTT) )]ms)")
-            } else {
-                $Content.Add("    ├─ $DisplayName : ✗ Timed Out")
-            }
-        } catch {
-            $Content.Add("    ├─ $Target : ✗ N/A")
-        }
-    }
-    $Content.Add("    └─")
+    $Content.Add("    ┌─ DNS, Connectivity & HTTP Check")
+    foreach ($Domain in $CoreTargets) {
+        $SysIP = "N/A"; try { $SysIP = [System.Net.Dns]::GetHostAddresses($Domain)[0].IPAddressToString } catch { }
+        $PubIP = "N/A"; try { $PubIP = (Resolve-DnsName -Name $Domain -Server $PublicDNS -ErrorAction SilentlyContinue).IPAddress[0] } catch { }
+        $Ping = Test-Connection -ComputerName $Domain -Count 1 -ErrorAction SilentlyContinue
+        $Latency = if ($Ping) { "$($Ping.ResponseTime)ms" } else { "TIMEOUT" }
+        $HttpRes = "N/A"
+        try { 
+            $HttpRes = (Invoke-WebRequest -Uri "https://$Domain" -Method Head -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop).StatusCode 
+        } catch { $HttpRes = "FAIL" }
 
-    $Content.Add("")
-    $Content.Add("    ┌─ HTTP Connectivity Test")
-    $WebTargets = @("https://discord.com", "https://www.youtube.com")
-    foreach ($Url in $WebTargets) {
-        try {
-            $req = Invoke-WebRequest -Uri $Url -Method Head -TimeoutSec 5 -ErrorAction Stop -UseBasicParsing
-            $Content.Add("    ├─ $Url : ✓ HTTP $($req.StatusCode)")
-        } catch {
-            $Content.Add("    ├─ $Url : ✗ FAILED ($($_.Exception.Message))")
-        }
+        $SpoofStatus = if ($SysIP -ne "N/A" -and $PubIP -ne "N/A" -and $SysIP -ne $PubIP) { "⚠ SPOOF" } else { "✓ OK" }
+        $Content.Add("    ├─ $($Domain.PadRight(15)) : IP:$(Mask-IP $SysIP) | Ping:$($Latency.PadRight(7)) | HTTP:$($HttpRes) [$SpoofStatus]")
     }
     $Content.Add("    └─")
 
@@ -234,20 +185,14 @@ try {
         $BaseTTL = if ($BasePing) { $BasePing.ResponseTimeToLive } else { 0 }
         $Content.Add("    ├─ Baseline TTL (8.8.8.8) : $BaseTTL")
         
-        $Targets = @("discord.com", "googlevideo.com")
-        foreach ($Target in $Targets) {
+        foreach ($Target in @("discord.com", "googlevideo.com")) {
             $TPing = Test-Connection -ComputerName $Target -Count 1 -ErrorAction SilentlyContinue
             $T_TTL = if ($TPing) { $TPing.ResponseTimeToLive } else { "N/A" }
-            
-            $DPIAlert = if ($T_TTL -eq 64 -or $T_TTL -eq 128 -or $T_TTL -eq 255) {
-                " ⚠ SUSPECTED DPI INJECTION"
-            } else { "" }
-            
+            $DPIAlert = if ($T_TTL -in 64, 128, 255) { " ⚠ SUSPECTED DPI INJECTION" } else { "" }
             $Content.Add("    ├─ $Target : TTL $T_TTL$DPIAlert")
         }
-        $Content.Add("    └─")
-    } catch { $Content.Add("    └─ TTL Analysis : ✗ N/A") }
-    $Content.Add("")
+    } catch { }
+    $Content.Add("    └─`n")
 
     $Content.Add("┌──────────────────────────────────────────────────────────────────────┐")
     $Content.Add("│ 5. SYSTEM CONFIGURATION                                                                        │")
