@@ -949,7 +949,7 @@ if "%extracted%"=="0" (
     echo Zapret must be extracted from archive first or bin folder not found for some reason
     pause
     exit
-)ЫЫЫ
+)
 exit /b 0
 
 
