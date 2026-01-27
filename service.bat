@@ -74,15 +74,13 @@ echo.
 echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
-echo      12. Analyze Network Activity (Fast)
-echo      13. Analyze Network Activity (Full)
-echo      14. Monitor Network Activity (Continuous)
+echo      12. Analyze Network Activity (Combined)
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -95,9 +93,7 @@ if "%menu_choice%"=="8" goto hosts_update
 if "%menu_choice%"=="9" goto service_check_updates
 if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
-if "%menu_choice%"=="12" goto analyze_network_fast
-if "%menu_choice%"=="13" goto analyze_network_full
-if "%menu_choice%"=="14" goto analyze_network_monitoring
+if "%menu_choice%"=="12" goto analyze_network_combined
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -953,12 +949,12 @@ if "%extracted%"=="0" (
     echo Zapret must be extracted from archive first or bin folder not found for some reason
     pause
     exit
-)
+)ЫЫЫ
 exit /b 0
 
 
-:: ANALYZE NETWORK - FAST =====================
-:analyze_network_fast
+:: ANALYZE NETWORK - COMBINED =====================
+:analyze_network_combined
 chcp 65001 > nul
 cls
 
@@ -972,7 +968,6 @@ if %errorLevel% neq 0 (
 )
 
 set /p "ExePath=Enter the full path to the EXE file to analyze: "
-
 if "!ExePath!"=="" (
     echo Path cannot be empty.
     pause
@@ -984,91 +979,11 @@ if "!FlushDNS!"=="" set "FlushDNS=N"
 if /i "!FlushDNS!"=="y" set "FlushDNS=true" && ipconfig /flushdns >nul 2>&1
 if /i "!FlushDNS!"=="n" set "FlushDNS=false"
 
-echo Starting network analysis in PowerShell...
+echo Starting combined network analysis in PowerShell (Get-NetTCPConnection + netstat)...
+echo Default duration: 15 minutes (900 seconds).
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\analyze_network.ps1" -ExePath "!ExePath!" -Mode fast -FlushDNS !FlushDNS!
-
-pause
-goto menu
-
-
-:: ANALYZE NETWORK - FULL =======================
-:analyze_network_full
-chcp 65001 > nul
-cls
-
-powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -lt 3) { exit 1 } else { exit 0 }" >nul 2>&1
-if %errorLevel% neq 0 (
-    echo PowerShell 3.0 or newer is required.
-    echo Please upgrade PowerShell and rerun this script.
-    echo.
-    pause
-    goto menu
-)
-
-set /p "ExePath=Enter the full path to the EXE file to analyze: "
-
-if "!ExePath!"=="" (
-    echo Path cannot be empty.
-    pause
-    goto menu
-)
-
-set /p "FlushDNS=Flush DNS cache before analysis? (Y/N) (default: N): "
-if "!FlushDNS!"=="" set "FlushDNS=N"
-if /i "!FlushDNS!"=="y" set "FlushDNS=true" && ipconfig /flushdns >nul 2>&1
-if /i "!FlushDNS!"=="n" set "FlushDNS=false"
-
-set /p "Duration=Analysis duration in seconds (default: 30): "
-if "!Duration!"=="" set "Duration=30"
-
-echo Starting full network analysis in PowerShell (this may take a moment)...
-echo.
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\analyze_network.ps1" -ExePath "!ExePath!" -Mode full -FlushDNS !FlushDNS! -Duration !Duration!
-
-pause
-goto menu
-
-
-:: ANALYZE NETWORK - MONITORING ==============
-:analyze_network_monitoring
-chcp 65001 > nul
-cls
-
-powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -lt 3) { exit 1 } else { exit 0 }" >nul 2>&1
-if %errorLevel% neq 0 (
-    echo PowerShell 3.0 or newer is required.
-    echo Please upgrade PowerShell and rerun this script.
-    echo.
-    pause
-    goto menu
-)
-
-set /p "ExePath=Enter the full path to the EXE file to monitor (e.g., C:\Program Files\Discord\Discord.exe): "
-
-if "!ExePath!"=="" (
-    echo Path cannot be empty.
-    pause
-    goto menu
-)
-
-set /p "FlushDNS=Flush DNS cache before monitoring? (Y/N) (default: N): "
-if "!FlushDNS!"=="" set "FlushDNS=N"
-if /i "!FlushDNS!"=="y" set "FlushDNS=true" && ipconfig /flushdns >nul 2>&1
-if /i "!FlushDNS!"=="n" set "FlushDNS=false"
-
-set /p "MonitoringMinutes=Monitoring duration in minutes (default: 20): "
-if "!MonitoringMinutes!"=="" set "MonitoringMinutes=20"
-
-set /a MonitoringSeconds=!MonitoringMinutes!*60
-
-echo Starting continuous network monitoring in PowerShell...
-echo Monitoring for !MonitoringMinutes! minutes (!MonitoringSeconds! seconds)...
-echo.
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\analyze_network.ps1" -ExePath "!ExePath!" -Mode monitoring -FlushDNS !FlushDNS! -MonitoringDuration !MonitoringSeconds! -NoLaunch
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\analyze_network.ps1" -ExePath "!ExePath!" -Mode combined -FlushDNS !FlushDNS!
 
 pause
 goto menu

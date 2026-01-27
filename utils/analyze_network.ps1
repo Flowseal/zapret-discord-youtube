@@ -2,37 +2,28 @@
 # ZAPRET NETWORK ACTIVITY ANALYZER
 # ============================================================================
 # Скрипт для анализа сетевой активности указанного exe файла
-# 
-# Параметры:
-#   -ExePath    : Путь до exe файла для анализа (обязательный)
-#   -Mode       : fast | full (по умолчанию: fast)
-#   -FlushDNS   : $true | $false (очистить DNS кеш перед анализом)
-#   -Duration   : Время сбора данных в секундах (по умолчанию: 30)
-#
-# Примеры:
-#   .\analyze_network.ps1 -ExePath "C:\Users\User\Discord.exe" -Mode fast
-#   .\analyze_network.ps1 -ExePath "C:\Users\User\Discord.exe" -Mode full -FlushDNS $true
-# ============================================================================
-
 param(
     [Parameter(Mandatory = $true)]
     [string]$ExePath,
     
     [Parameter(Mandatory = $false)]
-    [ValidateSet("fast", "full", "monitoring")]
-    [string]$Mode = "fast",
+    [ValidateSet("combined", "fast", "full", "monitoring")]
+    [string]$Mode = "combined",
     
     [Parameter(Mandatory = $false)]
     [string]$FlushDNS = "false",
     
     [Parameter(Mandatory = $false)]
-    [int]$Duration = 30,
+    [int]$Duration = 900,
     
     [Parameter(Mandatory = $false)]
-    [int]$MonitoringDuration = 1200,
+    [int]$MonitoringDuration = 900,
     
     [Parameter(Mandatory = $false)]
-    [switch]$NoLaunch = $false
+    [switch]$NoLaunch = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseNetstat = $true
 )
 
 # Конвертируем FlushDNS в boolean
@@ -51,6 +42,7 @@ $ErrorActionPreference = "Continue"
 $ProgressPreference = "SilentlyContinue"
 
 $script:ResultsArray = @()
+$script:NetstatArray = @()
 $script:DNSCacheArray = @()
 $script:ProcessInfo = $null
 $script:StartTime = Get-Date
@@ -266,6 +258,73 @@ function Invoke-FastAnalysis {
         Write-Status "Ошибка при получении соединений: $_" "ERR"
         return @()
     }
+}
+
+# ============================================================================
+# NETSTAT SNAPSHOT (fallback/additional source)
+# ============================================================================
+
+function Invoke-NetstatSnapshot {
+    param([int]$ProcessID)
+
+    Write-Header "NETSTAT SNAPSHOT (netstat -ano)"
+    Write-Status "Сбор данных netstat для PID: $ProcessID" "INFO"
+
+    $results = @()
+
+    try {
+        $netstatOutput = netstat -ano -p tcp 2>$null
+        if (-not $netstatOutput) {
+            Write-Status "netstat вывода нет" "WARN"
+            return @()
+        }
+
+        foreach ($line in $netstatOutput) {
+            $trimmed = $line.Trim()
+            if ($trimmed -notmatch "^TCP") { continue }
+
+            $parts = $trimmed -split "\s+"
+            if ($parts.Count -lt 5) { continue }
+
+            $proto = $parts[0]
+            $local = $parts[1]
+            $remote = $parts[2]
+            $state = $parts[3]
+            $pidVal = $parts[4]
+
+            if ($pidVal -ne $ProcessID) { continue }
+
+            # remote may be 0.0.0.0:0 in LISTENING; skip non-remote
+            if ($remote -eq "0.0.0.0:0" -or $remote -eq "[::]:0") { continue }
+
+            # parse remote endpoint
+            $remoteHost = $remote
+            $remotePort = $null
+
+            if ($remote -match "^(\[.*\]|[^:]+):(\d+)$") {
+                $remoteHost = $Matches[1].Trim("[]")
+                $remotePort = [int]$Matches[2]
+            }
+
+            $results += [PSCustomObject]@{
+                IP    = $remoteHost
+                Port  = $remotePort
+                State = $state
+            }
+        }
+
+        if ($results.Count -gt 0) {
+            Write-Status "netstat: найдено записей: $($results.Count)" "OK"
+        }
+        else {
+            Write-Status "netstat: записей не найдено" "WARN"
+        }
+    }
+    catch {
+        Write-Status "Ошибка netstat: $_" "WARN"
+    }
+
+    return $results
 }
 
 # ============================================================================
@@ -567,12 +626,20 @@ function Show-Results {
 }
 
 function Save-Results {
-    param([array]$Results, [PSCustomObject]$ProcessInfo, [string]$Mode)
+    param(
+        [array]$Results,
+        [PSCustomObject]$ProcessInfo,
+        [string]$Mode,
+        [bool]$UseNetstat = $false,
+        [int]$MonitoringDuration = 0,
+        [int]$Duration = 0
+    )
     
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $fileName = "analyze_results_$($ProcessInfo.Name)_$timestamp.txt"
     $filePath = Join-Path $PSScriptRoot $fileName
     
+    $effectiveDuration = if ($Mode -eq "monitoring") { $MonitoringDuration } else { $Duration }
     $content = @"
 ═════════════════════════════════════════════════════════════════════════════
 АНАЛИЗ СЕТЕВОЙ АКТИВНОСТИ - ПОДРОБНЫЙ ОТЧЕТ
@@ -587,7 +654,8 @@ function Save-Results {
 ПАРАМЕТРЫ АНАЛИЗА:
   Режим анализа:    $Mode
   DNS кеш очищен:   $(if ($FlushDNS) { "Да" } else { "Нет" })
-  Время сбора:      $Duration сек
+    Время сбора:      $effectiveDuration сек
+    Netstat добавлен: $(if ($UseNetstat) { "Да" } else { "Нет" })
 
 ═════════════════════════════════════════════════════════════════════════════
 РЕЗУЛЬТАТЫ
@@ -708,20 +776,28 @@ function Main {
     
     # Выполнить анализ в зависимости от режима
     if ($Mode -eq "monitoring") {
-        # Режим непрерывного мониторинга для уже запущенного процесса
         Write-Section "Параметры мониторинга"
         Write-Host "  Длительность: $(([math]::Round($MonitoringDuration/60, 1))) минут ($MonitoringDuration сек)" -ForegroundColor $Colors.Info
         Write-Host ""
         
         $connections = Invoke-MonitoringMode -ProcessID $process.Id -DurationSeconds $MonitoringDuration
     }
+    elseif ($Mode -eq "full") {
+        $connections = Invoke-FullAnalysis -ProcessID $process.Id
+    }
+    elseif ($Mode -eq "fast") {
+        $connections = Invoke-FastAnalysis -ProcessID $process.Id
+    }
     else {
-        # Стандартные режимы fast/full
-        $connections = if ($Mode -eq "fast") {
-            Invoke-FastAnalysis -ProcessID $process.Id
-        }
-        else {
-            Invoke-FullAnalysis -ProcessID $process.Id
+        # combined: Get-NetTCPConnection + netstat snapshot
+        $connections = Invoke-FastAnalysis -ProcessID $process.Id
+
+        if ($UseNetstat) {
+            Write-Host ""
+            $netstatConns = Invoke-NetstatSnapshot -ProcessID $process.Id
+            if ($netstatConns) {
+                $connections += $netstatConns
+            }
         }
     }
     
@@ -736,7 +812,7 @@ function Main {
         
         # Сохранить результаты
         Write-Section "Сохранение результатов"
-        $savedPath = Save-Results -Results $results -ProcessInfo $process -Mode $Mode
+        $savedPath = Save-Results -Results $results -ProcessInfo $process -Mode $Mode -UseNetstat:$UseNetstat -MonitoringDuration $MonitoringDuration -Duration $Duration
     }
     else {
         Write-Status "Соединения не найдены для анализа" "WARN"
