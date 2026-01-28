@@ -357,22 +357,33 @@ if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     goto menu
 ) 
 
-echo New version available: %GITHUB_VERSION%
-echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
-
-set "CHOICE="
-set /p "CHOICE=Do you want to automatically download the new version? (Y/N) (default: Y) "
-if "%CHOICE%"=="" set "CHOICE=Y"
-if /i "%CHOICE%"=="y" set "CHOICE=Y"
-
-if /i "%CHOICE%"=="Y" (
-    echo Opening the download page...
-    start "" "%GITHUB_DOWNLOAD_URL%%GITHUB_VERSION%.rar"
-)
-
+chcp 65001 > nul
+echo.  New version available: %GITHUB_VERSION%
+echo.  Please manually download the new version:
+echo.%GITHUB_RELEASE_URL%%GITHUB_VERSION%
+echo.
+echo.    ***
+echo.
+echo.    If you downloaded this software not from github.com/Flowseal
+echo.  but from YouTube, Discord, Telegram or some other place,
+echo.  then you likely might have downloaded a virus.
+echo.
+echo.    When downloading password-protected archives the probability
+echo.  increases greatly. You've been warned.
+echo.
+echo.    ***
+echo.
+echo.    Если ранее вы скачивали запрет не с гитхаба Flowseal,
+echo.  а с ютуба, телеграмма, дискорда, или какого-то другого места,
+echo.  то с большой вероятностью вы скачали себе на компьютер вирус.
+echo.
+echo.    При скачивании запароленного архива вероятность многократно
+echo.  возрастает. Вас предупредили.
+echo.
+echo.
+pause
 
 if "%1"=="soft" exit 
-pause
 goto menu
 
 
