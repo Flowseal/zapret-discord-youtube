@@ -41,6 +41,12 @@ discordsez.com
 discordstatus.com
 frankerfacez.com
 ffzap.com
+github.com
+github.io
+github.blog
+github.community
+githubassets.com
+githubusercontent.com
 betterttv.net
 7tv.app
 7tv.io
