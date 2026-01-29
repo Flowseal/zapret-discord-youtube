@@ -426,8 +426,12 @@ if "%QTRESULT%"=="1" (
     echo   [SUCCESS] WORKS!
     echo  ===========================================================================
     echo.
+    echo  Params: %TESTPARAMS%
+    echo.
+    echo  Zapret is currently running with these params.
+    echo.
     set "SAVEIT="
-    set /p "SAVEIT=Save as .bat? (y/n): "
+    set /p "SAVEIT=Save as .bat file? (y/n): "
     if /i "!SAVEIT!"=="y" (
         set "SAVENAME="
         set /p "SAVENAME=Filename: "
@@ -439,16 +443,33 @@ if "%QTRESULT%"=="1" (
             echo Saved: !SAVENAME!.bat
         )
     )
+    echo.
+    echo  [1] Keep running and exit
+    echo  [2] Stop and return to menu
+    echo.
+    set "QTEXITCHOICE="
+    set /p "QTEXITCHOICE=Choice [1]: "
+    if "!QTEXITCHOICE!"=="" set "QTEXITCHOICE=1"
+    
+    if "!QTEXITCHOICE!"=="1" (
+        echo.
+        echo  Zapret is running. You can close this window.
+        echo.
+        pause
+        exit /b 0
+    ) else (
+        taskkill /f /im winws.exe >nul 2>&1
+        goto mainmenu
+    )
 ) else (
     echo  ===========================================================================
     echo   [FAIL] Does not work
     echo  ===========================================================================
     taskkill /f /im winws.exe >nul 2>&1
+    echo.
+    pause
+    goto mainmenu
 )
-
-echo.
-pause
-goto mainmenu
 
 :startbrute
 cls
@@ -681,7 +702,6 @@ if %BFLEVEL% geq 2 (
 )
 
 :bruteforce_end
-taskkill /f /im winws.exe >nul 2>&1
 
 echo.
 echo ===========================================================================
@@ -698,7 +718,31 @@ if %FOUNDCNT% gtr 0 (
     type "%RESFILE%"
     echo.
     echo   Saved to: %RESFILE%
+    echo.
+    echo ===========================================================================
+    echo   WORKING STRATEGY IS CURRENTLY RUNNING!
+    echo ===========================================================================
+    echo.
+    echo   [1] Keep running and exit (recommended)
+    echo   [2] Stop and return to menu
+    echo.
+    set "EXITCHOICE="
+    set /p "EXITCHOICE=Choice [1]: "
+    if "%EXITCHOICE%"=="" set "EXITCHOICE=1"
+    
+    if "%EXITCHOICE%"=="1" (
+        echo.
+        echo   Zapret is running. You can close this window.
+        echo   To stop zapret later, run this script again or use Task Manager.
+        echo.
+        pause
+        exit /b 0
+    ) else (
+        taskkill /f /im winws.exe >nul 2>&1
+        goto mainmenu
+    )
 ) else (
+    taskkill /f /im winws.exe >nul 2>&1
     echo.
     echo   Nothing found.
     echo.
@@ -707,11 +751,10 @@ if %FOUNDCNT% gtr 0 (
     echo   2. Try level 3 or 4
     echo   3. Update lists folder
     echo   4. Maybe need VPN
+    echo.
+    pause
+    goto mainmenu
 )
-
-echo.
-pause
-goto mainmenu
 
 :performcheck
 set "CHECKRESULT=0"
