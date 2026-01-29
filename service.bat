@@ -200,6 +200,14 @@ cd /d "%~dp0"
 set "BIN_PATH=%~dp0bin\"
 set "LISTS_PATH=%~dp0lists\"
 
+:: Check if the current path may cause problems with searching .bat files
+powershell -NoProfile -Command "if ('%~dpnx0'.Contains([char]0x00A0)) { exit 1 } else { exit 0 }"
+
+if !errorLevel! neq 0 (
+    call :PrintYellow "WARNING: The path where the script is executed contains a non-breaking space character (U+00A0), which may cause PowerShell to fail to execute."
+    echo:
+)
+
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
 set "count=0"
