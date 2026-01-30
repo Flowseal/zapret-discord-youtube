@@ -209,18 +209,39 @@ for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -Literal
     set "file!count!=%%F"
 )
 
-:: Choosing file
-set "choice="
-set /p "choice=Input file index (number): "
-if "!choice!"=="" (
-    echo The choice is empty, exiting...
+if "!count!"=="0" (
+    echo:
+    call :PrintRed "No files available."
+    echo:
     pause
     goto menu
 )
 
+echo 0. Return
+
+:: Choosing file
+set "choice="
+if "!count!"=="1" (
+    set /p "choice=Select file index (1, 0 to return): "
+) else (
+    set /p "choice=Select file index (1-!count!, 0 to return): "
+)
+
+if not defined choice (
+    echo:
+    call :PrintRed "No choice was specified."
+    echo:
+    pause
+    goto menu
+)
+
+if "!choice!"=="0" goto menu
+
 set "selectedFile=!file%choice%!"
 if not defined selectedFile (
-    echo Invalid choice, exiting...
+    echo:
+    call :PrintRed "Invalid choice."
+    echo:
     pause
     goto menu
 )
