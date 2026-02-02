@@ -615,13 +615,27 @@ try {
                     @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
                 )
 
-                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "-o", "NUL", "-w", "%{http_code}")
+                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "-o", "NUL", "-w", "%{http_code}", "--show-error")
                 foreach ($test in $tests) {
                     try {
                         $curlArgs = $baseArgs + $test.Args
-                        $output = & curl.exe @curlArgs $t.Url 2>&1
-                        $text = ($output | Out-String).Trim()
-                        $unsupported = (($LASTEXITCODE -eq 35) -or ($text -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel|SSL"))
+                        $stderr = $null
+                        $output = & curl.exe @curlArgs $t.Url 2>&1 | ForEach-Object {
+                            if ($_ -is [System.Management.Automation.ErrorRecord]) {
+                                $stderr += $_.Exception.Message + " "
+                            } else {
+                                $_
+                            }
+                        }
+                        $httpCode = ($output | Out-String).Trim()
+                        
+                        $dnsHijack = ($stderr -match "Could not resolve host|certificate|SSL certificate problem|self[- ]?signed|certificate verify failed|unable to get local issuer certificate")                        
+                        if ($dnsHijack) {
+                            $httpPieces += "$($test.Label):SSL  "
+                            continue
+                        }
+                        
+                        $unsupported = (($LASTEXITCODE -eq 35) -or ($stderr -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel"))
                         if ($unsupported) {
                             $httpPieces += "$($test.Label):UNSUP"
                             continue
@@ -715,6 +729,7 @@ try {
                 foreach ($tok in $res.HttpTokens) {
                     $tokColor = "Green"
                     if ($tok -match "UNSUP") { $tokColor = "Yellow" }
+                    elseif ($tok -match "SSL") { $tokColor = "Red" }
                     elseif ($tok -match "ERR") { $tokColor = "Red" }
                     Write-Host " $tok" -NoNewline -ForegroundColor $tokColor
                 }
@@ -764,6 +779,7 @@ try {
                 if ($targetRes.IsUrl) {
                     foreach ($tok in $targetRes.HttpTokens) {
                         if ($tok -match "OK") { $analytics[$config].OK++ }
+                        elseif ($tok -match "SSL") { $analytics[$config].ERROR++ }
                         elseif ($tok -match "ERROR") { $analytics[$config].ERROR++ }
                         elseif ($tok -match "UNSUP") { $analytics[$config].UNSUP++ }
                     }
