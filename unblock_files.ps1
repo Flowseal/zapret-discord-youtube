@@ -1,1 +1,1 @@
-dir *.* | Unblock-File
+ls -r | Unblock-File
