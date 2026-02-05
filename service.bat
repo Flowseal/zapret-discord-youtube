@@ -1,5 +1,5 @@
 @echo off
-set "LOCAL_VERSION=1.9.4"
+set "LOCAL_VERSION=1.9.5"
 
 :: External commands
 if "%~1"=="status_zapret" (
