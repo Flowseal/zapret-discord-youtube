@@ -32,28 +32,6 @@ body:
       required: true
 
   - type: textarea
-    id: reproduction
-    attributes:
-      label: Шаги воспроизведения проблемы
-      description: Шаги по воспроизведению поведения (вашей проблемы).
-      placeholder: |
-        Напишите здесь шаги, с помощью которых можно повторить вашу проблему
-        на других компьютерах
-
-  - type: textarea
-    id: bat-name
-    attributes:
-      label: Какой .bat файл вы используете?
-    validations:
-      required: true
-
-  - type: textarea
-    id: other-bat
-    attributes:
-      label: Использовали ли вы другие .bat?
-      description: Пробовали ли вы использовать другой .bat для устранения проблемы? Если использовали, то какие?
-
-  - type: textarea
     id: additions
     attributes:
       label: Дополнительные детали
