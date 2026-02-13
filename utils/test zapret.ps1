@@ -497,7 +497,7 @@ if ($testType -eq 'standard') {
 
 # Ensure we have configs to run
 if (-not $batFiles -or $batFiles.Count -eq 0) {
-    Write-Host "[ERROR] No general*.bat files found" -ForegroundColor Red
+    Write-Host "[ERROR] No strategy*.bat files found" -ForegroundColor Red
     Write-Host "Press any key to exit..." -ForegroundColor Yellow
     [void][System.Console]::ReadKey($true)
     exit 1
