@@ -29,3 +29,16 @@ lesta.ru
 korabli.su
 tanksblitz.ru
 reg.ru
+steampowered.com
+steamcommunity.com
+steamcontent.com
+steamusercontent.com
+steamstatic.com
+steamgames.com
+steam-chat.com
+steampipe.akamaized.net
+steamcloudsweden.blob.core.windows.net
+blob.core.windows.net
+azureedge.net
+akamaihd.net
+akamaized.net
