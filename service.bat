@@ -1,6 +1,16 @@
 @echo off
 set "LOCAL_VERSION=1.9.6"
 
+:: Cleanup temporary runner if exists
+if exist "%TEMP%\zapret_runner.bat" del /f /q "%TEMP%\zapret_runner.bat"
+
+:: Define ANSI Colors
+for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do set "ESC=%%b"
+set "C_R=%ESC%[91m"
+set "C_G=%ESC%[92m"
+set "C_Y=%ESC%[93m"
+set "C_N=%ESC%[0m"
+
 :: External commands
 if "%~1"=="status_zapret" (
     call :test_service zapret soft
@@ -32,6 +42,7 @@ if "%1"=="admin" (
     call :check_command netsh
 
     echo Started with admin rights
+
 ) else (
     call :check_extracted
     call :check_command powershell
@@ -59,39 +70,41 @@ echo.
 echo   :: SERVICE
 echo      1. Install Service
 echo      2. Remove Services
-echo      3. Check Status
+echo      3. Restart Service
+echo      4. Check Status
 echo.
 echo   :: SETTINGS
-echo      4. Game Filter         [!GameFilterStatus!]
-echo      5. IPSet Filter        [!IPsetStatus!]
-echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
+echo      5. Game Filter         [!GameFilterStatus!]
+echo      6. IPSet Filter        [!IPsetStatus!]
+echo      7. Auto-Update Check   [!CheckUpdatesStatus!]
 echo.
 echo   :: UPDATES
-echo      7. Update IPSet List
-echo      8. Update Hosts File
-echo      9. Check for Updates
+echo      8. Update IPSet List
+echo      9. Update Hosts File
+echo      10. Check for Updates
 echo.
 echo   :: TOOLS
-echo      10. Run Diagnostics
-echo      11. Run Tests
+echo      11. Run Diagnostics
+echo      12. Run Tests
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
-if "%menu_choice%"=="3" goto service_status
-if "%menu_choice%"=="4" goto game_switch
-if "%menu_choice%"=="5" goto ipset_switch
-if "%menu_choice%"=="6" goto check_updates_switch
-if "%menu_choice%"=="7" goto ipset_update
-if "%menu_choice%"=="8" goto hosts_update
-if "%menu_choice%"=="9" goto service_check_updates
-if "%menu_choice%"=="10" goto service_diagnostics
-if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="3" goto service_restart
+if "%menu_choice%"=="4" goto service_status
+if "%menu_choice%"=="5" goto game_switch
+if "%menu_choice%"=="6" goto ipset_switch
+if "%menu_choice%"=="7" goto check_updates_switch
+if "%menu_choice%"=="8" goto ipset_update
+if "%menu_choice%"=="9" goto hosts_update
+if "%menu_choice%"=="10" goto service_check_updates
+if "%menu_choice%"=="11" goto service_diagnostics
+if "%menu_choice%"=="12" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -155,6 +168,17 @@ if "%ServiceStatus%"=="RUNNING" (
 exit /b
 
 
+:: RESTART =============================
+:service_restart
+cls
+chcp 437 > nul
+echo Restarting zapret service...
+net stop zapret
+sc start zapret
+pause
+goto menu
+
+
 :: REMOVE ==============================
 :service_remove
 cls
@@ -200,6 +224,12 @@ cd /d "%~dp0"
 set "BIN_PATH=%~dp0bin\"
 set "LISTS_PATH=%~dp0lists\"
 
+:: Check if strategy is pre-selected
+if defined TARGET_BAT (
+    set "selectedFile=%~dp0%TARGET_BAT%"
+    goto service_install_parsing
+)
+
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
 set "count=0"
@@ -225,6 +255,7 @@ if not defined selectedFile (
     goto menu
 )
 
+:service_install_parsing
 :: Args that should be followed by value
 set "args_with_value=sni host altorder"
 
@@ -318,7 +349,7 @@ sc delete %SRVCNAME% >nul 2>&1
 sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
-for %%F in ("!file%choice%!") do (
+for %%F in ("!selectedFile!") do (
     set "filename=%%~nF"
 )
 reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
@@ -331,42 +362,121 @@ goto menu
 :service_check_updates
 chcp 437 > nul
 cls
-
-:: Set current version and URLs
-set "GITHUB_VERSION_URL=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/version.txt"
-set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/"
-set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest"
-
-:: Get the latest version from GitHub
-for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Uri \"%GITHUB_VERSION_URL%\" -Headers @{\"Cache-Control\"=\"no-cache\"} -UseBasicParsing -TimeoutSec 5).Content.Trim()" 2^>nul') do set "GITHUB_VERSION=%%A"
-
-:: Error handling
-if not defined GITHUB_VERSION (
-    echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
-    timeout /T 9
-    if "%1"=="soft" exit 
+echo Checking for updates...
+ping -n 1 -w 1500 8.8.8.8 >nul 2>&1
+if %errorlevel% neq 0 (
+    call :PrintRed "No internet connection."
+    pause
     goto menu
 )
 
-:: Version comparison
+set "GITHUB_VERSION="
+set "ASSET_URL="
+for /f "usebackq tokens=*" %%A in (`powershell -NoProfile -Command "$r=Invoke-RestMethod -Uri 'https://api.github.com/repos/Flowseal/zapret-discord-youtube/releases/latest'; $v=$r.tag_name; $a=$r.assets | Where-Object { $_.name -like '*.zip' } | Select-Object -First 1; if ($v -and $a) { $v + '|' + $a.browser_download_url }"`) do (
+    for /f "tokens=1,2 delims=|" %%B in ("%%A") do (
+        set "GITHUB_VERSION=%%B"
+        set "ASSET_URL=%%C"
+    )
+)
+
+if not defined GITHUB_VERSION (
+    call :PrintRed "Failed to fetch update info."
+    pause
+    goto menu
+)
+
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
-    echo Latest version installed: %LOCAL_VERSION%
-    
+    call :PrintGreen "Version is up to date: %LOCAL_VERSION%"
     if "%1"=="soft" exit 
     pause
     goto menu
 ) 
 
-echo New version available: %GITHUB_VERSION%
-echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
+echo.
+call :PrintYellow "New version available: %GITHUB_VERSION%"
+echo.
+echo 1. Update automatically
+echo 2. Update manually (open browser)
+echo 3. Cancel
+echo.
+set /p "upd_choice=Select option (1-3): "
 
-echo Opening the download page...
-start "" "%GITHUB_DOWNLOAD_URL%"
-
-
-if "%1"=="soft" exit 
-pause
+if "%upd_choice%"=="2" (
+    start "" "https://github.com/Flowseal/zapret-discord-youtube/releases/latest"
+    if "%1"=="soft" exit
+    goto menu
+)
+if "%upd_choice%"=="1" goto service_auto_update
 goto menu
+
+:service_auto_update
+cls
+echo Starting automatic update...
+set "TEMP_UPDATE_DIR=%TEMP%\zapret_update_service"
+if exist "%TEMP_UPDATE_DIR%" rd /s /q "%TEMP_UPDATE_DIR%"
+mkdir "%TEMP_UPDATE_DIR%"
+
+echo Downloading update...
+set "ZIP_PATH=%TEMP_UPDATE_DIR%\update.zip"
+if exist "%SystemRoot%\System32\curl.exe" (
+    curl -L -o "%ZIP_PATH%" "%ASSET_URL%"
+) else (
+    powershell -NoProfile -Command "Invoke-WebRequest -Uri '%ASSET_URL%' -OutFile '%ZIP_PATH%' -UseBasicParsing"
+)
+
+if not exist "%ZIP_PATH%" (
+    call :PrintRed "Download failed."
+    pause
+    goto menu
+)
+
+echo Extracting...
+powershell -NoProfile -Command "Expand-Archive -LiteralPath '%ZIP_PATH%' -DestinationPath '%TEMP_UPDATE_DIR%\extracted' -Force"
+
+set "SRC_ROOT=%TEMP_UPDATE_DIR%\extracted"
+for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "$p='%TEMP_UPDATE_DIR%\extracted'; $dirs=Get-ChildItem -LiteralPath $p -Directory; if ($dirs.Count -eq 1 -and (Test-Path (Join-Path $dirs[0].FullName 'service.bat'))) { $dirs[0].FullName } else { $p }"`) do set "SRC_ROOT=%%A"
+
+echo Merging lists...
+powershell -NoProfile -Command "$src = '%SRC_ROOT%\lists'; $dst = '%~dp0lists'; if (Test-Path $dst) { Get-ChildItem -Path $dst -Filter '*.txt' | ForEach-Object { $fName = $_.Name; $dstFile = $_.FullName; $srcFile = Join-Path $src $fName; if (Test-Path $srcFile) { Write-Host 'Merging' $fName '...'; $c1 = @(Get-Content -LiteralPath $dstFile -Encoding UTF8 -ErrorAction SilentlyContinue); $c2 = @(Get-Content -LiteralPath $srcFile -Encoding UTF8 -ErrorAction SilentlyContinue); $merged = ($c1 + $c2) | Select-Object -Unique | Sort-Object; $merged | Set-Content -LiteralPath $srcFile -Encoding UTF8; } else { Copy-Item -LiteralPath $dstFile -Destination $srcFile; } } }"
+
+echo.
+set "DO_BACKUP="
+set /p "DO_BACKUP=Create backup before update? (y/n): "
+if /i "%DO_BACKUP%"=="y" (
+    if not exist "%~dp0backups" mkdir "%~dp0backups"
+    set "BACKUP_FILE=%~dp0backups\backup_%LOCAL_VERSION%_%RANDOM%.zip"
+    echo Creating backup...
+    powershell -NoProfile -Command "Get-ChildItem -LiteralPath '%~dp0' | Where-Object { $_.Name -ne 'backups' } | Compress-Archive -DestinationPath '!BACKUP_FILE!' -Force"
+    echo Backup created at !BACKUP_FILE!
+)
+
+set "RUNNER=%TEMP%\zapret_runner.bat"
+(
+    echo @echo off
+    echo title Zapret Updater Runner
+    echo echo Waiting for service.bat to close...
+    echo timeout /t 2 /nobreak ^>nul
+    echo echo Stopping services...
+    echo net stop zapret ^>nul 2^>^&1
+    echo sc delete zapret ^>nul 2^>^&1
+    echo net stop WinDivert ^>nul 2^>^&1
+    echo sc delete WinDivert ^>nul 2^>^&1
+    echo net stop WinDivert14 ^>nul 2^>^&1
+    echo sc delete WinDivert14 ^>nul 2^>^&1
+    echo taskkill /IM winws.exe /F ^>nul 2^>^&1
+    echo echo Updating files...
+    echo robocopy "%SRC_ROOT%" "%~dp0." /E /MOVE /IS /IT /IM /NFL /NDL /NJH /NJS /nc /ns /np
+    echo echo Cleaning up...
+    echo rd /s /q "%TEMP_UPDATE_DIR%"
+    echo echo.
+    echo echo Zapret updated successfully. Ready for start.
+    echo pause
+    echo exit
+) > "%RUNNER%"
+
+echo Starting update runner...
+start "" "%RUNNER%"
+exit
 
 
 
@@ -910,15 +1020,15 @@ goto menu
 :: Utility functions
 
 :PrintGreen
-powershell -NoProfile -Command "Write-Host \"%~1\" -ForegroundColor Green"
+echo %C_G%%~1%C_N%
 exit /b
 
 :PrintRed
-powershell -NoProfile -Command "Write-Host \"%~1\" -ForegroundColor Red"
+echo %C_R%%~1%C_N%
 exit /b
 
 :PrintYellow
-powershell -NoProfile -Command "Write-Host \"%~1\" -ForegroundColor Yellow"
+echo %C_Y%%~1%C_N%
 exit /b
 
 :check_command

@@ -39,10 +39,13 @@ function Set-IpsetMode {
 
 trap {
     Write-Host "[ERROR] Script interrupted. Restoring ipset..." -ForegroundColor Red
+    Write-Host "Error details: $_" -ForegroundColor Red
     if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
         Set-IpsetMode -mode "restore"
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
+    Write-Host "Press any key to exit..." -ForegroundColor Yellow
+    [void][System.Console]::ReadKey($true)
     break
 }
 
@@ -354,10 +357,25 @@ if ($originalIpsetStatus -ne "any") {
 
 # Check if zapret service installed
 if (Test-ZapretServiceConflict) {
-    Write-Host "[ERROR] Windows service 'zapret' is installed" -ForegroundColor Red
-    Write-Host "         Remove the service before running tests" -ForegroundColor Yellow
-    Write-Host "         Open service.bat and choose 'Remove Services'" -ForegroundColor Yellow
-    $hasErrors = $true
+    Write-Host "[WARN] Windows service 'zapret' is installed." -ForegroundColor Yellow
+    Write-Host "       It conflicts with the tests." -ForegroundColor Yellow
+    
+    $choice = Read-Host "Do you want to stop and remove the service? (y/n)"
+    if ($choice -eq 'y') {
+        Write-Host "Stopping and removing services..." -ForegroundColor Cyan
+        try { Stop-Service -Name "zapret" -Force -ErrorAction Stop } catch {}
+        sc.exe delete "zapret" 2>&1 | Out-Null
+        try { Stop-Service -Name "WinDivert" -Force -ErrorAction Stop } catch {}
+        sc.exe delete "WinDivert" 2>&1 | Out-Null
+        try { Stop-Service -Name "WinDivert14" -Force -ErrorAction Stop } catch {}
+        sc.exe delete "WinDivert14" 2>&1 | Out-Null
+        try { Stop-Process -Name "winws" -Force -ErrorAction Stop } catch {}
+        Start-Sleep -Seconds 1
+        Write-Host "Services removed." -ForegroundColor Green
+    } else {
+        Write-Host "[ERROR] Cannot proceed while service is installed." -ForegroundColor Red
+        $hasErrors = $true
+    }
 }
 
 if ($hasErrors) {
