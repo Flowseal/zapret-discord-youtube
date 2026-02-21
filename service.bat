@@ -33,11 +33,6 @@ if "%1"=="admin" (
 
     echo Started with admin rights
 ) else if "%1"=="admin_install" (
-    call :check_command chcp
-    call :check_command find
-    call :check_command findstr
-    call :check_command netsh
-
     setlocal EnableDelayedExpansion
     echo Started with admin rights for direct install
     set "AUTO_INSTALL_CHOICE=%~2"

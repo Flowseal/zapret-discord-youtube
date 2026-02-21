@@ -827,6 +827,61 @@ try {
     Write-Host "Best config: $bestConfig" -ForegroundColor Green
     Write-Host ""
 
+    # Save to file
+    $dateStr = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+    $resultFile = Join-Path $resultsDir "test_results_$dateStr.txt"
+    # Clear file
+    "" | Out-File $resultFile -Encoding UTF8
+    foreach ($res in $globalResults) {
+        $config = $res.Config
+        $type = $res.Type
+        $results = $res.Results
+        Add-Content $resultFile "Config: $config (Type: $type)"
+        if ($type -eq 'standard') {
+            foreach ($targetRes in $results) {
+                $name = $targetRes.Name
+                $http = $targetRes.HttpTokens -join ' '
+                $ping = $targetRes.PingResult
+                Add-Content $resultFile "  $name : $http | Ping: $ping"
+            }
+        } elseif ($type -eq 'dpi') {
+            foreach ($targetRes in $results) {
+                $id = $targetRes.TargetId
+                $provider = $targetRes.Provider
+                Add-Content $resultFile "  Target: $id ($provider)"
+                foreach ($line in $targetRes.Lines) {
+                    $test = $line.TestLabel
+                    $code = $line.Code
+                    $size = $line.SizeKB
+                    $status = $line.Status
+                    Add-Content $resultFile "    ${test}: code=${code} size=${size} KB status=${status}"
+                }
+            }
+        }
+        Add-Content $resultFile ""
+    }
+
+    # Add analytics
+    Add-Content $resultFile "=== ANALYTICS ==="
+    foreach ($config in $analytics.Keys) {
+        $a = $analytics[$config]
+        if ($a.ContainsKey('PingOK')) {
+            Add-Content $resultFile "$config : HTTP OK: $($a.OK), ERR: $($a.ERROR), UNSUP: $($a.UNSUP), Ping OK: $($a.PingOK), Fail: $($a.PingFail)"
+        } else {
+            Add-Content $resultFile "$config : OK: $($a.OK), FAIL: $($a.FAIL), UNSUP: $($a.UNSUPPORTED), BLOCKED: $($a.LIKELY_BLOCKED)"
+        }
+    }
+
+    Add-Content $resultFile "Best strategy: $bestConfig"
+
+    Write-Host "Results saved to $resultFile" -ForegroundColor Green
+
+    if ($originalIpsetStatus -ne "any") {
+        Write-Host "[INFO] Restoring original ipset mode..." -ForegroundColor DarkGray
+        Set-IpsetMode -mode "restore"
+    }
+
+    # Suggest to install best strategy
     if ($bestConfig) {
         $installChoice = Read-Host "Install best config as service? [Y/N] (default: Y)"
         if ($installChoice -eq "" -or $installChoice -match "^[Yy]$") {
@@ -880,56 +935,6 @@ try {
             }
         }
     }
-
-    # Save to file
-    $dateStr = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-    $resultFile = Join-Path $resultsDir "test_results_$dateStr.txt"
-    # Clear file
-    "" | Out-File $resultFile -Encoding UTF8
-    foreach ($res in $globalResults) {
-        $config = $res.Config
-        $type = $res.Type
-        $results = $res.Results
-        Add-Content $resultFile "Config: $config (Type: $type)"
-        if ($type -eq 'standard') {
-            foreach ($targetRes in $results) {
-                $name = $targetRes.Name
-                $http = $targetRes.HttpTokens -join ' '
-                $ping = $targetRes.PingResult
-                Add-Content $resultFile "  $name : $http | Ping: $ping"
-            }
-        } elseif ($type -eq 'dpi') {
-            foreach ($targetRes in $results) {
-                $id = $targetRes.TargetId
-                $provider = $targetRes.Provider
-                Add-Content $resultFile "  Target: $id ($provider)"
-                foreach ($line in $targetRes.Lines) {
-                    $test = $line.TestLabel
-                    $code = $line.Code
-                    $size = $line.SizeKB
-                    $status = $line.Status
-                    Add-Content $resultFile "    ${test}: code=${code} size=${size} KB status=${status}"
-                }
-            }
-        }
-        Add-Content $resultFile ""
-    }
-
-    # Add analytics
-    Add-Content $resultFile "=== ANALYTICS ==="
-    foreach ($config in $analytics.Keys) {
-        $a = $analytics[$config]
-        if ($a.ContainsKey('PingOK')) {
-            Add-Content $resultFile "$config : HTTP OK: $($a.OK), ERR: $($a.ERROR), UNSUP: $($a.UNSUP), Ping OK: $($a.PingOK), Fail: $($a.PingFail)"
-        } else {
-            Add-Content $resultFile "$config : OK: $($a.OK), FAIL: $($a.FAIL), UNSUP: $($a.UNSUPPORTED), BLOCKED: $($a.LIKELY_BLOCKED)"
-        }
-    }
-
-    Add-Content $resultFile "Best strategy: $bestConfig"
-
-    Write-Host "Results saved to $resultFile" -ForegroundColor Green
-
 } catch {
     Write-Host "[ERROR] An error occurred during tests. Restoring ipset..." -ForegroundColor Red
     if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
@@ -940,10 +945,6 @@ try {
     if (-not $serviceInstalled) {
         Stop-Zapret
         Restore-WinwsSnapshot -snapshot $originalWinws
-    }
-    if ($originalIpsetStatus -ne "any") {
-        Write-Host "[INFO] Restoring original ipset mode..." -ForegroundColor DarkGray
-        Set-IpsetMode -mode "restore"
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 }
