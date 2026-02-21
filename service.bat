@@ -32,6 +32,17 @@ if "%1"=="admin" (
     call :check_command netsh
 
     echo Started with admin rights
+) else if "%1"=="admin_install" (
+    call :check_command chcp
+    call :check_command find
+    call :check_command findstr
+    call :check_command netsh
+
+    setlocal EnableDelayedExpansion
+    echo Started with admin rights for direct install
+    set "AUTO_INSTALL_CHOICE=%~2"
+    call :service_install
+    exit /b
 ) else (
     call :check_extracted
     call :check_command powershell
@@ -210,8 +221,14 @@ for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -Literal
 )
 
 :: Choosing file
-set "choice="
-set /p "choice=Input file index (number): "
+if defined AUTO_INSTALL_CHOICE (
+    set "choice=!AUTO_INSTALL_CHOICE!"
+    set "AUTO_INSTALL_CHOICE="
+) else (
+    set "choice="
+    set /p "choice=Input file index (number): "
+)
+
 if "!choice!"=="" (
     echo The choice is empty, exiting...
     pause
@@ -322,6 +339,10 @@ for %%F in ("!file%choice%!") do (
     set "filename=%%~nF"
 )
 reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
+
+if defined AUTO_INSTALL_CHOICE (
+    exit /b
+)
 
 pause
 goto menu
