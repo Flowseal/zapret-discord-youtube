@@ -25,11 +25,18 @@ if "%~1"=="load_game_filter" (
     exit /b
 )
 
+if "%~1"=="load_user_lists" (
+    call :load_user_lists
+    exit /b
+)
+
 if "%1"=="admin" (
     call :check_command chcp
     call :check_command find
     call :check_command findstr
     call :check_command netsh
+    
+    call :load_user_lists
 
     echo Started with admin rights
 ) else (
@@ -94,6 +101,27 @@ if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
+
+
+:: LOAD USER LISTS =====================
+:load_user_lists
+set "LISTS_PATH=%~dp0lists\"
+
+if not exist "%LISTS_PATH%ipset-all-user.txt" (
+    echo 203.0.113.113/32>"%LISTS_PATH%ipset-all-user.txt"
+)
+if not exist "%LISTS_PATH%ipset-exclude-user.txt" (
+    echo 203.0.113.113/32>"%LISTS_PATH%ipset-exclude-user.txt"
+)
+
+if not exist "%LISTS_PATH%list-general-user.txt" (
+    echo domain.example.abc>"%LISTS_PATH%list-general-user.txt"
+)
+if not exist "%LISTS_PATH%list-exclude-user.txt" (
+    echo domain.example.abc>"%LISTS_PATH%list-exclude-user.txt"
+)
+
+exit /b
 
 
 :: TCP ENABLE ==========================
