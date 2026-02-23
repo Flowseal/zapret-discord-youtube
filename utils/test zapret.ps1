@@ -593,6 +593,7 @@ function Restore-WinwsSnapshot {
     }
 }
 
+$env:NO_UPDATE_CHECK = "1"
 $originalWinws = Get-WinwsSnapshot
 
 Write-Host ""

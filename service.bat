@@ -9,6 +9,8 @@ if "%~1"=="status_zapret" (
 )
 
 if "%~1"=="check_updates" (
+    if defined NO_UPDATE_CHECK exit /b
+
     if exist "%~dp0utils\check_updates.enabled" (
         if not "%~2"=="soft" (
             start /b service check_updates soft
