@@ -298,6 +298,10 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                     )
                 ) else if "!arg:~0,12!" EQU "%%GameFilter%%" (
                     set "arg=%GameFilter%"
+                ) else if "!arg:~0,15!" EQU "%%GameFilterTCP%%" (
+                    set "arg=%GameFilterTCP%"
+                ) else if "!arg:~0,15!" EQU "%%GameFilterUDP%%" (
+                    set "arg=%GameFilterUDP%"
                 )
 
                 if !mergeargs!==1 (
@@ -690,12 +694,34 @@ chcp 437 > nul
 
 set "gameFlagFile=%~dp0utils\game_filter.enabled"
 
-if exist "%gameFlagFile%" (
-    set "GameFilterStatus=enabled"
-    set "GameFilter=1024-65535"
-) else (
+if not exist "%gameFlagFile%" (
     set "GameFilterStatus=disabled"
     set "GameFilter=12"
+    set "GameFilterTCP=12"
+    set "GameFilterUDP=12"
+    exit /b
+)
+
+set "GameFilterMode="
+for /f "usebackq delims=" %%A in ("%gameFlagFile%") do (
+    if not defined GameFilterMode set "GameFilterMode=%%A"
+)
+
+if /i "%GameFilterMode%"=="tcp" (
+    set "GameFilterStatus=enabled (TCP)"
+    set "GameFilter=1024-65535"
+    set "GameFilterTCP=1024-65535"
+    set "GameFilterUDP=12"
+) else if /i "%GameFilterMode%"=="udp" (
+    set "GameFilterStatus=enabled (UDP)"
+    set "GameFilter=1024-65535"
+    set "GameFilterTCP=12"
+    set "GameFilterUDP=1024-65535"
+) else (
+    set "GameFilterStatus=enabled (TCP and UDP)"
+    set "GameFilter=1024-65535"
+    set "GameFilterTCP=1024-65535"
+    set "GameFilterUDP=1024-65535"
 )
 exit /b
 
@@ -704,16 +730,35 @@ exit /b
 chcp 437 > nul
 cls
 
-if not exist "%gameFlagFile%" (
-    echo Enabling game filter...
-    echo ENABLED > "%gameFlagFile%"
-    call :PrintYellow "Restart the zapret to apply the changes"
+echo Select game filter mode:
+echo   0. Disable
+echo   1. TCP and UDP
+echo   2. TCP only
+echo   3. UDP only
+echo.
+set "GameFilterChoice=0"
+set /p "GameFilterChoice=Select option (0-3, default: 0): "
+if %GameFilterChoice%=="" set "GameFilterChoice=0"
+
+if "%GameFilterChoice%"=="0" (
+    if exist "%gameFlagFile%" (
+        del /f /q "%gameFlagFile%"
+    ) else (
+        goto menu
+    )
+) else if "%GameFilterChoice%"=="1" (
+    echo all>"%gameFlagFile%"
+) else if "%GameFilterChoice%"=="2" (
+    echo tcp>"%gameFlagFile%"
+) else if "%GameFilterChoice%"=="3" (
+    echo udp>"%gameFlagFile%"
 ) else (
-    echo Disabling game filter...
-    del /f /q "%gameFlagFile%"
-    call :PrintYellow "Restart the zapret to apply the changes"
+    echo Invalid choice, exiting...
+    pause
+    goto menu
 )
 
+call :PrintYellow "Restart the zapret to apply the changes"
 pause
 goto menu
 
