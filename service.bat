@@ -107,13 +107,9 @@ goto menu
 :load_user_lists
 set "LISTS_PATH=%~dp0lists\"
 
-if not exist "%LISTS_PATH%ipset-all-user.txt" (
-    echo 203.0.113.113/32>"%LISTS_PATH%ipset-all-user.txt"
-)
 if not exist "%LISTS_PATH%ipset-exclude-user.txt" (
     echo 203.0.113.113/32>"%LISTS_PATH%ipset-exclude-user.txt"
 )
-
 if not exist "%LISTS_PATH%list-general-user.txt" (
     echo domain.example.abc>"%LISTS_PATH%list-general-user.txt"
 )
