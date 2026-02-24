@@ -554,7 +554,7 @@ set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
 if exist "%hostsFile%" (
     set "yt_found=0"
     >nul 2>&1 findstr /I "youtube.com" "%hostsFile%" && set "yt_found=1"
-    >nul 2>&1 findstr /I "yotou.be" "%hostsFile%" && set "yt_found=1"
+    >nul 2>&1 findstr /I "youtu.be" "%hostsFile%" && set "yt_found=1"
     if !yt_found!==1 (
         call :PrintYellow "[?] Your hosts file contains entries for youtube.com or yotou.be. This may cause problems with YouTube access"
     )
