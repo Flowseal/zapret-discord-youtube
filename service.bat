@@ -771,7 +771,26 @@ if "%GameFilterChoice%"=="0" (
     goto menu
 )
 
-call :PrintYellow "Restart the zapret to apply the changes"
+:: Offer to restart the service if it's running
+tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+if !errorlevel!==0 (
+    set /p "CHOICE=Do you want to restart the zapret to apply changes? (Y/N, default: Y)  "
+    if "!CHOICE!"=="" set "CHOICE=Y"
+    if "!CHOICE!"=="y" set "CHOICE=Y"
+    if /i "!CHOICE!"=="Y" (
+        call :PrintYellow "Restarting zapret service..."
+        net stop zapret >nul 2>&1
+        net start zapret >nul 2>&1
+        if !errorlevel!==0 (
+            call :PrintGreen "Zapret service successfully restarted"
+        ) else (
+            call :PrintRed "[X] Failed to restart zapret service, you need to restart it manually"
+        )
+    ) else (
+        call :PrintYellow  "Restart the zapret to apply the changes"
+    )
+)
+
 pause
 goto menu
 
