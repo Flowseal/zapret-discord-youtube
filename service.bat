@@ -228,12 +228,46 @@ set "LISTS_PATH=%~dp0lists\"
 
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
-set "count=0"
-for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -LiteralPath '.' -Filter '*.bat' | Where-Object { $_.Name -notlike 'service*' } | Sort-Object { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) } | ForEach-Object { $_.Name }"') do (
-    set /a count+=1
-    echo !count!. %%F
-    set "file!count!=%%F"
+echo ----------------------------------------
+
+set "currentStrategy="
+for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do (
+    set "currentStrategy=%%B"
 )
+if defined currentStrategy (
+    echo Current installed strategy: !currentStrategy!
+    echo.
+)
+
+set "count=0"
+for /f "tokens=1,2,* delims=|" %%A in ('powershell -NoProfile -Command ^
+    "$files = Get-ChildItem -LiteralPath '.' -Filter '*.bat' | Where-Object { $_.Name -notlike 'service*' } | Sort-Object { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) };" ^
+    "$groups = [ordered]@{ 'BASE'=@(); 'SIMPLE FAKE'=@(); 'FAKE TLS AUTO'=@(); 'OTHER'=@() };" ^
+    "foreach ($f in $files) { $name = $f.Name; if ($name -match 'FAKE TLS AUTO') { $groups['FAKE TLS AUTO'] += $name } elseif ($name -match 'SIMPLE FAKE') { $groups['SIMPLE FAKE'] += $name } elseif ($name -match '^(?i)general(\s*\(.*\))?\.bat$') { $groups['BASE'] += $name } else { $groups['OTHER'] += $name } };" ^
+    "$i = 0;" ^
+    "foreach ($group in $groups.GetEnumerator()) {" ^
+    "if ($group.Value.Count -eq 0) { continue };" ^
+    "'GROUP|' + $group.Key;" ^
+    "$sorted = $group.Value | Sort-Object @{Expression={ if ([regex]::IsMatch($_, '(?i)\bALT(?:\d+)?\b')) { 1 } else { 0 } }}, @{Expression={ $m = [regex]::Match($_, '(?i)\bALT(\d+)\b'); if ($m.Success) { [int]$m.Groups[1].Value } elseif ([regex]::IsMatch($_, '(?i)\bALT\b')) { 0 } else { -1 } }}, @{Expression={ [Regex]::Replace($_, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) }};" ^
+    "foreach ($name in $sorted) { $i++; 'ITEM|' + $i + '|' + $name }" ^
+    "}"') do (
+    if /i "%%A"=="GROUP" (
+        echo.
+        echo   [%%B]
+    ) else if /i "%%A"=="ITEM" (
+        set "file%%B=%%C"
+        echo      %%B. %%C
+        set "count=%%B"
+    )
+)
+
+if "!count!"=="0" (
+    call :PrintRed "No strategy .bat files found."
+    pause
+    goto menu
+)
+echo.
+echo ----------------------------------------
 
 :: Choosing file
 set "choice="
