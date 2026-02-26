@@ -83,12 +83,13 @@ echo.
 echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
+echo      12. Analyze Network Activity (Combined)
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -101,6 +102,7 @@ if "%menu_choice%"=="8" goto hosts_update
 if "%menu_choice%"=="9" goto service_check_updates
 if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="12" goto analyze_network_combined
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -1024,3 +1026,39 @@ if "%extracted%"=="0" (
     exit
 )
 exit /b 0
+
+
+:: ANALYZE NETWORK - COMBINED =====================
+:analyze_network_combined
+chcp 65001 > nul
+cls
+
+powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -lt 3) { exit 1 } else { exit 0 }" >nul 2>&1
+if %errorLevel% neq 0 (
+    echo PowerShell 3.0 or newer is required.
+    echo Please upgrade PowerShell and rerun this script.
+    echo.
+    pause
+    goto menu
+)
+
+set /p "ExePath=Enter the full path to the EXE file to analyze: "
+if "!ExePath!"=="" (
+    echo Path cannot be empty.
+    pause
+    goto menu
+)
+
+set /p "FlushDNS=Flush DNS cache before analysis? (Y/N) (default: N): "
+if "!FlushDNS!"=="" set "FlushDNS=N"
+if /i "!FlushDNS!"=="y" set "FlushDNS=true" && ipconfig /flushdns >nul 2>&1
+if /i "!FlushDNS!"=="n" set "FlushDNS=false"
+
+echo Starting combined network analysis in PowerShell (Get-NetTCPConnection + netstat)...
+echo Default duration: 15 minutes (900 seconds).
+echo.
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\analyze_network.ps1" -ExePath "!ExePath!" -Mode combined -FlushDNS !FlushDNS!
+
+pause
+goto menu
