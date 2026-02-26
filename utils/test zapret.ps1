@@ -420,21 +420,66 @@ function Read-ConfigSelection {
             Write-Host "  [$idx] $($allFiles[$i].Name)" -ForegroundColor Gray
         }
 
-        $selectionInput = Read-Host "Enter numbers separated by comma (e.g. 1,3,5) or '0' to run all"
+        $selectionInput = Read-Host "Enter numbers (e.g. 1,3,5) , ranges (e.g. 2-7), or mixed (e.g. 1,5-10,12). '0' for all"
         $trimmed = $selectionInput.Trim()
+        
         if ($trimmed -eq '0') {
             return $allFiles
         }
 
-        $numbers = $selectionInput -split "[\,\s]+" | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
-        $valid = $numbers | Where-Object { $_ -ge 1 -and $_ -le $allFiles.Count } | Select-Object -Unique
-
-        if (-not $valid -or $valid.Count -eq 0) {
+        $parts = $selectionInput -split '[,\s]+' | Where-Object { $_ -match '^\d+(-\d+)?$' }
+        if ($parts.Count -eq 0) {
             Write-Host ""
-            Write-Host "No configs selected. Try again." -ForegroundColor Yellow
+            Write-Host "Invalid input format. Use numbers, ranges (1-5), or combinations (1,3-7,10). Try again." -ForegroundColor Yellow
+            continue
+        }
+        $selectedIndices = @()
+        $hasErrors = $false
+        
+        foreach ($part in $parts) {
+            if ($part -match '^(\d+)-(\d+)$') {
+                $start = [int]$matches[1]
+                $end = [int]$matches[2]
+                
+                if ($start -gt $end) {
+                    Write-Host "  [WARN] Invalid range '$part' (start > end). Skipping." -ForegroundColor Yellow
+                    $hasErrors = $true
+                    continue
+                }
+                
+                if ($start -lt 1 -or $end -gt $allFiles.Count) {
+                    Write-Host "  [WARN] Range '$part' out of bounds (valid: 1-$($allFiles.Count)). Skipping invalid parts." -ForegroundColor Yellow
+                    $hasErrors = $true
+                    $start = [Math]::Max($start, 1)
+                    $end = [Math]::Min($end, $allFiles.Count)
+                }
+                
+                for ($i = $start; $i -le $end; $i++) {
+                    $selectedIndices += $i
+                }
+            } else {
+                $num = [int]$part
+                if ($num -ge 1 -and $num -le $allFiles.Count) {
+                    $selectedIndices += $num
+                } else {
+                    Write-Host "  [WARN] Number '$num' out of bounds (valid: 1-$($allFiles.Count)). Skipping." -ForegroundColor Yellow
+                    $hasErrors = $true
+                }
+            }
+        }
+        $valid = $selectedIndices | Sort-Object -Unique | Where-Object { $_ -ge 1 -and $_ -le $allFiles.Count }
+        if ($valid.Count -eq 0) {
+            Write-Host ""
+            Write-Host "No valid configs selected. Try again." -ForegroundColor Yellow
             continue
         }
 
+        # Checker
+         Write-Host "Selected configs: $($valid -join ', ')" -ForegroundColor Green
+        if ($hasErrors) {
+            Write-Host "Some entries were skipped due to errors (see warnings above)." -ForegroundColor Yellow
+        }
+        
         return $valid | ForEach-Object { $allFiles[$_ - 1] }
     }
 }
@@ -548,6 +593,7 @@ function Restore-WinwsSnapshot {
     }
 }
 
+$env:NO_UPDATE_CHECK = "1"
 $originalWinws = Get-WinwsSnapshot
 
 Write-Host ""
