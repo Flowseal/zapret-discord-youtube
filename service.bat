@@ -32,6 +32,13 @@ if "%~1"=="load_user_lists" (
     exit /b
 )
 
+if "%~1"=="install_service" (
+    setlocal EnableDelayedExpansion
+    set "AUTO_INSTALL_CHOICE=%~2"
+    call :service_install
+    exit /b
+)
+
 if "%1"=="admin" (
     call :check_command chcp
     call :check_command find
@@ -41,12 +48,6 @@ if "%1"=="admin" (
     call :load_user_lists
 
     echo Started with admin rights
-) else if "%1"=="admin_install" (
-    setlocal EnableDelayedExpansion
-    echo Started with admin rights for direct install
-    set "AUTO_INSTALL_CHOICE=%~2"
-    call :service_install
-    exit /b
 ) else (
     call :check_extracted
     call :check_command powershell

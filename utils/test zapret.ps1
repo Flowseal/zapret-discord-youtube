@@ -937,7 +937,7 @@ try {
 
             $psi = New-Object System.Diagnostics.ProcessStartInfo
             $psi.FileName = "cmd.exe"
-            $psi.Arguments = '/c ""{0}" admin_install "{1}""' -f $serviceBat, $bestConfig
+            $psi.Arguments = '/c ""{0}" install_service "{1}""' -f $serviceBat, $bestConfig
             $psi.UseShellExecute = $true
             $psi.Verb = "runas"
             $psi.WorkingDirectory = $targetDir
