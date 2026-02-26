@@ -931,52 +931,45 @@ try {
     if ($bestConfig) {
         $installChoice = Read-Host "Install best config as service? [Y/N] (default: Y)"
         if ($installChoice -eq "" -or $installChoice -match "^[Yy]$") {
-            $allBats = Get-ChildItem -Path $targetDir -Filter "*.bat" |
-                Where-Object { $_.Name -notlike "service*" } |
-                Sort-Object { [Regex]::Replace($_.Name, "(\d+)", { $args[0].Value.PadLeft(8, "0") }) }
-            $idx = ($allBats | Select-Object -ExpandProperty Name).IndexOf($bestConfig) + 1
+            Write-Host "[INFO] Installing '$bestConfig' as service..." -ForegroundColor Cyan
 
-            if ($idx -gt 0) {
-                Write-Host "[INFO] Installing '$bestConfig' as service (index $idx)..." -ForegroundColor Cyan
+            $serviceBat = Join-Path $targetDir "service.bat"
 
-                $serviceBat = Join-Path $targetDir "service.bat"
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = "cmd.exe"
+            $psi.Arguments = '/c ""{0}" admin_install "{1}""' -f $serviceBat, $bestConfig
+            $psi.UseShellExecute = $true
+            $psi.Verb = "runas"
+            $psi.WorkingDirectory = $targetDir
+            $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
 
-                $psi = New-Object System.Diagnostics.ProcessStartInfo
-                $psi.FileName = "cmd.exe"
-                $psi.Arguments = "/c `"$serviceBat`" admin_install $idx"
-                $psi.UseShellExecute = $true
-                $psi.Verb = "runas"
-                $psi.WorkingDirectory = $targetDir
-                $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+            try {
+                [System.Diagnostics.Process]::Start($psi) | Out-Null
+            } catch {
+                Write-Host "[ERROR] Failed to start installation: $_" -ForegroundColor Red
+            }
 
-                try {
-                    [System.Diagnostics.Process]::Start($psi) | Out-Null
-                } catch {
-                    Write-Host "[ERROR] Failed to start installation: $_" -ForegroundColor Red
+            Write-Host "[INFO] Checking if service is started..." -ForegroundColor DarkGray
+            $started = $false
+            for ($attempt = 1; $attempt -le 6; $attempt++) {
+                Start-Sleep -Seconds 2
+                $service = Get-Service -Name "zapret" -ErrorAction SilentlyContinue
+                if ($service -and $service.Status -eq 'Running') {
+                    $started = $true
+                    break
                 }
+                Write-Host "[INFO] Attempt $attempt/6: status = $($service.Status)..." -ForegroundColor DarkGray
+            }
 
-                Write-Host "[INFO] Checking if service is started..." -ForegroundColor DarkGray
-                $started = $false
-                for ($attempt = 1; $attempt -le 6; $attempt++) {
-                    Start-Sleep -Seconds 2
-                    $service = Get-Service -Name "zapret" -ErrorAction SilentlyContinue
-                    if ($service -and $service.Status -eq 'Running') {
-                        $started = $true
-                        break
-                    }
-                    Write-Host "[INFO] Attempt $attempt/6: status = $($service.Status)..." -ForegroundColor DarkGray
-                }
-
-                if ($started) {
-                    Write-Host "[SUCCESS] Service 'zapret' is running!" -ForegroundColor Green
-                    $serviceInstalled = $true
+            if ($started) {
+                Write-Host "[SUCCESS] Service 'zapret' is running!" -ForegroundColor Green
+                $serviceInstalled = $true
+            } else {
+                Write-Host "[WARNING] Service 'zapret' is not running after 12s. Check manually." -ForegroundColor Yellow
+                if ($service) {
+                    Write-Host "  Status: $($service.Status)" -ForegroundColor DarkGray
                 } else {
-                    Write-Host "[WARNING] Service 'zapret' is not running after 12s. Check manually." -ForegroundColor Yellow
-                    if ($service) {
-                        Write-Host "  Status: $($service.Status)" -ForegroundColor DarkGray
-                    } else {
-                        Write-Host "  Service 'zapret' not found." -ForegroundColor DarkGray
-                    }
+                    Write-Host "  Service 'zapret' not found." -ForegroundColor DarkGray
                 }
             }
         }

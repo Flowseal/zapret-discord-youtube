@@ -243,8 +243,12 @@ for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -Literal
 
 :: Choosing file
 if defined AUTO_INSTALL_CHOICE (
-    set "choice=!AUTO_INSTALL_CHOICE!"
-    set "AUTO_INSTALL_CHOICE="
+    set "targetName=%AUTO_INSTALL_CHOICE%"
+    set "choice="
+
+    for /L %%i in (1,1,!count!) do (
+        if /I "!file%%i!"=="!targetName!" set "choice=%%i"
+    )
 ) else (
     set "choice="
     set /p "choice=Input file index (number): "
