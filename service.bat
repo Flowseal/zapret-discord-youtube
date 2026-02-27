@@ -679,19 +679,32 @@ if /i "!CHOICE!"=="Y" (
         )
     )
 
-    set "discordCacheDir=%appdata%\discord"
-
-    for %%d in ("Cache" "Code Cache" "GPUCache") do (
-        set "dirPath=!discordCacheDir!\%%~d"
-        if exist "!dirPath!" (
-            rd /s /q "!dirPath!"
-            if !errorlevel!==0 (
-                call :PrintGreen "Successfully deleted !dirPath!"
-            ) else (
-                call :PrintRed "Failed to delete !dirPath!"
-            )
+    tasklist /FI "IMAGENAME eq vesktop.exe" | findstr /I "vesktop.exe" > nul
+    if !errorlevel!==0 (
+        echo Vesktop is running, closing...
+        taskkill /IM vesktop.exe /F > nul
+        if !errorlevel! == 0 (
+            call :PrintGreen "Vesktop was successfully closed"
         ) else (
-            call :PrintRed "!dirPath! does not exist"
+            call :PrintRed "Unable to close Vesktop"
+        )
+    )
+
+    for %%b in ("%appdata%\discord" "%appdata%\vesktop\sessionData") do (
+
+        for %%d in ("Cache" "Code Cache" "GPUCache") do (
+            set "dirPath=%%~b\%%~d"
+
+            if exist "!dirPath!" (
+                rd /s /q "!dirPath!"
+                if !errorlevel!==0 (
+                    call :PrintGreen "Successfully deleted !dirPath!"
+                ) else (
+                    call :PrintRed "Failed to delete !dirPath!"
+                )
+            ) else (
+                call :PrintRed "!dirPath! does not exist"
+            )
         )
     )
 )
