@@ -234,6 +234,8 @@ for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -Literal
     echo !count!. %%F
     set "file!count!=%%F"
 )
+echo 0. Return to main menu
+echo ----------------------------------------
 
 :: Choosing file
 set "choice="
@@ -244,9 +246,14 @@ if "!choice!"=="" (
     goto menu
 )
 
+if "!choice!"=="0" (
+    echo Returning to main menu...
+    goto menu
+)
+
 set "selectedFile=!file%choice%!"
 if not defined selectedFile (
-    echo Invalid choice, exiting...
+    echo Invalid choice, returning to menu...
     pause
     goto menu
 )
