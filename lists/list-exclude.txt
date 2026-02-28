@@ -35,3 +35,5 @@ tanksblitz.ru
 reg.ru
 vk.com
 vk.ru
+max.ru
+web.max.ru
