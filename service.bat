@@ -390,8 +390,7 @@ if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
 echo New version available: %GITHUB_VERSION%
 echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
 
-echo Opening the download page...
-start "" "%GITHUB_DOWNLOAD_URL%"
+start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\updater.ps1" -VersionTag %GITHUB_VERSION%
 
 
 if "%1"=="soft" exit 
