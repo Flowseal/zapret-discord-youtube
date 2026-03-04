@@ -40,3 +40,4 @@ riotgames.com
 riotcdn.net
 leagueoflegends.com
 playvalorant.com
+marketplace.visualstudio.com
