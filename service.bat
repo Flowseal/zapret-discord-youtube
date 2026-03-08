@@ -810,18 +810,11 @@ goto menu
 :ipset_switch_status
 chcp 437 > nul
 
-set "listFile=%~dp0lists\ipset-all.txt"
-for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
-
-if !lineCount!==0 (
-    set "IPsetStatus=any"
-) else (
-    findstr /R "^203\.0\.113\.113/32$" "%listFile%" >nul
-    if !errorlevel!==0 (
-        set "IPsetStatus=none"
-    ) else (
-        set "IPsetStatus=loaded"
-    )
+set "IPsetStatus=unknown"
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\service-state.ps1" get-ipset-status 2^>nul`) do (
+    if /I "%%i"=="loaded" set "IPsetStatus=loaded"
+    if /I "%%i"=="none" set "IPsetStatus=none"
+    if /I "%%i"=="any" set "IPsetStatus=any"
 )
 exit /b
 
@@ -830,42 +823,10 @@ exit /b
 chcp 437 > nul
 cls
 
-set "listFile=%~dp0lists\ipset-all.txt"
-set "backupFile=%listFile%.backup"
-
-if "%IPsetStatus%"=="loaded" (
-    echo Switching to none mode...
-    
-    if not exist "%backupFile%" (
-        ren "%listFile%" "ipset-all.txt.backup"
-    ) else (
-        del /f /q "%backupFile%"
-        ren "%listFile%" "ipset-all.txt.backup"
-    )
-    
-    >"%listFile%" (
-        echo 203.0.113.113/32
-    )
-    
-) else if "%IPsetStatus%"=="none" (
-    echo Switching to any mode...
-    
-    >"%listFile%" (
-        rem Creating empty file
-    )
-    
-) else if "%IPsetStatus%"=="any" (
-    echo Switching to loaded mode...
-    
-    if exist "%backupFile%" (
-        del /f /q "%listFile%"
-        ren "%backupFile%" "ipset-all.txt"
-    ) else (
-        echo Error: no backup to restore. Update list from service menu first
-        pause
-        goto menu
-    )
-    
+echo Switching IPSet mode...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\service-state.ps1" switch-ipset
+if %errorlevel% neq 0 (
+    call :PrintRed "Failed to switch IPSet mode"
 )
 
 pause
@@ -877,24 +838,13 @@ goto menu
 chcp 437 > nul
 cls
 
-set "listFile=%~dp0lists\ipset-all.txt"
 set "url=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/ipset-service.txt"
 
 echo Updating ipset-all...
-
-if exist "%SystemRoot%\System32\curl.exe" (
-    curl -L -o "%listFile%" "%url%"
-) else (
-    powershell -NoProfile -Command ^
-        "$url = '%url%';" ^
-        "$out = '%listFile%';" ^
-        "$dir = Split-Path -Parent $out;" ^
-        "if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null };" ^
-        "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
-        "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\service-state.ps1" update-ipset "%url%"
+if %errorlevel% neq 0 (
+    call :PrintRed "Failed to update IPSet list"
 )
-
-echo Finished
 
 pause
 goto menu
@@ -907,59 +857,10 @@ cls
 
 set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
 set "hostsUrl=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/hosts"
-set "tempFile=%TEMP%\zapret_hosts.txt"
-set "needsUpdate=0"
-
-echo Checking hosts file...
-
-if exist "%SystemRoot%\System32\curl.exe" (
-    curl -L -s -o "%tempFile%" "%hostsUrl%"
-) else (
-    powershell -NoProfile -Command ^
-        "$url = '%hostsUrl%';" ^
-        "$out = '%tempFile%';" ^
-        "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
-        "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
-)
-
-if not exist "%tempFile%" (
-    call :PrintRed "Failed to download hosts file from repository"
-    call :PrintYellow "Copy hosts file manually from %hostsUrl%"
-    pause
-    goto menu
-)
-
-set "firstLine="
-set "lastLine="
-for /f "usebackq delims=" %%a in ("%tempFile%") do (
-    if not defined firstLine (
-        set "firstLine=%%a"
-    )
-    set "lastLine=%%a"
-)
-
-findstr /C:"!firstLine!" "%hostsFile%" >nul 2>&1
-if !errorlevel! neq 0 (
-    echo First line from repository not found in hosts file
-    set "needsUpdate=1"
-)
-
-findstr /C:"!lastLine!" "%hostsFile%" >nul 2>&1
-if !errorlevel! neq 0 (
-    echo Last line from repository not found in hosts file
-    set "needsUpdate=1"
-)
-
-if "%needsUpdate%"=="1" (
-    echo:
-    call :PrintYellow "Hosts file needs to be updated"
-    call :PrintYellow "Please manually copy the content from the downloaded file to your hosts file"
-    
-    start notepad "%tempFile%"
-    explorer /select,"%hostsFile%"
-) else (
-    call :PrintGreen "Hosts file is up to date"
-    if exist "%tempFile%" del /f /q "%tempFile%"
+echo Updating hosts file...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\service-state.ps1" update-hosts "%hostsUrl%" "%hostsFile%"
+if %errorlevel% neq 0 (
+    call :PrintRed "Failed to update hosts file"
 )
 
 echo:
