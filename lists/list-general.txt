@@ -1,3 +1,9 @@
+udemy.com
+cdn.cookielaw.org
+cookielaw.org
+hls-c.udemycdn.com
+cloudflare-ech.com
+encryptedsni.com
 cloudflare-ech.com
 encryptedsni.com
 cloudflareaccess.com
