@@ -1,5 +1,5 @@
 @echo off
-set "LOCAL_VERSION=1.9.7b"
+set "LOCAL_VERSION=1.9.7"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -84,11 +84,15 @@ echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
 echo.
+echo   :: USER-BAT
+echo      12. Run user-bat file (standalone)
+echo      13. View user-bat files
+echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-13): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -101,6 +105,8 @@ if "%menu_choice%"=="8" goto hosts_update
 if "%menu_choice%"=="9" goto service_check_updates
 if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="12" goto run_userbat
+if "%menu_choice%"=="13" goto list_userbat
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -225,14 +231,36 @@ chcp 437 > nul
 cd /d "%~dp0"
 set "BIN_PATH=%~dp0bin\"
 set "LISTS_PATH=%~dp0lists\"
+set "USERBAT_PATH=%~dp0user-bat\"
 
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
+echo   [Current folder]
 set "count=0"
 for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -LiteralPath '.' -Filter '*.bat' | Where-Object { $_.Name -notlike 'service*' } | Sort-Object { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) } | ForEach-Object { $_.Name }"') do (
     set /a count+=1
-    echo !count!. %%F
+    echo   !count!. %%F
     set "file!count!=%%F"
+    set "filedir!count!=current"
+)
+
+:: Searching for .bat files in user-bat subfolder
+if exist "%~dp0user-bat\." (
+    echo   [user-bat folder]
+    set "userbat_count=0"
+    for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -LiteralPath '%~dp0user-bat' -Filter '*.bat' | Sort-Object { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) } | ForEach-Object { $_.Name }"') do (
+        set /a userbat_count+=1
+        set /a count+=1
+        echo   !count!. %%F
+        set "file!count!=%%F"
+        set "filedir!count!=user-bat"
+    )
+    if !userbat_count!==0 (
+        echo   (user-bat folder is empty^)
+    )
+) else (
+    echo.
+    echo   [user-bat folder not found - create "%~dp0user-bat\" to use custom configs]
 )
 
 :: Choosing file
@@ -245,10 +273,18 @@ if "!choice!"=="" (
 )
 
 set "selectedFile=!file%choice%!"
+set "selectedDir=!filedir%choice%!"
 if not defined selectedFile (
     echo Invalid choice, exiting...
     pause
     goto menu
+)
+
+:: Build full path to selected file
+if "!selectedDir!"=="user-bat" (
+    set "selectedFilePath=%~dp0user-bat\!selectedFile!"
+) else (
+    set "selectedFilePath=.\!selectedFile!"
 )
 
 :: Args that should be followed by value
@@ -260,7 +296,7 @@ set "capture=0"
 set "mergeargs=0"
 set QUOTE="
 
-for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
+for /f "tokens=*" %%a in ('type "!selectedFilePath!"') do (
     set "line=%%a"
     call set "line=%%line:^!=EXCL_MARK%%"
 
@@ -963,6 +999,113 @@ if "%needsUpdate%"=="1" (
 )
 
 echo:
+pause
+goto menu
+
+
+:: RUN USER-BAT (standalone) ==============
+:run_userbat
+chcp 437 >nul
+cls
+
+if not exist "%~dp0user-bat\." (
+    echo user-bat folder not found.
+    echo Create "%~dp0user-bat\" and place your .bat files there.
+    pause
+    goto menu
+)
+
+echo Pick a file to run:
+set "count=0"
+for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -LiteralPath '%~dp0user-bat' -Filter '*.bat' | Sort-Object { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) } | ForEach-Object { $_.Name }"') do (
+    set /a count+=1
+    echo   !count!. %%F
+    set "ubfile!count!=%%F"
+)
+
+if !count!==0 (
+    echo No .bat files found in user-bat folder.
+    pause
+    goto menu
+)
+
+echo.
+set "ub_choice="
+set /p "ub_choice=Input file index (number): "
+if "!ub_choice!"=="" (
+    echo The choice is empty, exiting...
+    pause
+    goto menu
+)
+
+set "ub_selected=!ubfile%ub_choice%!"
+if not defined ub_selected (
+    echo Invalid choice, exiting...
+    pause
+    goto menu
+)
+
+echo Running: !ub_selected!
+echo.
+call "%~dp0user-bat\!ub_selected!"
+
+pause
+goto menu
+
+
+:: LIST USER-BAT ==========================
+:list_userbat
+chcp 65001 >nul
+cls
+
+echo   USER-BAT FILES
+echo   ----------------------------------------
+echo.
+
+if not exist "%~dp0user-bat\." (
+    echo Folder not found: %~dp0user-bat\
+    echo Create it and place your .bat configs there.
+    echo.
+    pause
+    goto menu
+)
+
+set "count=0"
+for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -LiteralPath '%~dp0user-bat' -Filter '*.bat' | Sort-Object { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) } | ForEach-Object { $_.Name }"') do (
+    set /a count+=1
+    echo   !count!. %%F
+    set "lbfile!count!=%%F"
+)
+
+if !count!==0 (
+    echo No .bat files found.
+) else (
+    echo.
+    echo   ----------------------------------------
+    echo   Total: !count! file(s^)
+    echo.
+    echo   O - Open folder in Explorer   or enter file number to view contents
+    echo.
+    set "lb_choice="
+    set /p "lb_choice=Select (O / number / Enter to go back^): "
+
+    if /i "!lb_choice!"=="O" (
+        explorer "%~dp0user-bat"
+        goto list_userbat
+    )
+
+    if not "!lb_choice!"=="" (
+        set "lb_selected=!lbfile%lb_choice%!"
+        if defined lb_selected (
+            echo.
+            echo   Contents of: !lb_selected!
+            echo   ----------------------------------------
+            type "%~dp0user-bat\!lb_selected!"
+            echo.
+        )
+    )
+)
+
 pause
 goto menu
 
