@@ -1,6 +1,17 @@
 @echo off
 set "LOCAL_VERSION=1.9.8b"
 
+set CONFIG=%~dp0config.bat
+if not exist "%CONFIG%" (
+    echo Creating config.bat with default settings...
+    (
+        echo @echo off
+        echo set BLEEDING_EDGE=false
+        echo set NOAUTOUPDATES=false
+        echo set UPDATES_CHECK=true
+    ) ^> "%CONFIG%"
+)
+call "%CONFIG%"
 :: External commands
 if "%~1"=="status_zapret" (
     call :test_service zapret soft
@@ -360,6 +371,9 @@ goto menu
 
 :: CHECK UPDATES =======================
 :service_check_updates
+if /i "%UPDATES_CHECK%" == "false" (
+    exit
+)
 chcp 437 > nul
 cls
 
@@ -390,9 +404,32 @@ if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
 
 echo New version available: %GITHUB_VERSION%
 echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
+if /i "%NOAUTOUPDATES%" == "false" (
+    echo %errorlevel%
+    set "CHOICE="
+    set /p "CHOICE=Do you want to automatically download the new version? (Y/N) (default: Y) "
+    if "%CHOICE%"=="" set "CHOICE=Y"
+    if /i "%CHOICE%"=="y" set "CHOICE=Y"
 
-echo Opening the download page...
-start "" "%GITHUB_DOWNLOAD_URL%"
+    if /i "%CHOICE%"=="Y" (
+        if /i "%BLEEDING_EDGE%" == "false" (
+            echo Opening the download page...
+            start "" "%GITHUB_DOWNLOAD_URL"
+        ) else (
+            where git >nul 2>&1
+            if %errorlevel%==0 (
+                git pull
+                pause
+            ) else (
+                echo For BLEEDING_EDGE mode install git https://git-scm.com
+                start "" "https://git-scm.com"
+                pause
+            )
+        )
+    )
+) else (
+    pause
+)
 
 
 if "%1"=="soft" exit 
