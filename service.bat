@@ -364,8 +364,6 @@ cls
 
 :: Set current version and URLs
 set "GITHUB_VERSION_URL=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/version.txt"
-set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/"
-set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest"
 
 :: Get the latest version from GitHub
 for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Uri \"%GITHUB_VERSION_URL%\" -Headers @{\"Cache-Control\"=\"no-cache\"} -UseBasicParsing -TimeoutSec 5).Content.Trim()" 2^>nul') do set "GITHUB_VERSION=%%A"
@@ -373,7 +371,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Ur
 :: Error handling
 if not defined GITHUB_VERSION (
     echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
-    timeout /T 9
+    timeout /T 5
     if "%1"=="soft" exit 
     goto menu
 )
@@ -381,18 +379,18 @@ if not defined GITHUB_VERSION (
 :: Version comparison
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     echo Latest version installed: %LOCAL_VERSION%
-    
     if "%1"=="soft" exit 
     pause
     goto menu
 ) 
 
+:: New version available
 echo New version available: %GITHUB_VERSION%
-echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
+set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/%GITHUB_VERSION%"
+echo Release page: %GITHUB_RELEASE_URL%
 
-echo Opening the download page...
-start "" "%GITHUB_DOWNLOAD_URL%"
-
+:: Run the PS1 updater
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\update.ps1" -LocalVersion "%LOCAL_VERSION%" -Root "%~dp0"
 
 if "%1"=="soft" exit 
 pause
