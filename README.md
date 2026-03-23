@@ -1,3 +1,5 @@
+## Ускорение Telegram Desktop - https://github.com/Flowseal/tg-ws-proxy
+
 ## ⚙️Установка...
 
 - Скопируйте файлик из [релизов](https://github.com/Plyska-RU/zapret-discord-youtube/releases) и вставте с заменой в папку **`lists`**.
