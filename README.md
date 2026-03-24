@@ -4,9 +4,9 @@
 
 ## ⚙️Установка...
 
-- Скопируйте файлик из [релизов](https://github.com/Plyska-RU/zapret-discord-youtube/releases) и вставте с заменой в папку **`lists`**.
+- Скопируйте файлик из [релизов](https://github.com/Plyska-RU/zapret-discord-youtube/releases) и вставте с заменой в папку **`lists`**
 
-- Или скачайте архив с уже встроенным файликом из [релизов](https://github.com/Plyska-RU/zapret-discord-youtube/releases).
+- Или скачайте архив с уже встроенным файликом из [релизов](https://github.com/Plyska-RU/zapret-discord-youtube/releases)
 
 ## 📡Начало работы
 
