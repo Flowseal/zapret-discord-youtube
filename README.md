@@ -5,9 +5,11 @@
  - Я только собрал general.txt!
 ## 🚀Ускорение Telegram:
  - Через прокси по ссылке tg://proxy?server=tg.theforcefulsh.ru&port=443&secret=52da900d116a8c9d1b52440997e49f48 или вручную
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/25423296/163456776-7f95b81a-f1ed-45f7-b7ab-8fa810d529fa.png">
-</picture>
+ 
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/Plyska-RU/list-general-for-all-zapret/blob/main/.github/image.png?raw=true">
+ </picture>
+ 
  - Отдельное приложение для ПК [тык](https://github.com/Flowseal/tg-ws-proxy)
 
 ## 📱Обход блокировок на телефоне (не белых списков):
