@@ -1,6 +1,6 @@
 ## Ускорение Telegram:
-Через [ПРОКСИ](tg://proxy?server=tg.theforcefulsh.ru&port=443&secret=52da900d116a8c9d1b52440997e49f48)
-Отдельное приложение для ПК [тык](https://github.com/Flowseal/tg-ws-proxy)
+ - Через прокси [тык](tg://proxy?server=tg.theforcefulsh.ru&port=443&secret=52da900d116a8c9d1b52440997e49f48)
+ - Отдельное приложение для ПК [тык](https://github.com/Flowseal/tg-ws-proxy)
 
 ## ⚙️Установка...
 
