@@ -9,8 +9,8 @@
 
 ## 📱Обход блокировок на телефоне (не белых списков):
 
-1-й способ: Скачать приложение AmneziaVPN [IOS](https://apps.apple.com/us/app/amneziavpn/id1600529900) или [ANDROID](https://play.google.com/store/apps/details?id=org.amnezia.vpn&pcampaignid=web_share) и скачать файлики конфигурации [тык](https://github.com/Plyska-RU/zapret-discord-youtube/releases) и установить в приложении, после чего пользуйтесь приложением как обычным VPN.
-2-й
+ - 1-й способ: Скачать приложение AmneziaVPN [IOS](https://apps.apple.com/us/app/amneziavpn/id1600529900) или [ANDROID](https://play.google.com/store/apps/details?id=org.amnezia.vpn&pcampaignid=web_share) и скачать файлики конфигурации [тык](https://github.com/Plyska-RU/zapret-discord-youtube/releases) и установить в приложении, после чего пользуйтесь приложением как обычным VPN.
+ - 2-й
 
 ### ⚙️Установка:
 
