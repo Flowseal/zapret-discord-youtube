@@ -4,7 +4,10 @@
  - Все файлы взяты из оригинального репозитория zapret [тык](https://github.com/Flowseal/zapret-discord-youtube/tree/main)
  - Я только собрал general.txt!
 ## 🚀Ускорение Telegram:
- - Через прокси [тык](tg://proxy?server=tg.theforcefulsh.ru&port=443&secret=52da900d116a8c9d1b52440997e49f48)
+ - Через прокси по ссылке tg://proxy?server=tg.theforcefulsh.ru&port=443&secret=52da900d116a8c9d1b52440997e49f48 или вручную
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/25423296/163456776-7f95b81a-f1ed-45f7-b7ab-8fa810d529fa.png">
+</picture>
  - Отдельное приложение для ПК [тык](https://github.com/Flowseal/tg-ws-proxy)
 
 ## 📱Обход блокировок на телефоне (не белых списков):
