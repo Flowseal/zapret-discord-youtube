@@ -5,6 +5,9 @@
  - Я только собрал general.txt!
 ## 🚀Ускорение Telegram:
  - Через прокси по ссылке tg://proxy?server=tg.theforcefulsh.ru&port=443&secret=52da900d116a8c9d1b52440997e49f48 или вручную
+    Хост: tg.theforcefulsh.ru
+    Порт: 443
+    Ключ: 52da900d116a8c9d1b52440997e49f48
  <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/Plyska-RU/list-general-for-all-zapret/blob/main/.github/image.png?raw=true">
   <source media="(prefers-color-scheme: light)" srcset="https://github.com/Plyska-RU/list-general-for-all-zapret/blob/main/.github/image.png?raw=true">
