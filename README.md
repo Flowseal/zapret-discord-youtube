@@ -1,7 +1,7 @@
 ## ‼️ВАЖНО‼️
  - Пользуюсь этим [VPN](https://t.me/theforcefulvpn_bot?start=refjDEXclXP) (**белые списки не обходит!**)
  - Обход белых списков найду в течении недели и он появиться здесьже
- - Все файлы взяты из оригинального репозитория zapret [тык](https://github.com/Flowseal/zapret-discord-youtube/tree/main)
+ - Все файлы zapret взяты из оригинального репозитория [тык](https://github.com/Flowseal/zapret-discord-youtube/tree/main)
  - Я только собрал general.txt!
 ## 🚀Ускорение Telegram:
  - Через прокси по ссылке tg://proxy?server=tg.theforcefulsh.ru&port=443&secret=52da900d116a8c9d1b52440997e49f48 или вручную
