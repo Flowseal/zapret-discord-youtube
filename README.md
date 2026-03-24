@@ -4,7 +4,7 @@
  - Все файлы zapret взяты из оригинального репозитория [тык](https://github.com/Flowseal/zapret-discord-youtube/tree/main)
  - Я только собрал general.txt!
 ## 🚀Ускорение Telegram:
- - Через прокси по ссылке tg://proxy?server=tg.theforcefulsh.ru&port=443&secret=52da900d116a8c9d1b52440997e49f48 или вручную (работает кан на ПК так и на телефоне)
+ - Через прокси по ссылке tg://proxy?server=tg.theforcefulsh.ru&port=443&secret=52da900d116a8c9d1b52440997e49f48 или вручную (работает как на ПК так и на телефоне)
 ```
 Хост: tg.theforcefulsh.ru
 Порт: 443
