@@ -1,4 +1,5 @@
 ## ВАЖНО!
+ - Пользуюсь этим [VPN](https://t.me/theforcefulvpn_bot?start=refjDEXclXP)
  - Все файлы взяты из оригинального репозитория zapret [тык](https://github.com/Flowseal/zapret-discord-youtube/tree/main)
  - Я только собрал general.txt!
 ## Ускорение Telegram:
