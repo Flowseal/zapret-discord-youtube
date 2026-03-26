@@ -6,41 +6,12 @@ $utilsDir = Join-Path $rootDir "utils"
 $resultsDir = Join-Path $utilsDir "test results"
 if (-not (Test-Path $resultsDir)) { New-Item -ItemType Directory -Path $resultsDir | Out-Null }
 
-# Define functions early
-function Get-IpsetStatus {
-    $listFile = Join-Path $listsDir "ipset-all.txt"
-    if (-not (Test-Path $listFile)) { return "none" }
-    $lineCount = (Get-Content $listFile | Measure-Object -Line).Lines
-    if ($lineCount -eq 0) { return "any" }
-    $hasDummy = Get-Content $listFile | Select-String -Pattern "203\.0\.113\.113/32" -Quiet
-    if ($hasDummy) { return "none" } else { return "loaded" }
-}
-
-function Set-IpsetMode {
-    param([string]$mode)
-    $listFile = Join-Path $listsDir "ipset-all.txt"
-    $backupFile = Join-Path $listsDir "ipset-all.test-backup.txt"
-    if ($mode -eq "any") {
-        # Always backup current file (even if none)
-        if (Test-Path $listFile) {
-            Copy-Item $listFile $backupFile -Force
-        } else {
-            # If none, create empty backup
-            "" | Out-File $backupFile -Encoding UTF8
-        }
-        # Make file empty
-        "" | Out-File $listFile -Encoding UTF8
-    } elseif ($mode -eq "restore") {
-        if (Test-Path $backupFile) {
-            Move-Item $backupFile $listFile -Force
-        }
-    }
-}
+. (Join-Path $utilsDir "service-state.ps1")
 
 trap {
     Write-Host "[ERROR] Script interrupted. Restoring ipset..." -ForegroundColor Red
     if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
-        Set-IpsetMode -mode "restore"
+        Set-IpsetMode -Mode $originalIpsetStatus | Out-Null
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
     break
@@ -336,8 +307,18 @@ if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
 # Check for leftover ipset flag from previous interrupted run
 $ipsetFlagFile = Join-Path $rootDir "ipset_switched.flag"
 if (Test-Path $ipsetFlagFile) {
-    Write-Host "[INFO] Detected leftover ipset switch flag. Restoring ipset..." -ForegroundColor Yellow
-    Set-IpsetMode -mode "restore"
+    $storedIpsetMode = ((Get-Content $ipsetFlagFile -ErrorAction SilentlyContinue | Select-Object -First 1) -as [string])
+    if ($storedIpsetMode) {
+        $storedIpsetMode = $storedIpsetMode.Trim().ToLowerInvariant()
+    }
+
+    if (Test-IpsetMode -Mode $storedIpsetMode) {
+        Write-Host "[INFO] Detected leftover ipset switch flag. Restoring ipset..." -ForegroundColor Yellow
+        Set-IpsetMode -Mode $storedIpsetMode | Out-Null
+    } else {
+        Write-Host "[WARNING] Detected leftover ipset switch flag without a valid mode. Skipping restore." -ForegroundColor Yellow
+    }
+
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 }
 
@@ -607,9 +588,9 @@ try {
     # Save original ipset status and switch to 'any' for accurate DPI tests
     if (($originalIpsetStatus -ne "any") -and ($testType -eq 'dpi')) {
         Write-Host "[WARNING] Ipset is in '$originalIpsetStatus' mode. Switching to 'any' for accurate DPI tests..." -ForegroundColor Yellow
-        Set-IpsetMode -mode "any"
+        Set-IpsetMode -Mode "any" | Out-Null
         # Create flag file to indicate ipset was switched
-        "" | Out-File -FilePath $ipsetFlagFile -Encoding UTF8
+        [System.IO.File]::WriteAllText($ipsetFlagFile, ($originalIpsetStatus + "`r`n"), (Get-Utf8NoBomEncoding))
     }
     Write-Host "[WARNING] Tests may take several minutes to complete. Please wait..." -ForegroundColor Yellow
 
@@ -925,7 +906,7 @@ try {
 } catch {
     Write-Host "[ERROR] An error occurred during tests. Restoring ipset..." -ForegroundColor Red
     if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
-        Set-IpsetMode -mode "restore"
+        Set-IpsetMode -Mode $originalIpsetStatus | Out-Null
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 } finally {
@@ -933,7 +914,7 @@ try {
     Restore-WinwsSnapshot -snapshot $originalWinws
     if ($originalIpsetStatus -ne "any") {
         Write-Host "[INFO] Restoring original ipset mode..." -ForegroundColor DarkGray
-        Set-IpsetMode -mode "restore"
+        Set-IpsetMode -Mode $originalIpsetStatus | Out-Null
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 }
