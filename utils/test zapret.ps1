@@ -94,7 +94,7 @@ function Get-DpiSuite {
             Select-Object `
                 @{n='Id';       e={$_.id}},
                 @{n='Provider'; e={$_.provider}},
-                @{n='Сountry';  e={$_.country}},
+                @{n='Country';  e={$_.country}},
                 @{n='Host';     e={$_.host}}
     }
     catch {
@@ -112,10 +112,10 @@ function Build-DpiTargets {
     $targets = @()
 
     if ($CustomHost) {
-        $targets += @{ Id = "CUSTOM"; Provider = "Custom"; Сountry = "💡"; Host = $CustomHost }
+        $targets += @{ Id = "CUSTOM"; Provider = "Custom"; Country = "💡"; Host = $CustomHost }
     } else {
         foreach ($entry in $suite) {
-            $targets += @{ Id = $entry.Id; Сountry = $entry.Сountry; Provider = $entry.Provider; Host = $entry.Host }
+            $targets += @{ Id = $entry.Id; Country = $entry.Country; Provider = $entry.Provider; Host = $entry.Host }
         }
     }
 
@@ -224,7 +224,7 @@ function Invoke-DpiSuite {
         return [PSCustomObject]@{
             TargetId = $target.Id
             Provider = $target.Provider
-            Сountry   = $target.Сountry
+            Country   = $target.Country
             Lines    = $lines
             Warned   = $warned
         }
@@ -268,7 +268,7 @@ function Invoke-DpiSuite {
             $res = $rs.Powershell.EndInvoke($rs.Handle)
             $results += $res
 
-            Write-Host "`n=== [$($res.Сountry)][$($res.Provider)] $($res.TargetId) ===" -ForegroundColor DarkCyan
+            Write-Host "`n=== [$($res.Country)][$($res.Provider)] $($res.TargetId) ===" -ForegroundColor DarkCyan
             foreach ($line in $res.Lines) {
                 $msg = "[{0}] code={1} buf_up={2} bytes ({3} KB) buf_down={4} bytes ({5} KB) time={6}s status={7}" -f $line.TestLabel, $line.Code, $line.UpBytes, $line.UpKB, $line.DownBytes, $line.DownKB, $line.Time, $line.Status
                 Write-Host $msg -ForegroundColor $line.Color
