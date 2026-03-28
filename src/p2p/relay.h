@@ -1,6 +1,8 @@
 #ifndef ZAPRET_P2P_RELAY_H
 #define ZAPRET_P2P_RELAY_H
 
+#include <time.h>
+#include <stdint.h>
 #include "common.h"
 #include "packet.h"
 
