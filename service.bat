@@ -968,6 +968,8 @@ if %errorLevel% neq 0 (
 )
 
 set /p "ExePath=Enter the full path to the EXE file to analyze: "
+rem Remove user-provided quotes to avoid breaking PowerShell args
+set "ExePath=!ExePath:\"=!"
 if "!ExePath!"=="" (
     echo Path cannot be empty.
     pause

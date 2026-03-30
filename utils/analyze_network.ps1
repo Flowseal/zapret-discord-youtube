@@ -516,10 +516,38 @@ function Process-Connections {
     $results = @()
     
     foreach ($conn in $Connections) {
-        $ip = $conn.RemoteAddress
-        $port = $conn.RemotePort
-        $state = $conn.State
-        
+        $ip = $null
+        $port = $null
+        $state = $null
+
+        if ($conn.PSObject.Properties.Match("RemoteAddress").Count -gt 0) {
+            $ip = $conn.RemoteAddress
+        }
+        if (-not $ip -and $conn.PSObject.Properties.Match("IP").Count -gt 0) {
+            $ip = $conn.IP
+        }
+
+        if ($conn.PSObject.Properties.Match("RemotePort").Count -gt 0) {
+            $port = $conn.RemotePort
+        }
+        if (-not $port -and $conn.PSObject.Properties.Match("Port").Count -gt 0) {
+            $port = $conn.Port
+        }
+
+        if ($conn.PSObject.Properties.Match("State").Count -gt 0) {
+            $state = $conn.State
+        }
+        if (-not $state -and $conn.PSObject.Properties.Match("TcpState").Count -gt 0) {
+            $state = $conn.TcpState
+        }
+        if (-not $state) {
+            $state = "(unknown)"
+        }
+
+        if (-not $ip -or -not $port) {
+            continue
+        }
+
         $key = "$ip`:$port"
         
         if (-not $uniqueIPs.ContainsKey($key)) {
@@ -755,6 +783,28 @@ function Main {
         Write-Status "Не удалось получить процесс. Выход." "ERR"
         exit 1
     }
+
+    $processInfo = [PSCustomObject]@{
+        Name = $process.ProcessName
+        Id   = $process.Id
+        Path = $null
+    }
+
+    if ($process.PSObject.Properties.Match("Path").Count -gt 0 -and $process.Path) {
+        $processInfo.Path = $process.Path
+    }
+    elseif ($process.PSObject.Properties.Match("MainModule").Count -gt 0) {
+        try {
+            $processInfo.Path = $process.MainModule.FileName
+        }
+        catch {
+            # ignore
+        }
+    }
+
+    if (-not $processInfo.Path) {
+        $processInfo.Path = $ExePath
+    }
     
     Write-Host ""
     
@@ -808,11 +858,11 @@ function Main {
         $results = Process-Connections -Connections $connections
         
         # Показать результаты
-        Show-Results -Results $results -ProcessInfo $process
+        Show-Results -Results $results -ProcessInfo $processInfo
         
         # Сохранить результаты
         Write-Section "Сохранение результатов"
-        $savedPath = Save-Results -Results $results -ProcessInfo $process -Mode $Mode -UseNetstat:$UseNetstat -MonitoringDuration $MonitoringDuration -Duration $Duration
+        $savedPath = Save-Results -Results $results -ProcessInfo $processInfo -Mode $Mode -UseNetstat:$UseNetstat -MonitoringDuration $MonitoringDuration -Duration $Duration
     }
     else {
         Write-Status "Соединения не найдены для анализа" "WARN"
