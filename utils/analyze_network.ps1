@@ -17,22 +17,24 @@ param(
     [int]$Duration = 900,
     
     [Parameter(Mandatory = $false)]
-    [int]$MonitoringDuration = 900,
-    
-    [Parameter(Mandatory = $false)]
-    [switch]$NoLaunch = $false,
+    [string]$NoLaunch = "false",
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseNetstat = $true
+    [string]$UseNetstat = "true"
 )
 
-# Конвертируем FlushDNS в boolean
-if ($FlushDNS -eq "true" -or $FlushDNS -eq 1 -or $FlushDNS -eq "1") {
-    $FlushDNS = $true
+function ConvertTo-Bool {
+    param($Value)
+
+    if ($null -eq $Value) { return $false }
+    $text = "$Value".Trim().ToLowerInvariant()
+    return ($text -eq "true" -or $text -eq "1" -or $text -eq "yes" -or $text -eq "y")
 }
-else {
-    $FlushDNS = $false
-}
+
+# Флаги приходят из .bat как строки, поэтому приводим их явно.
+$FlushDNS = ConvertTo-Bool $FlushDNS
+$NoLaunch = ConvertTo-Bool $NoLaunch
+$UseNetstat = ConvertTo-Bool $UseNetstat
 
 # ============================================================================
 # ПЕРЕМЕННЫЕ И КОНСТАНТЫ
@@ -40,12 +42,6 @@ else {
 
 $ErrorActionPreference = "Continue"
 $ProgressPreference = "SilentlyContinue"
-
-$script:ResultsArray = @()
-$script:NetstatArray = @()
-$script:DNSCacheArray = @()
-$script:ProcessInfo = $null
-$script:StartTime = Get-Date
 
 # Цвета для вывода
 $Colors = @{
@@ -142,6 +138,36 @@ function Test-OSVersion {
     return $osVersion -ge $win10Build
 }
 
+function Resolve-ExePath {
+    param([string]$InputPath)
+
+    if ([string]::IsNullOrWhiteSpace($InputPath)) {
+        return $null
+    }
+
+    # Убираем внешние кавычки, разворачиваем переменные окружения и корректно обрабатываем относительные пути.
+    $cleanPath = $InputPath.Trim().Trim('"')
+    $cleanPath = [Environment]::ExpandEnvironmentVariables($cleanPath)
+
+    try {
+        $resolved = Resolve-Path -LiteralPath $cleanPath -ErrorAction Stop
+        return $resolved.Path
+    }
+    catch {
+        try {
+            $combined = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $cleanPath))
+            if (Test-Path -LiteralPath $combined) {
+                return $combined
+            }
+        }
+        catch {
+            # ignore
+        }
+    }
+
+    return $cleanPath
+}
+
 # ============================================================================
 # ФУНКЦИИ РАБОТЫ С ФАЙЛАМИ И ПРОЦЕССАМИ
 # ============================================================================
@@ -174,8 +200,8 @@ function Get-ProcessFromPath {
             Write-Host ""
             $choice = $null
             while ($null -eq $choice -or $choice -lt 1 -or $choice -gt $processes.Count) {
-                $input = Read-Host "Введите номер процесса (1-$($processes.Count))"
-                if ([int]::TryParse($input, [ref]$choice)) {
+                $choiceText = Read-Host "Введите номер процесса (1-$($processes.Count))"
+                if ([int]::TryParse($choiceText, [ref]$choice)) {
                     if ($choice -ge 1 -and $choice -le $processes.Count) {
                         break
                     }
@@ -286,8 +312,6 @@ function Invoke-NetstatSnapshot {
             $parts = $trimmed -split "\s+"
             if ($parts.Count -lt 5) { continue }
 
-            $proto = $parts[0]
-            $local = $parts[1]
             $remote = $parts[2]
             $state = $parts[3]
             $pidVal = $parts[4]
@@ -636,6 +660,66 @@ function Show-Results {
         Write-Host "  • $key`: $($stats[$key])" -ForegroundColor $Colors.Info
     }
     Write-Host ""
+
+    Write-Section "Сводка по IP / доменам / портам"
+
+    $topIPs = $Results |
+    Group-Object -Property IP |
+    ForEach-Object {
+        [PSCustomObject]@{
+            IP          = $_.Name
+            Connections = ($_.Group | Measure-Object -Property Count -Sum).Sum
+        }
+    } |
+    Sort-Object -Property Connections -Descending
+
+    $topDomains = $Results |
+    Where-Object { $_.Hostname -ne "(не разрешено)" } |
+    Group-Object -Property Hostname |
+    ForEach-Object {
+        [PSCustomObject]@{
+            Domain      = $_.Name
+            Connections = ($_.Group | Measure-Object -Property Count -Sum).Sum
+        }
+    } |
+    Sort-Object -Property Connections -Descending
+
+    $topPorts = $Results |
+    Group-Object -Property Port |
+    ForEach-Object {
+        [PSCustomObject]@{
+            Port        = [int]$_.Name
+            Connections = ($_.Group | Measure-Object -Property Count -Sum).Sum
+        }
+    } |
+    Sort-Object -Property Connections -Descending
+
+    Write-Host "  ТОП IP адресов:" -ForegroundColor $Colors.Info
+    ($topIPs | Select-Object -First 10 | Format-Table -AutoSize @(
+        @{Label = "IP"; Expression = { $_.IP }; Width = 20 },
+        @{Label = "Соединений"; Expression = { $_.Connections }; Width = 12 }
+    ) | Out-String).TrimEnd().Split("`n") | ForEach-Object { Write-Host "  $_" -ForegroundColor $Colors.Info }
+    Write-Host ""
+
+    if ($topDomains.Count -gt 0) {
+        Write-Host "  ТОП доменных имен:" -ForegroundColor $Colors.Info
+        ($topDomains | Select-Object -First 10 | Format-Table -AutoSize @(
+            @{Label = "Домен"; Expression = { $_.Domain }; Width = 50 },
+            @{Label = "Соединений"; Expression = { $_.Connections }; Width = 12 }
+        ) | Out-String).TrimEnd().Split("`n") | ForEach-Object { Write-Host "  $_" -ForegroundColor $Colors.Info }
+        Write-Host ""
+    }
+    else {
+        Write-Host "  ТОП доменных имен: нет разрешенных доменов" -ForegroundColor $Colors.Warning
+        Write-Host ""
+    }
+
+    Write-Host "  ТОП портов:" -ForegroundColor $Colors.Info
+    ($topPorts | Select-Object -First 10 | Format-Table -AutoSize @(
+        @{Label = "Порт"; Expression = { $_.Port }; Width = 10 },
+        @{Label = "Соединений"; Expression = { $_.Connections }; Width = 12 }
+    ) | Out-String).TrimEnd().Split("`n") | ForEach-Object { Write-Host "  $_" -ForegroundColor $Colors.Info }
+    Write-Host ""
     
     # Таблица результатов
     Write-Section "Детальный список соединений"
@@ -659,7 +743,6 @@ function Save-Results {
         [PSCustomObject]$ProcessInfo,
         [string]$Mode,
         [bool]$UseNetstat = $false,
-        [int]$MonitoringDuration = 0,
         [int]$Duration = 0
     )
     
@@ -667,7 +750,7 @@ function Save-Results {
     $fileName = "analyze_results_$($ProcessInfo.Name)_$timestamp.txt"
     $filePath = Join-Path $PSScriptRoot $fileName
     
-    $effectiveDuration = if ($Mode -eq "monitoring") { $MonitoringDuration } else { $Duration }
+    $effectiveDuration = $Duration
     $content = @"
 ═════════════════════════════════════════════════════════════════════════════
 АНАЛИЗ СЕТЕВОЙ АКТИВНОСТИ - ПОДРОБНЫЙ ОТЧЕТ
@@ -716,6 +799,57 @@ function Save-Results {
     $stateGroups = $Results | Group-Object -Property State
     foreach ($group in $stateGroups) {
         $content += "  $($group.Name): $($group.Count)`n"
+    }
+
+    $content += "`nТОП IP АДРЕСОВ (ПО КОЛИЧЕСТВУ СОЕДИНЕНИЙ):`n"
+    $topIPs = $Results |
+    Group-Object -Property IP |
+    ForEach-Object {
+        [PSCustomObject]@{
+            Name        = $_.Name
+            Connections = ($_.Group | Measure-Object -Property Count -Sum).Sum
+        }
+    } |
+    Sort-Object -Property Connections -Descending |
+    Select-Object -First 20
+    foreach ($ip in $topIPs) {
+        $content += "  $($ip.Name): $($ip.Connections)`n"
+    }
+
+    $content += "`nТОП ДОМЕНОВ (ПО КОЛИЧЕСТВУ СОЕДИНЕНИЙ):`n"
+    $topDomains = $Results |
+    Where-Object { $_.Hostname -ne "(не разрешено)" } |
+    Group-Object -Property Hostname |
+    ForEach-Object {
+        [PSCustomObject]@{
+            Name        = $_.Name
+            Connections = ($_.Group | Measure-Object -Property Count -Sum).Sum
+        }
+    } |
+    Sort-Object -Property Connections -Descending |
+    Select-Object -First 20
+    if ($topDomains.Count -gt 0) {
+        foreach ($domain in $topDomains) {
+            $content += "  $($domain.Name): $($domain.Connections)`n"
+        }
+    }
+    else {
+        $content += "  Нет разрешенных доменов`n"
+    }
+
+    $content += "`nТОП ПОРТОВ (ПО КОЛИЧЕСТВУ СОЕДИНЕНИЙ):`n"
+    $topPorts = $Results |
+    Group-Object -Property Port |
+    ForEach-Object {
+        [PSCustomObject]@{
+            Name        = $_.Name
+            Connections = ($_.Group | Measure-Object -Property Count -Sum).Sum
+        }
+    } |
+    Sort-Object -Property Connections -Descending |
+    Select-Object -First 20
+    foreach ($port in $topPorts) {
+        $content += "  $($port.Name): $($port.Connections)`n"
     }
     
     $content += @"
@@ -770,14 +904,23 @@ function Main {
     # Проверки
     Write-Section "Проверка системы"
     Test-PSVersion
-    $isAdmin = Test-AdminRights
-    Test-NetTCPConnection
+    $null = Test-AdminRights
+    $null = Test-NetTCPConnection
+
+    $resolvedExePath = Resolve-ExePath -InputPath $ExePath
+    if (-not (Test-Path -LiteralPath $resolvedExePath)) {
+        Write-Status "Файл не найден: $resolvedExePath" "ERR"
+        Write-Status "Проверьте путь к EXE. Можно указывать с кавычками или без." "WARN"
+        exit 1
+    }
+    $ExePath = $resolvedExePath
+    Write-Status "Путь к EXE обработан: $ExePath" "OK"
     
     Write-Host ""
     
     # Получить процесс
     Write-Section "Поиск процесса"
-    $process = Get-ProcessFromPath -ExePath $ExePath -NoLaunch:$NoLaunch
+    $process = Get-ProcessFromPath -ExePath $ExePath
     
     if (-not $process) {
         Write-Status "Не удалось получить процесс. Выход." "ERR"
@@ -820,17 +963,19 @@ function Main {
         }
         Write-Host ""
     }
-    
-    # Определить был ли процесс уже запущен
-    $processWasRunning = -not $NoLaunch
+
+    Write-Section "Важно перед началом анализа"
+    Write-Status "После старта анализа активно поиграйте примерно 2 минуты, чтобы игра открыла реальные соединения" "WARN"
+    Write-Status "Без активности трафик может не появиться, и статистика будет пустой" "INFO"
+    Write-Host ""
     
     # Выполнить анализ в зависимости от режима
     if ($Mode -eq "monitoring") {
         Write-Section "Параметры мониторинга"
-        Write-Host "  Длительность: $(([math]::Round($MonitoringDuration/60, 1))) минут ($MonitoringDuration сек)" -ForegroundColor $Colors.Info
+        Write-Host "  Длительность: $(([math]::Round($Duration/60, 1))) минут ($Duration сек)" -ForegroundColor $Colors.Info
         Write-Host ""
         
-        $connections = Invoke-MonitoringMode -ProcessID $process.Id -DurationSeconds $MonitoringDuration
+        $connections = Invoke-MonitoringMode -ProcessID $process.Id -DurationSeconds $Duration
     }
     elseif ($Mode -eq "full") {
         $connections = Invoke-FullAnalysis -ProcessID $process.Id
@@ -862,10 +1007,11 @@ function Main {
         
         # Сохранить результаты
         Write-Section "Сохранение результатов"
-        $savedPath = Save-Results -Results $results -ProcessInfo $processInfo -Mode $Mode -UseNetstat:$UseNetstat -MonitoringDuration $MonitoringDuration -Duration $Duration
+        Save-Results -Results $results -ProcessInfo $processInfo -Mode $Mode -UseNetstat:$UseNetstat -Duration $Duration | Out-Null
     }
     else {
         Write-Status "Соединения не найдены для анализа" "WARN"
+        Write-Status "Запустите анализ снова и выполните действия в игре минимум 2 минуты" "INFO"
     }
     
     Write-Host ""
