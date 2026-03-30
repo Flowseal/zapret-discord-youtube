@@ -1,5 +1,5 @@
 @echo off
-set "LOCAL_VERSION=1.9.3"
+set "LOCAL_VERSION=1.9.7b"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -9,6 +9,8 @@ if "%~1"=="status_zapret" (
 )
 
 if "%~1"=="check_updates" (
+    if defined NO_UPDATE_CHECK exit /b
+
     if exist "%~dp0utils\check_updates.enabled" (
         if not "%~2"=="soft" (
             start /b service check_updates soft
@@ -25,11 +27,18 @@ if "%~1"=="load_game_filter" (
     exit /b
 )
 
+if "%~1"=="load_user_lists" (
+    call :load_user_lists
+    exit /b
+)
+
 if "%1"=="admin" (
     call :check_command chcp
     call :check_command find
     call :check_command findstr
     call :check_command netsh
+    
+    call :load_user_lists
 
     echo Started with admin rights
 ) else (
@@ -96,6 +105,23 @@ if "%menu_choice%"=="11" goto run_tests
 if "%menu_choice%"=="12" goto analyze_network_combined
 if "%menu_choice%"=="0" exit /b
 goto menu
+
+
+:: LOAD USER LISTS =====================
+:load_user_lists
+set "LISTS_PATH=%~dp0lists\"
+
+if not exist "%LISTS_PATH%ipset-exclude-user.txt" (
+    echo 203.0.113.113/32>"%LISTS_PATH%ipset-exclude-user.txt"
+)
+if not exist "%LISTS_PATH%list-general-user.txt" (
+    echo domain.example.abc>"%LISTS_PATH%list-general-user.txt"
+)
+if not exist "%LISTS_PATH%list-exclude-user.txt" (
+    echo domain.example.abc>"%LISTS_PATH%list-exclude-user.txt"
+)
+
+exit /b
 
 
 :: TCP ENABLE ==========================
@@ -195,7 +221,7 @@ goto menu
 :: INSTALL =============================
 :service_install
 cls
-chcp 65001 > nul
+chcp 437 > nul
 
 :: Main
 cd /d "%~dp0"
@@ -276,6 +302,10 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                     )
                 ) else if "!arg:~0,12!" EQU "%%GameFilter%%" (
                     set "arg=%GameFilter%"
+                ) else if "!arg:~0,15!" EQU "%%GameFilterTCP%%" (
+                    set "arg=%GameFilterTCP%"
+                ) else if "!arg:~0,15!" EQU "%%GameFilterUDP%%" (
+                    set "arg=%GameFilterUDP%"
                 )
 
                 if !mergeargs!==1 (
@@ -337,7 +367,7 @@ cls
 :: Set current version and URLs
 set "GITHUB_VERSION_URL=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/version.txt"
 set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/"
-set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest/download/zapret-discord-youtube-"
+set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest"
 
 :: Get the latest version from GitHub
 for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Uri \"%GITHUB_VERSION_URL%\" -Headers @{\"Cache-Control\"=\"no-cache\"} -UseBasicParsing -TimeoutSec 5).Content.Trim()" 2^>nul') do set "GITHUB_VERSION=%%A"
@@ -362,15 +392,8 @@ if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
 echo New version available: %GITHUB_VERSION%
 echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
 
-set "CHOICE="
-set /p "CHOICE=Do you want to automatically download the new version? (Y/N) (default: Y) "
-if "%CHOICE%"=="" set "CHOICE=Y"
-if /i "%CHOICE%"=="y" set "CHOICE=Y"
-
-if /i "%CHOICE%"=="Y" (
-    echo Opening the download page...
-    start "" "%GITHUB_DOWNLOAD_URL%%GITHUB_VERSION%.rar"
-)
+echo Opening the download page...
+start "" "%GITHUB_DOWNLOAD_URL%"
 
 
 if "%1"=="soft" exit 
@@ -528,6 +551,17 @@ if !dohfound!==0 (
 )
 echo:
 
+:: Hosts file check
+set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
+if exist "%hostsFile%" (
+    set "yt_found=0"
+    >nul 2>&1 findstr /I "youtube.com" "%hostsFile%" && set "yt_found=1"
+    >nul 2>&1 findstr /I "yotou.be" "%hostsFile%" && set "yt_found=1"
+    if !yt_found!==1 (
+        call :PrintYellow "[?] Your hosts file contains entries for youtube.com or yotou.be. This may cause problems with YouTube access"
+    )
+)
+
 :: WinDivert conflict
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
 set "winws_running=!errorlevel!"
@@ -675,12 +709,34 @@ chcp 437 > nul
 
 set "gameFlagFile=%~dp0utils\game_filter.enabled"
 
-if exist "%gameFlagFile%" (
-    set "GameFilterStatus=enabled"
-    set "GameFilter=1024-65535"
-) else (
+if not exist "%gameFlagFile%" (
     set "GameFilterStatus=disabled"
     set "GameFilter=12"
+    set "GameFilterTCP=12"
+    set "GameFilterUDP=12"
+    exit /b
+)
+
+set "GameFilterMode="
+for /f "usebackq delims=" %%A in ("%gameFlagFile%") do (
+    if not defined GameFilterMode set "GameFilterMode=%%A"
+)
+
+if /i "%GameFilterMode%"=="all" (
+    set "GameFilterStatus=enabled (TCP and UDP)"
+    set "GameFilter=1024-65535"
+    set "GameFilterTCP=1024-65535"
+    set "GameFilterUDP=1024-65535"
+) else if /i "%GameFilterMode%"=="tcp" (
+    set "GameFilterStatus=enabled (TCP)"
+    set "GameFilter=1024-65535"
+    set "GameFilterTCP=1024-65535"
+    set "GameFilterUDP=12"
+) else (
+    set "GameFilterStatus=enabled (UDP)"
+    set "GameFilter=1024-65535"
+    set "GameFilterTCP=12"
+    set "GameFilterUDP=1024-65535"
 )
 exit /b
 
@@ -689,16 +745,35 @@ exit /b
 chcp 437 > nul
 cls
 
-if not exist "%gameFlagFile%" (
-    echo Enabling game filter...
-    echo ENABLED > "%gameFlagFile%"
-    call :PrintYellow "Restart the zapret to apply the changes"
+echo Select game filter mode:
+echo   0. Disable
+echo   1. TCP and UDP
+echo   2. TCP only
+echo   3. UDP only
+echo.
+set "GameFilterChoice=0"
+set /p "GameFilterChoice=Select option (0-3, default: 0): "
+if %GameFilterChoice%=="" set "GameFilterChoice=0"
+
+if "%GameFilterChoice%"=="0" (
+    if exist "%gameFlagFile%" (
+        del /f /q "%gameFlagFile%"
+    ) else (
+        goto menu
+    )
+) else if "%GameFilterChoice%"=="1" (
+    echo all>"%gameFlagFile%"
+) else if "%GameFilterChoice%"=="2" (
+    echo tcp>"%gameFlagFile%"
+) else if "%GameFilterChoice%"=="3" (
+    echo udp>"%gameFlagFile%"
 ) else (
-    echo Disabling game filter...
-    del /f /q "%gameFlagFile%"
-    call :PrintYellow "Restart the zapret to apply the changes"
+    echo Invalid choice, exiting...
+    pause
+    goto menu
 )
 
+call :PrintYellow "Restart the zapret to apply the changes"
 pause
 goto menu
 
@@ -896,7 +971,7 @@ goto menu
 
 :: RUN TESTS =============================
 :run_tests
-chcp 65001 >nul
+chcp 437 >nul
 cls
 
 :: Require PowerShell 3.0+
