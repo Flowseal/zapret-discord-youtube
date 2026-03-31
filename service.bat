@@ -374,7 +374,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Ur
 if not defined GITHUB_VERSION (
     echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
     timeout /T 9
-    if "%1"=="soft" exit 
+    if "%1"=="soft" exit /b
     goto menu
 )
 
@@ -382,7 +382,7 @@ if not defined GITHUB_VERSION (
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     echo Latest version installed: %LOCAL_VERSION%
     
-    if "%1"=="soft" exit 
+    if "%1"=="soft" exit /b
     pause
     goto menu
 ) 
@@ -394,7 +394,7 @@ echo Opening the download page...
 start "" "%GITHUB_DOWNLOAD_URL%"
 
 
-if "%1"=="soft" exit 
+if "%1"=="soft" exit /b
 pause
 goto menu
 
@@ -554,9 +554,9 @@ set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
 if exist "%hostsFile%" (
     set "yt_found=0"
     >nul 2>&1 findstr /I "youtube.com" "%hostsFile%" && set "yt_found=1"
-    >nul 2>&1 findstr /I "yotou.be" "%hostsFile%" && set "yt_found=1"
+    >nul 2>&1 findstr /I "youtu.be" "%hostsFile%" && set "yt_found=1"
     if !yt_found!==1 (
-        call :PrintYellow "[?] Your hosts file contains entries for youtube.com or yotou.be. This may cause problems with YouTube access"
+        call :PrintYellow "[?] Your hosts file contains entries for youtube.com or youtu.be. This may cause problems with YouTube access"
     )
 )
 
@@ -751,7 +751,7 @@ echo   3. UDP only
 echo.
 set "GameFilterChoice=0"
 set /p "GameFilterChoice=Select option (0-3, default: 0): "
-if %GameFilterChoice%=="" set "GameFilterChoice=0"
+if "%GameFilterChoice%"=="" set "GameFilterChoice=0"
 
 if "%GameFilterChoice%"=="0" (
     if exist "%gameFlagFile%" (
@@ -811,6 +811,11 @@ goto menu
 chcp 437 > nul
 
 set "listFile=%~dp0lists\ipset-all.txt"
+set "lineCount=0"
+if not exist "%listFile%" (
+    set "IPsetStatus=none"
+    exit /b
+)
 for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
 
 if !lineCount!==0 (
