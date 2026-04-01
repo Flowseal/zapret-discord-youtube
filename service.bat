@@ -374,7 +374,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Ur
 if not defined GITHUB_VERSION (
     echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
     timeout /T 9
-    if "%1"=="soft" exit /b
+    if "%1"=="soft" exit
     goto menu
 )
 
@@ -382,7 +382,7 @@ if not defined GITHUB_VERSION (
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     echo Latest version installed: %LOCAL_VERSION%
     
-    if "%1"=="soft" exit /b
+    if "%1"=="soft" exit
     pause
     goto menu
 ) 
@@ -394,7 +394,7 @@ echo Opening the download page...
 start "" "%GITHUB_DOWNLOAD_URL%"
 
 
-if "%1"=="soft" exit /b
+if "%1"=="soft" exit
 pause
 goto menu
 
@@ -811,11 +811,6 @@ goto menu
 chcp 437 > nul
 
 set "listFile=%~dp0lists\ipset-all.txt"
-set "lineCount=0"
-if not exist "%listFile%" (
-    set "IPsetStatus=none"
-    exit /b
-)
 for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
 
 if !lineCount!==0 (
