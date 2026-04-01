@@ -27,6 +27,13 @@ if "%~1"=="load_game_filter" (
     exit /b
 )
 
+if "%~1"=="status_ipset" (
+    setlocal EnableDelayedExpansion
+    call :ipset_switch_status
+    echo !IPsetStatus!
+    exit /b 0
+)
+
 if "%~1"=="load_user_lists" (
     call :load_user_lists
     exit /b
@@ -811,19 +818,22 @@ goto menu
 chcp 437 > nul
 
 set "listFile=%~dp0lists\ipset-all.txt"
-for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
+set "IPsetStatus=none"
 
-if !lineCount!==0 (
-    set "IPsetStatus=any"
-) else (
-    findstr /R "^203\.0\.113\.113/32$" "%listFile%" >nul
-    if !errorlevel!==0 (
-        set "IPsetStatus=none"
-    ) else (
-        set "IPsetStatus=loaded"
-    )
+if not exist "%listFile%" (
+    exit /b 0
 )
-exit /b
+
+for %%A in ("%listFile%") do if %%~zA EQU 0 (
+    set "IPsetStatus=any"
+    exit /b 0
+)
+
+findstr /X /C:"203.0.113.113/32" "%listFile%" >nul
+if errorlevel 1 (
+    set "IPsetStatus=loaded"
+)
+exit /b 0
 
 
 :ipset_switch
