@@ -374,7 +374,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Ur
 if not defined GITHUB_VERSION (
     echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
     timeout /T 9
-    if "%1"=="soft" exit
+    if "%1"=="soft" exit 
     goto menu
 )
 
@@ -382,7 +382,7 @@ if not defined GITHUB_VERSION (
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     echo Latest version installed: %LOCAL_VERSION%
     
-    if "%1"=="soft" exit
+    if "%1"=="soft" exit 
     pause
     goto menu
 ) 
@@ -394,7 +394,7 @@ echo Opening the download page...
 start "" "%GITHUB_DOWNLOAD_URL%"
 
 
-if "%1"=="soft" exit
+if "%1"=="soft" exit 
 pause
 goto menu
 
