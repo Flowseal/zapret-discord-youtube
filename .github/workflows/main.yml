@@ -1,0 +1,42 @@
+name: Build Interface
+
+on:
+  push:
+    paths:
+      - "interface/**"
+      - ".github/workflows/interface-build.yml"
+  pull_request:
+    paths:
+      - "interface/**"
+      - ".github/workflows/interface-build.yml"
+  workflow_dispatch:
+
+jobs:
+  build-interface:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Generate Visual Studio solution
+        working-directory: interface
+        shell: pwsh
+        run: .\premake5.exe vs2022
+
+      - name: Build Release Win32
+        working-directory: interface
+        shell: pwsh
+        run: msbuild .\AntiZapret.sln /m /p:Configuration=Release /p:Platform=Win32
+
+      - name: Upload interface executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: anti-zapret-interface-win32
+          path: interface/bin/AntiZapret.exe
+          if-no-files-found: error
