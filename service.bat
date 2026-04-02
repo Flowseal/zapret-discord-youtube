@@ -32,6 +32,16 @@ if "%~1"=="load_user_lists" (
     exit /b
 )
 
+if "%~1"=="analyze_network" (
+    setlocal EnableDelayedExpansion
+    set "ANALYZE_EXE=%~2"
+    set "ANALYZE_DURATION=%~3"
+    if not defined ANALYZE_DURATION set "ANALYZE_DURATION=900"
+    call :analyze_network_run "!ANALYZE_EXE!" "!ANALYZE_DURATION!"
+    endlocal
+    exit /b
+)
+
 if "%1"=="admin" (
     call :check_command chcp
     call :check_command find
@@ -83,7 +93,7 @@ echo.
 echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
-echo      12. Analyze Network Activity (Combined)
+echo      12. Analyze Network Activity (Unified)
 echo.
 echo   ----------------------------------------
 echo      0. Exit
@@ -102,7 +112,7 @@ if "%menu_choice%"=="8" goto hosts_update
 if "%menu_choice%"=="9" goto service_check_updates
 if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
-if "%menu_choice%"=="12" goto analyze_network_combined
+if "%menu_choice%"=="12" goto analyze_network_select
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -1028,8 +1038,15 @@ if "%extracted%"=="0" (
 exit /b 0
 
 
-:: ANALYZE NETWORK - COMBINED =====================
-:analyze_network_combined
+:: ANALYZE NETWORK =====================
+:analyze_network_select
+call :analyze_network_run "" "900"
+pause
+goto menu
+
+
+:analyze_network_run
+setlocal EnableDelayedExpansion
 chcp 65001 > nul
 cls
 
@@ -1038,78 +1055,43 @@ if %errorLevel% neq 0 (
     echo PowerShell 3.0 or newer is required.
     echo Please upgrade PowerShell and rerun this script.
     echo.
-    pause
-    goto menu
+    endlocal & exit /b 1
 )
 
-set "ExePath="
-set "Mode=combined"
-set "FlushDNS=false"
-set "Duration=900"
-set "NoLaunch=false"
-set "UseNetstat=true"
+set "ExePath=%~1"
+set "Duration=%~2"
+if "!Duration!"=="" set "Duration=900"
 
-for /f "usebackq delims=" %%I in (`powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Filter = 'Executable files (*.exe)^|*.exe^|All files (*.*)^|*.*'; $d.Title = 'Выберите EXE-файл для анализа сети'; if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$d.FileName}"`) do (
-    set "ExePath=%%I"
+if "!ExePath!"=="" (
+    for /f "usebackq delims=" %%I in (`powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Filter = 'Executable files (*.exe)|*.exe|All files (*.*)|*.*'; $d.Title = 'Select EXE file for network analysis'; if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$d.FileName}"`) do (
+        set "ExePath=%%I"
+    )
 )
 
 if "!ExePath!"=="" (
-    rem Fallback для случаев, когда пользователь закрыл окно или GUI недоступен.
-    set /p "ExePath=Введите полный путь к EXE-файлу для анализа: "
+    rem Fallback if user closes the file picker or GUI is unavailable.
+    set /p "ExePath=Enter full path to EXE file for analysis: "
 )
 
 if "!ExePath!"=="" (
-    echo Путь не может быть пустым.
-    pause
-    goto menu
+    echo Path cannot be empty.
+    endlocal & exit /b 1
+)
+
+if "%~1"=="" (
+    set /p "DurationInput=Analysis duration in seconds (default: !Duration!): "
+    if not "!DurationInput!"=="" set "Duration=!DurationInput!"
 )
 
 echo.
-echo Выберите режим анализа:
-echo   1. combined ^(Get-NetTCPConnection + снимок netstat^)
-echo   2. fast ^(только Get-NetTCPConnection^)
-echo   3. full ^(TCP + DNS-перехват pktmon^)
-echo   4. monitoring ^(непрерывный мониторинг^)
-echo.
-set "ModeChoice=1"
-set /p "ModeChoice=Выберите пункт (1-4, по умолчанию: 1): "
-if "!ModeChoice!"=="" set "ModeChoice=1"
-
-if "!ModeChoice!"=="2" set "Mode=fast"
-if "!ModeChoice!"=="3" set "Mode=full"
-if "!ModeChoice!"=="4" set "Mode=monitoring"
-
-set /p "FlushDNSChoice=Очистить DNS-кеш перед анализом? (Y/N) (по умолчанию: N): "
-if "!FlushDNSChoice!"=="" set "FlushDNSChoice=N"
-if /i "!FlushDNSChoice!"=="y" set "FlushDNS=true"
-if /i "!FlushDNSChoice!"=="n" set "FlushDNS=false"
-
-set /p "DurationInput=Длительность анализа в секундах (по умолчанию: 900): "
-if not "!DurationInput!"=="" set "Duration=!DurationInput!"
-
-set /p "NoLaunchChoice=Не запускать EXE автоматически, если процесс не запущен? (Y/N) (по умолчанию: N): "
-if "!NoLaunchChoice!"=="" set "NoLaunchChoice=N"
-if /i "!NoLaunchChoice!"=="y" set "NoLaunch=true"
-if /i "!NoLaunchChoice!"=="n" set "NoLaunch=false"
-
-set /p "UseNetstatChoice=Использовать снимок netstat в режиме combined? (Y/N) (по умолчанию: Y): "
-if "!UseNetstatChoice!"=="" set "UseNetstatChoice=Y"
-if /i "!UseNetstatChoice!"=="y" set "UseNetstat=true"
-if /i "!UseNetstatChoice!"=="n" set "UseNetstat=false"
-
-echo.
-echo Запуск анализа сетевой активности...
+echo Starting network analysis...
+echo Mode is fixed to: unified
 echo EXE: !ExePath!
-echo Mode: !Mode!
-echo FlushDNS: !FlushDNS!
 echo Duration: !Duration!
-echo NoLaunch: !NoLaunch!
-echo UseNetstat: !UseNetstat!
-echo ВАЖНО: после запуска анализа активно поиграйте или повзаимодействуйте с игрой
-echo минимум 2 минуты, чтобы открыть реальные соединения для анализа.
+echo IMPORTANT: after launch, actively play/interact in game for at least 2 minutes
+echo to open real network connections for analysis.
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\analyze_network.ps1" -ExePath "!ExePath!" -Mode !Mode! -FlushDNS !FlushDNS! -Duration !Duration! -NoLaunch !NoLaunch! -UseNetstat !UseNetstat!
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\analyze_app_dns_ports.ps1" -ExePath "!ExePath!" -Duration !Duration!
 
-pause
-goto menu
+endlocal & exit /b 0
