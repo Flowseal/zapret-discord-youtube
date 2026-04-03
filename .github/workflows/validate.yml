@@ -1,0 +1,19 @@
+name: Validate Repository
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate launchers and service helpers
+        shell: powershell
+        run: .\utils\validate-repo.ps1
