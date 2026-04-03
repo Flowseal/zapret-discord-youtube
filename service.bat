@@ -93,7 +93,7 @@ echo.
 echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
-echo      12. Analyze Network Activity (Unified)
+echo      12. Analyze Network Activity
 echo.
 echo   ----------------------------------------
 echo      0. Exit
