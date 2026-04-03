@@ -12,7 +12,10 @@ param(
     [string]$IpsetPath = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$CaptureInterface = ""
+    [string]$CaptureInterface = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$TsharkPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -302,10 +305,27 @@ function Main {
     Write-Info "Target EXE: $resolvedExe"
     Write-Info "Duration: $Duration sec"
 
-    $tsharkCmd = Get-Command "tshark.exe" -ErrorAction SilentlyContinue
-    if (-not $tsharkCmd) {
+    $tsharkExePath = ""
+    if (-not [string]::IsNullOrWhiteSpace($TsharkPath)) {
+        $tsharkExePath = [Environment]::ExpandEnvironmentVariables($TsharkPath.Trim().Trim('"'))
+        $tsharkExePath = [System.IO.Path]::GetFullPath($tsharkExePath)
+
+        if (-not (Test-Path -LiteralPath $tsharkExePath)) {
+            Write-Err "Specified tshark.exe not found: $tsharkExePath"
+            exit 1
+        }
+    }
+    else {
+        $tsharkCmd = Get-Command "tshark.exe" -ErrorAction SilentlyContinue
+        if ($tsharkCmd) {
+            $tsharkExePath = $tsharkCmd.Source
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($tsharkExePath)) {
         Write-Err "tshark.exe not found in PATH"
-        Write-Warn "Install Wireshark with TShark and add it to PATH"
+        Write-Warn "tshark.exe usually located in the same folder as wireshark.exe"
+        Write-Warn "Install Wireshark with TShark and add it to PATH, or pass -TsharkPath"
         Write-Host "Download: https://www.wireshark.org/download.html" -ForegroundColor Yellow
         $open = Read-Host "Open download page now? (Y/N, default: Y)"
         if ([string]::IsNullOrWhiteSpace($open) -or $open -match "^(?i)y$") {
@@ -313,9 +333,9 @@ function Main {
         }
         exit 1
     }
-    Write-Ok "tshark found: $($tsharkCmd.Source)"
+    Write-Ok "tshark found: $tsharkExePath"
 
-    $tsharkInterfaces = Get-TsharkInterfaces -TsharkPath $tsharkCmd.Source
+    $tsharkInterfaces = Get-TsharkInterfaces -TsharkPath $tsharkExePath
     if ($tsharkInterfaces.Count -gt 0) {
         Write-Host ""
         Write-Host "Available tshark interfaces:" -ForegroundColor White
@@ -388,7 +408,7 @@ function Main {
     $tempPcap = Join-Path $env:TEMP ("zapret_dns_{0}.pcapng" -f (Get-TimestampForFileName))
     $tsharkCaptureJob = $null
     try {
-        $tsharkCaptureJob = Start-Job -ArgumentList @($tsharkCmd.Source, $Duration, $tempPcap, $tsharkInterface) -ScriptBlock {
+        $tsharkCaptureJob = Start-Job -ArgumentList @($tsharkExePath, $Duration, $tempPcap, $tsharkInterface) -ScriptBlock {
             param($tsharkPath, $durationValue, $pcapPath, $ifaceValue)
 
             $captureArgs = @(
@@ -461,7 +481,7 @@ function Main {
             "-T", "fields",
             "-e", "frame.number"
         )
-        $dnsCountLines = @(& $tsharkCmd.Source @countArgs 2>$null)
+        $dnsCountLines = @(& $tsharkExePath @countArgs 2>$null)
         $dnsPacketCount = $dnsCountLines.Count
 
         $parseArgs = @(
@@ -478,7 +498,7 @@ function Main {
             "-e", "_ws.col.Info"
         )
 
-        $tsharkOutput = @(& $tsharkCmd.Source @parseArgs 2>&1)
+        $tsharkOutput = @(& $tsharkExePath @parseArgs 2>&1)
     }
     catch {
         Write-Warn "tshark parse failed: $($_.Exception.Message)"
