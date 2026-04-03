@@ -404,7 +404,7 @@ function Main {
 
     Write-Info "Capture starts now. Actively use the app during capture."
 
-    Write-Info "Collecting ports and DNS in parallel..."
+    Write-Info "Collecting DNS in parallel..."
     $tempPcap = Join-Path $env:TEMP ("zapret_dns_{0}.pcapng" -f (Get-TimestampForFileName))
     $tsharkCaptureJob = $null
     try {
