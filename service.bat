@@ -32,6 +32,16 @@ if "%~1"=="load_user_lists" (
     exit /b
 )
 
+if "%~1"=="analyze_network" (
+    setlocal EnableDelayedExpansion
+    set "ANALYZE_EXE=%~2"
+    set "ANALYZE_DURATION=%~3"
+    if not defined ANALYZE_DURATION set "ANALYZE_DURATION=120"
+    call :analyze_network_run "!ANALYZE_EXE!" "!ANALYZE_DURATION!"
+    endlocal
+    exit /b
+)
+
 if "%1"=="admin" (
     call :check_command chcp
     call :check_command find
@@ -83,12 +93,13 @@ echo.
 echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
+echo      12. Analyze Network Activity
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -101,6 +112,7 @@ if "%menu_choice%"=="8" goto hosts_update
 if "%menu_choice%"=="9" goto service_check_updates
 if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="12" goto analyze_network_select
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -1024,3 +1036,62 @@ if "%extracted%"=="0" (
     exit
 )
 exit /b 0
+
+
+:: ANALYZE NETWORK =====================
+:analyze_network_select
+call :analyze_network_run "" "120"
+pause
+goto menu
+
+
+:analyze_network_run
+setlocal EnableDelayedExpansion
+chcp 65001 > nul
+cls
+
+powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -lt 3) { exit 1 } else { exit 0 }" >nul 2>&1
+if %errorLevel% neq 0 (
+    echo PowerShell 3.0 or newer is required.
+    echo Please upgrade PowerShell and rerun this script.
+    echo.
+    endlocal & exit /b 1
+)
+
+set "ExePath=%~1"
+set "Duration=%~2"
+if "!Duration!"=="" set "Duration=120"
+
+if "!ExePath!"=="" (
+    for /f "usebackq delims=" %%I in (`powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Filter = 'Executable files (*.exe)|*.exe|All files (*.*)|*.*'; $d.Title = 'Select EXE file for network analysis'; if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$d.FileName}"`) do (
+        set "ExePath=%%I"
+    )
+)
+
+if "!ExePath!"=="" (
+    rem Fallback if user closes the file picker or GUI is unavailable.
+    set /p "ExePath=Enter full path to EXE file for analysis: "
+)
+
+if "!ExePath!"=="" (
+    echo Path cannot be empty.
+    endlocal & exit /b 1
+)
+
+if "%~1"=="" (
+    set /p "DurationInput=Analysis duration in seconds (default: !Duration!): "
+    if not "!DurationInput!"=="" set "Duration=!DurationInput!"
+)
+
+echo.
+echo Starting network analysis...
+echo Mode is fixed to: unified
+echo EXE: !ExePath!
+echo Duration: !Duration!
+echo IMPORTANT: after launch, actively play/interact in game for at least 2 minutes
+echo to open real network connections for analysis.
+echo.
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\analyze_app_dns_ports.ps1" -ExePath "!ExePath!" -Duration !Duration!
+
+endlocal & exit /b 0
