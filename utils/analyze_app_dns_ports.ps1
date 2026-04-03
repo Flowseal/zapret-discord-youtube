@@ -9,7 +9,10 @@ param(
     [string]$ListPath = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$IpsetPath = ""
+    [string]$IpsetPath = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$CaptureInterface = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,6 +36,34 @@ function Write-Warn {
 function Write-Err {
     param([string]$Message)
     Write-Host "[ERR]  $Message" -ForegroundColor Red
+}
+
+function Flush-DnsCacheSafe {
+    Write-Info "Clearing DNS cache before app launch/capture..."
+
+    try {
+        if (Get-Command "Clear-DnsClientCache" -ErrorAction SilentlyContinue) {
+            Clear-DnsClientCache -ErrorAction Stop
+            Write-Ok "DNS cache cleared (Clear-DnsClientCache)."
+            return
+        }
+    }
+    catch {
+        Write-Warn "Clear-DnsClientCache failed: $($_.Exception.Message)"
+    }
+
+    try {
+        $null = & ipconfig /flushdns
+        if ($LASTEXITCODE -eq 0) {
+            Write-Ok "DNS cache cleared (ipconfig /flushdns)."
+        }
+        else {
+            Write-Warn "ipconfig /flushdns returned exit code $LASTEXITCODE"
+        }
+    }
+    catch {
+        Write-Warn "DNS cache flush failed: $($_.Exception.Message)"
+    }
 }
 
 function Get-ChildProcessIds {
@@ -62,6 +93,99 @@ function Get-ChildProcessIds {
     }
 
     return @($ids | Sort-Object)
+}
+
+function Get-TargetProcess {
+    param(
+        [string]$ExeName,
+        [string]$ResolvedExe
+    )
+
+    return Get-Process -Name $ExeName -ErrorAction SilentlyContinue |
+    Where-Object {
+        if ($_.Path) {
+            return ([string]::Equals([System.IO.Path]::GetFullPath($_.Path), $ResolvedExe, [System.StringComparison]::OrdinalIgnoreCase))
+        }
+        return $true
+    } |
+    Select-Object -First 1
+}
+
+function Get-TsharkInterfaces {
+    param([string]$TsharkPath)
+
+    $items = @()
+    try {
+        $lines = & $TsharkPath -D 2>$null
+        foreach ($line in $lines) {
+            $text = "$line".Trim()
+            if ($text -notmatch '^(\d+)\.\s+(.+)$') { continue }
+
+            $idx = $Matches[1]
+            $raw = $Matches[2]
+            $name = $raw
+            $desc = ""
+            if ($raw -match '^(.*?)\s+\((.*)\)$') {
+                $name = $Matches[1]
+                $desc = $Matches[2]
+            }
+
+            $items += [PSCustomObject]@{
+                Index       = [int]$idx
+                Name        = $name
+                Description = $desc
+                Raw         = $raw
+            }
+        }
+    }
+    catch {
+    }
+
+    return @($items | Sort-Object Index)
+}
+
+function Resolve-TsharkCaptureInterface {
+    param(
+        [string]$UserInterface,
+        [object[]]$TsharkInterfaces
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($UserInterface)) {
+        return $UserInterface.Trim()
+    }
+
+    try {
+        $defaultRoute = Get-NetRoute -DestinationPrefix "0.0.0.0/0" -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Sort-Object RouteMetric, InterfaceMetric |
+        Select-Object -First 1
+
+        if (-not $defaultRoute) {
+            return ""
+        }
+
+        $adapter = Get-NetAdapter -InterfaceIndex $defaultRoute.InterfaceIndex -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+
+        if (-not $adapter -or -not $adapter.InterfaceGuid) {
+            return ""
+        }
+
+        $guidValue = $adapter.InterfaceGuid.ToString().Trim('{}').ToUpperInvariant()
+        $matched = $TsharkInterfaces |
+        Where-Object {
+            ("$($_.Raw)".ToUpperInvariant()) -match [regex]::Escape($guidValue)
+        } |
+        Select-Object -First 1
+
+        if ($matched) {
+            return "$($matched.Index)"
+        }
+
+        return ""
+    }
+    catch {
+        return ""
+    }
 }
 
 function Read-DomainsFromTsharkLine {
@@ -151,6 +275,10 @@ function Initialize-IpsetFile {
     }
 }
 
+function Get-TimestampForFileName {
+    return (Get-Date).ToString("yyyyMMdd_HHmmss")
+}
+
 function Main {
     Write-Host ""
     Write-Host "=====================================================================" -ForegroundColor Cyan
@@ -187,76 +315,115 @@ function Main {
     }
     Write-Ok "tshark found: $($tsharkCmd.Source)"
 
-    $proc = Get-Process -Name $exeName -ErrorAction SilentlyContinue |
-    Where-Object {
-        if ($_.Path) {
-            return ([string]::Equals([System.IO.Path]::GetFullPath($_.Path), $resolvedExe, [System.StringComparison]::OrdinalIgnoreCase))
+    $tsharkInterfaces = Get-TsharkInterfaces -TsharkPath $tsharkCmd.Source
+    if ($tsharkInterfaces.Count -gt 0) {
+        Write-Host ""
+        Write-Host "Available tshark interfaces:" -ForegroundColor White
+        foreach ($iface in $tsharkInterfaces) {
+            if ([string]::IsNullOrWhiteSpace($iface.Description)) {
+                Write-Host "  $($iface.Index). $($iface.Name)" -ForegroundColor Gray
+            }
+            else {
+                Write-Host "  $($iface.Index). $($iface.Name) ($($iface.Description))" -ForegroundColor Gray
+            }
         }
-        return $true
-    } |
-    Select-Object -First 1
+    }
+
+    $autoInterface = Resolve-TsharkCaptureInterface -UserInterface $CaptureInterface -TsharkInterfaces $tsharkInterfaces
+    if ([string]::IsNullOrWhiteSpace($CaptureInterface)) {
+        $defaultHint = if ([string]::IsNullOrWhiteSpace($autoInterface)) { "tshark default" } else { $autoInterface }
+        $manualSelection = Read-Host "Select tshark interface index/name (Enter = $defaultHint)"
+        if (-not [string]::IsNullOrWhiteSpace($manualSelection)) {
+            $autoInterface = $manualSelection.Trim()
+        }
+    }
+
+    $tsharkInterface = $autoInterface
+    if ([string]::IsNullOrWhiteSpace($tsharkInterface)) {
+        Write-Warn "No explicit capture interface selected. tshark will use its default interface."
+    }
+    else {
+        Write-Info "Using tshark interface: $tsharkInterface"
+    }
+
+    Flush-DnsCacheSafe
+
+    $proc = Get-TargetProcess -ExeName $exeName -ResolvedExe $resolvedExe
 
     if (-not $proc) {
         Write-Warn "Process is not running: $exeName"
-        Write-Host "Start the app, then press Enter to continue..." -ForegroundColor Yellow
-        [void](Read-Host)
-        $proc = Get-Process -Name $exeName -ErrorAction SilentlyContinue | Select-Object -First 1
+
+        Write-Info "Trying to start the application automatically..."
+        try {
+            $started = Start-Process -FilePath $resolvedExe -PassThru -ErrorAction Stop
+            Write-Ok "Launch command sent (PID: $($started.Id)). Waiting for process..."
+        }
+        catch {
+            Write-Err "Failed to start app: $($_.Exception.Message)"
+            Write-Err "Please start the app manually and run analyzer again."
+            exit 1
+        }
+
+        $deadline = (Get-Date).AddSeconds(30)
+        do {
+            Start-Sleep -Seconds 1
+            $proc = Get-TargetProcess -ExeName $exeName -ResolvedExe $resolvedExe
+        }
+        until ($proc -or (Get-Date) -ge $deadline)
     }
 
     if (-not $proc) {
-        Write-Err "Process still not found. Cancelled."
+        Write-Err "Process still not found after auto-start attempt. Cancelled."
         exit 1
     }
+
+    Write-Ok "Process is running: PID $($proc.Id)"
 
     $pids = Get-ChildProcessIds -RootPid $proc.Id
     Write-Ok "Analyzing PIDs: $($pids -join ', ')"
 
     Write-Info "Capture starts now. Actively use the app during capture."
 
-    $ports = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+    Write-Info "Collecting ports and DNS in parallel..."
+    $tempPcap = Join-Path $env:TEMP ("zapret_dns_{0}.pcapng" -f (Get-TimestampForFileName))
+    $tsharkCaptureJob = $null
+    try {
+        $tsharkCaptureJob = Start-Job -ArgumentList @($tsharkCmd.Source, $Duration, $tempPcap, $tsharkInterface) -ScriptBlock {
+            param($tsharkPath, $durationValue, $pcapPath, $ifaceValue)
+
+            $captureArgs = @(
+                "-n",
+                "-a", "duration:$durationValue",
+                "-w", $pcapPath
+            )
+
+            if (-not [string]::IsNullOrWhiteSpace($ifaceValue)) {
+                $captureArgs = @("-i", $ifaceValue) + $captureArgs
+            }
+
+            $captureText = & $tsharkPath @captureArgs 2>&1
+            [PSCustomObject]@{
+                ExitCode = $LASTEXITCODE
+                Output   = @($captureText)
+            }
+        }
+    }
+    catch {
+        Write-Err "Failed to capture traffic: $($_.Exception.Message)"
+        if (Test-Path -LiteralPath $tempPcap) {
+            Remove-Item -LiteralPath $tempPcap -Force -ErrorAction SilentlyContinue
+        }
+        exit 1
+    }
+
     $remoteIps = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     while ($stopwatch.Elapsed.TotalSeconds -lt $Duration) {
         try {
             $tcp = Get-NetTCPConnection -ErrorAction SilentlyContinue | Where-Object { $pids -contains $_.OwningProcess }
             foreach ($r in $tcp) {
-                [void]$ports.Add("TCP:$($r.LocalPort)")
-                if ($r.RemotePort -gt 0) { [void]$ports.Add("TCP-REMOTE:$($r.RemotePort)") }
                 if ($r.RemoteAddress -and $r.RemoteAddress -match '^\d+\.\d+\.\d+\.\d+$') {
                     [void]$remoteIps.Add($r.RemoteAddress)
-                }
-            }
-        }
-        catch {}
-
-        try {
-            $udp = Get-NetUDPEndpoint -ErrorAction SilentlyContinue | Where-Object { $pids -contains $_.OwningProcess }
-            foreach ($r in $udp) {
-                [void]$ports.Add("UDP:$($r.LocalPort)")
-            }
-        }
-        catch {}
-
-        try {
-            $netstatLines = netstat -ano -p tcp | Select-Object -Skip 4
-            foreach ($line in $netstatLines) {
-                $trim = "$line".Trim()
-                if ([string]::IsNullOrWhiteSpace($trim)) { continue }
-                $cols = $trim -split "\s+"
-                if ($cols.Length -lt 5) { continue }
-                $ownerPid = 0
-                if (-not [int]::TryParse($cols[4], [ref]$ownerPid)) { continue }
-                if ($pids -contains $ownerPid) {
-                    $localParts = $cols[1] -split ":"
-                    $remoteParts = $cols[2] -split ":"
-                    $localPort = $localParts[-1]
-                    $remotePort = $remoteParts[-1]
-                    $remoteAddress = $remoteParts[0].Trim('[', ']')
-                    if ($localPort -match "^\d+$") { [void]$ports.Add("NETSTAT-TCP:$localPort") }
-                    if ($remotePort -match "^\d+$") { [void]$ports.Add("NETSTAT-TCP-REMOTE:$remotePort") }
-                    if ($remoteAddress -match '^\d+\.\d+\.\d+\.\d+$') {
-                        [void]$remoteIps.Add($remoteAddress)
-                    }
                 }
             }
         }
@@ -265,36 +432,74 @@ function Main {
         Start-Sleep -Seconds 2
     }
 
-    $dnsFilter = 'dns || _ws.col.Info contains "Standard query response" || _ws.col.Info contains "Standart query response"'
-    $tsharkArgs = @(
-        "-l",
-        "-n",
-        "-a", "duration:$Duration",
-        "-f", "port 53",
-        "-Y", $dnsFilter,
-        "-T", "fields",
-        "-E", "separator=`t",
-        "-e", "frame.time",
-        "-e", "ip.src",
-        "-e", "ip.dst",
-        "-e", "dns.qry.name",
-        "-e", "dns.resp.name",
-        "-e", "_ws.col.Info"
-    )
-
-    Write-Info "Running tshark for DNS on port 53..."
     $tsharkOutput = @()
+    $dnsPacketCount = 0
     try {
-        $tsharkOutput = & $tsharkCmd.Source @tsharkArgs 2>$null
+        if (-not $tsharkCaptureJob) {
+            throw "tshark capture job was not started"
+        }
+
+        Wait-Job -Job $tsharkCaptureJob | Out-Null
+        $captureResult = Receive-Job -Job $tsharkCaptureJob -ErrorAction SilentlyContinue
+        $captureExitCode = ($captureResult | Select-Object -First 1).ExitCode
+        if ($captureExitCode -ne 0) {
+            $captureSample = (($captureResult | Select-Object -First 1).Output | Select-Object -First 5) -join "`n"
+            if (-not [string]::IsNullOrWhiteSpace($captureSample)) {
+                Write-Err "$captureSample"
+            }
+            throw "tshark capture failed with exit code $captureExitCode"
+        }
+
+        if (-not (Test-Path -LiteralPath $tempPcap)) {
+            throw "Capture file not found: $tempPcap"
+        }
+
+        $countArgs = @(
+            "-n",
+            "-r", $tempPcap,
+            "-Y", "dns",
+            "-T", "fields",
+            "-e", "frame.number"
+        )
+        $dnsCountLines = @(& $tsharkCmd.Source @countArgs 2>$null)
+        $dnsPacketCount = $dnsCountLines.Count
+
+        $parseArgs = @(
+            "-n",
+            "-r", $tempPcap,
+            "-Y", "dns",
+            "-T", "fields",
+            "-E", "separator=`t",
+            "-e", "frame.time",
+            "-e", "ip.src",
+            "-e", "ip.dst",
+            "-e", "dns.qry.name",
+            "-e", "dns.resp.name",
+            "-e", "_ws.col.Info"
+        )
+
+        $tsharkOutput = @(& $tsharkCmd.Source @parseArgs 2>&1)
     }
     catch {
-        Write-Warn "tshark capture failed: $($_.Exception.Message)"
+        Write-Warn "tshark parse failed: $($_.Exception.Message)"
+    }
+    finally {
+        if ($tsharkCaptureJob) {
+            Remove-Job -Job $tsharkCaptureJob -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath $tempPcap) {
+            Remove-Item -LiteralPath $tempPcap -Force -ErrorAction SilentlyContinue
+        }
     }
 
+    Write-Info "DNS packets in capture: $dnsPacketCount"
+
     $domainSet = New-Object "System.Collections.Generic.HashSet[string]" ([System.StringComparer]::OrdinalIgnoreCase)
+    $dnsRowsCount = 0
     foreach ($line in $tsharkOutput) {
         $parts = "$line" -split "`t", 6
         if ($parts.Length -ge 3) {
+            $dnsRowsCount++
             foreach ($ipItem in @($parts[1], $parts[2])) {
                 $cleanIp = "$ipItem".Trim()
                 if ($cleanIp -match '^\d+\.\d+\.\d+\.\d+$') {
@@ -307,23 +512,22 @@ function Main {
         }
     }
 
+    if ($dnsRowsCount -eq 0) {
+        Write-Warn "No parseable DNS rows were returned by tshark."
+        $diagLines = @($tsharkOutput | Select-Object -First 5)
+        if ($diagLines.Count -gt 0) {
+            Write-Host "tshark output sample:" -ForegroundColor Yellow
+            foreach ($diag in $diagLines) {
+                Write-Host "  $diag" -ForegroundColor Yellow
+            }
+        }
+    }
+
     $domains = @($domainSet | Sort-Object)
-    $portRows = @($ports | Sort-Object)
     $ips = @($remoteIps | Sort-Object)
 
     Write-Host ""
     Write-Host "========================= RESULTS =========================" -ForegroundColor Cyan
-
-    Write-Host ""
-    Write-Host "Ports used by app (Get-NetTCPConnection/Get-NetUDPEndpoint + optional netstat):" -ForegroundColor White
-    if ($portRows.Count -eq 0) {
-        Write-Warn "No ports found for selected process during capture window"
-    }
-    else {
-        foreach ($p in $portRows) {
-            Write-Host "  $p" -ForegroundColor Green
-        }
-    }
 
     Write-Host ""
     Write-Host "DNS domains (captured on port 53 via tshark):" -ForegroundColor White
