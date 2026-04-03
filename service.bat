@@ -36,7 +36,7 @@ if "%~1"=="analyze_network" (
     setlocal EnableDelayedExpansion
     set "ANALYZE_EXE=%~2"
     set "ANALYZE_DURATION=%~3"
-    if not defined ANALYZE_DURATION set "ANALYZE_DURATION=900"
+    if not defined ANALYZE_DURATION set "ANALYZE_DURATION=120"
     call :analyze_network_run "!ANALYZE_EXE!" "!ANALYZE_DURATION!"
     endlocal
     exit /b
@@ -1040,7 +1040,7 @@ exit /b 0
 
 :: ANALYZE NETWORK =====================
 :analyze_network_select
-call :analyze_network_run "" "900"
+call :analyze_network_run "" "120"
 pause
 goto menu
 
@@ -1060,7 +1060,7 @@ if %errorLevel% neq 0 (
 
 set "ExePath=%~1"
 set "Duration=%~2"
-if "!Duration!"=="" set "Duration=900"
+if "!Duration!"=="" set "Duration=120"
 
 if "!ExePath!"=="" (
     for /f "usebackq delims=" %%I in (`powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Filter = 'Executable files (*.exe)|*.exe|All files (*.*)|*.*'; $d.Title = 'Select EXE file for network analysis'; if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$d.FileName}"`) do (
