@@ -46,3 +46,7 @@ betterttv.net
 7tv.io
 localizeapi.com
 klipy.com
+roblox.com
+titanium.roblox.com
+edge-term4.roblox.com
+edge-term4-fra4.roblox.com
