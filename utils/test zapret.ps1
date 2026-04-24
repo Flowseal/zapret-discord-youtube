@@ -287,8 +287,11 @@ function Invoke-DpiSuite {
             $failedLine = [PSCustomObject]@{
                 TestLabel  = 'RUNSPACE'
                 Code       = 'ERR'
-                SizeBytes  = 0
-                SizeKB     = 0
+                UpBytes    = 0
+                UpKB       = 0
+                DownBytes  = 0
+                DownKB     = 0
+                Time       = -1
                 Status     = 'FAIL'
                 Color      = 'Red'
                 Warned     = $false
@@ -898,9 +901,10 @@ try {
                 foreach ($line in $targetRes.Lines) {
                     $test = $line.TestLabel
                     $code = $line.Code
-                    $size = $line.SizeKB
+                    $upKB = $line.UpKB
+                    $downKB = $line.DownKB
                     $status = $line.Status
-                    Add-Content $resultFile "    ${test}: code=${code} size=${size} KB status=${status}"
+                    Add-Content $resultFile "    ${test}: code=${code} up=${upKB} KB down=${downKB} KB status=${status}"
                 }
             }
         }
