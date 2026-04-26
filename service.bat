@@ -883,7 +883,7 @@ set "url=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/
 echo Updating ipset-all...
 
 if exist "%SystemRoot%\System32\curl.exe" (
-    curl -L -o "%listFile%" "%url%"
+    curl --ssl-revoke-best-effort -L -o "%listFile%" "%url%"
 ) else (
     powershell -NoProfile -Command ^
         "$url = '%url%';" ^
