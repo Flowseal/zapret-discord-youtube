@@ -198,3 +198,11 @@ sc delete название_из_первого_шага
 [![Contributors](https://contrib.rocks/image?repo=Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discord-youtube/graphs/contributors)
 
 💖 Отдельная благодарность разработчику [zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van)
+
+## 💰 Bounty Contribution
+
+- **Task:** [Проблема] При заходе на Minecraft сервер в логах пишет это
+- **Reward:** $5
+- **Source:** GitHub-Paid
+- **Date:** 2026-04-27
+
