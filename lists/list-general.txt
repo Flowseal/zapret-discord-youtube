@@ -15,6 +15,7 @@ cloudflarestatus.com
 cloudflarestorage.com
 cloudflarestream.com
 cloudflaretest.com
+cloudfront.net
 dis.gd
 discord-attachments-uploads-prd.storage.googleapis.com
 discord.app
@@ -45,3 +46,4 @@ betterttv.net
 7tv.app
 7tv.io
 localizeapi.com
+klipy.com
