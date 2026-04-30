@@ -83,12 +83,13 @@ echo.
 echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
+echo      12. Scan Domain Cache
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -101,6 +102,7 @@ if "%menu_choice%"=="8" goto hosts_update
 if "%menu_choice%"=="9" goto service_check_updates
 if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="12" goto domain_cache_scan
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -992,6 +994,120 @@ echo.
 start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test zapret.ps1"
 pause
 goto menu
+
+
+:: SCAN DOMAIN CACHE =====================
+:domain_cache_scan
+chcp 437 > nul
+cls
+echo ============================================
+echo  Scanning DNS cache for blocked domains
+echo ============================================
+echo.
+echo Select services to scan (comma-separated numbers):
+echo   1. YouTube
+echo   2. Discord
+echo   3. Telegram [WARNING: may break proxy!]
+echo   4. Twitch
+echo   5. Spotify
+echo   6. SoundCloud
+echo   7. Roblox
+echo   8. Social (X, Reddit, Pinterest, TikTok, FB, Instagram, WhatsApp, Snapchat, Viber)
+echo   9. Games (Epic, Battle.net, Ubisoft, EA, Minecraft, Genshin Impact)
+echo   10. Dev (GitHub, Stack Overflow, Docker, NPM)
+echo   11. Cloudflare WARP
+echo   12. ALL (excludes Telegram)
+echo.
+
+set "serviceChoice=1,2,7"
+set /p "serviceChoice=Your selection (default 1,2,7): "
+
+call :check_command powershell
+if errorlevel 1 (
+    call :PrintRed "PowerShell is not available. Cannot scan DNS cache."
+    pause
+    goto menu
+)
+
+set "USER_LIST=%~dp0lists\list-general-user.txt"
+set "LISTS_DIR=%~dp0lists"
+set "LOG_FILE=%~dp0utils\scan_cache.log"
+
+if not exist "%USER_LIST%" (
+    echo Creating %USER_LIST%...
+    type nul > "%USER_LIST%"
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\scan_dns.ps1" -ServiceChoice "%serviceChoice%" -UserList "%USER_LIST%" -ListsDir "%LISTS_DIR%" -LogFile "%LOG_FILE%"
+
+echo.
+
+:: Offer zapret restart if service installed
+sc query "zapret" >nul 2>&1
+if !errorlevel!==0 (
+    set "RESTART_CHOICE=N"
+    set /p "RESTART_CHOICE=Restart zapret service now to apply changes? (Y/N, default N): "
+    if /i "!RESTART_CHOICE!"=="Y" (
+        echo Restarting zapret service...
+        net stop zapret >nul 2>&1
+        net start zapret >nul 2>&1
+        call :PrintGreen "zapret service restarted."
+    )
+)
+
+echo.
+
+:: Manage scheduled auto-scan
+schtasks /query /tn "zapret_autoscan" >nul 2>&1
+if !errorlevel!==0 (
+    set "DISABLE_CHOICE=N"
+    set /p "DISABLE_CHOICE=Disable scheduled auto-scan? (Y/N, default N): "
+    if /i "!DISABLE_CHOICE!"=="Y" (
+        schtasks /delete /tn "zapret_autoscan" /f >nul 2>&1
+        call :PrintGreen "Scheduled auto-scan disabled."
+    )
+) else (
+    set "SCHEDULE_CHOICE=N"
+    set /p "SCHEDULE_CHOICE=Schedule automatic domain scan every N hours? (Y/N, default N): "
+    if /i "!SCHEDULE_CHOICE!"=="Y" (
+        set "HOURS=6"
+        set /p "HOURS=Enter interval in hours (default 6): "
+        if "!HOURS!"=="" set "HOURS=6"
+        schtasks /create /tn "zapret_autoscan" /tr "\"%~f0\" autoscan %serviceChoice%" /sc hourly /mo !HOURS! /ru "SYSTEM" /f >nul 2>&1
+        if !errorlevel!==0 (
+            call :PrintGreen "Scheduled auto-scan enabled every !HOURS! hour(s)."
+            echo It will scan using service selection: %serviceChoice%
+            echo New domains will be added silently. View logs in utils\scan_cache.log
+        ) else (
+            call :PrintRed "Failed to create scheduled task. Try running as Administrator."
+        )
+    )
+)
+
+echo.
+echo ============================================
+echo  Scan completed. Press any key to return to menu.
+echo ============================================
+pause
+goto menu
+
+
+:: BACKGROUND AUTO SCAN ==================
+:autoscan
+setlocal EnableDelayedExpansion
+set "USER_LIST=%~dp0lists\list-general-user.txt"
+set "LISTS_DIR=%~dp0lists"
+set "LOG_FILE=%~dp0utils\scan_cache.log"
+
+if "%~1"=="" (
+    set "AUTO_CHOICE=12"
+) else (
+    set "AUTO_CHOICE=%~1"
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\scan_dns.ps1" -ServiceChoice "%AUTO_CHOICE%" -UserList "%USER_LIST%" -ListsDir "%LISTS_DIR%" -LogFile "%LOG_FILE%"
+endlocal
+exit /b
 
 
 :: Utility functions
