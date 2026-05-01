@@ -1004,6 +1004,9 @@ echo ============================================
 echo  Scanning DNS cache for blocked domains
 echo ============================================
 echo.
+echo WARNING: Adding many domains may break YouTube.
+echo If that happens, clear list-general-user.txt and restart zapret.
+echo.
 echo Select services to scan (comma-separated numbers):
 echo   1. YouTube
 echo   2. Discord
@@ -1104,7 +1107,7 @@ if "%~1"=="" (
 ) else (
     set "AUTO_CHOICE=%~1"
 )
-echo Scanning services: %serviceChoice%
+
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\scan_dns.ps1" -ServiceChoice "%AUTO_CHOICE%" -UserList "%USER_LIST%" -ListsDir "%LISTS_DIR%" -LogFile "%LOG_FILE%"
 endlocal
 exit /b
