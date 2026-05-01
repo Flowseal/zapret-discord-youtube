@@ -41,7 +41,8 @@ try {
 
 $added = 0
 $newDomains = @()
-foreach ($domain in ($candidates | Select-Object -Unique)) {
+$maxAddedDomains = 50
+foreach ($domain in ($candidates | Select-Object -Unique | Select-Object -First $maxAddedDomains)) {
     if ($domain -notin $existing) {
         $newDomains += $domain
         $added++
