@@ -1040,18 +1040,17 @@ if not exist "%USER_LIST%" (
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\scan_dns.ps1" -ServiceChoice "%serviceChoice%" -UserList "%USER_LIST%" -ListsDir "%LISTS_DIR%" -LogFile "%LOG_FILE%"
 
-echo.
-
-:: Offer zapret restart if service installed
-sc query "zapret" >nul 2>&1
-if !errorlevel!==0 (
-    set "RESTART_CHOICE=N"
-    set /p "RESTART_CHOICE=Restart zapret service now to apply changes? (Y/N, default N): "
-    if /i "!RESTART_CHOICE!"=="Y" (
-        echo Restarting zapret service...
-        net stop zapret >nul 2>&1
-        net start zapret >nul 2>&1
-        call :PrintGreen "zapret service restarted."
+if !errorlevel! equ 100 (
+    sc query "zapret" >nul 2>&1
+    if !errorlevel!==0 (
+        set "RESTART_CHOICE=N"
+        set /p "RESTART_CHOICE=Restart zapret service now to apply changes? (Y/N, default N): "
+        if /i "!RESTART_CHOICE!"=="Y" (
+            echo Restarting zapret service...
+            net stop zapret >nul 2>&1
+            net start zapret >nul 2>&1
+            call :PrintGreen "zapret service restarted."
+        )
     )
 )
 
