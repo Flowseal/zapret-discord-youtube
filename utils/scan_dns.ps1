@@ -41,7 +41,7 @@ try {
 
 $added = 0
 $newDomains = @()
-$maxAddedDomains = 50
+$maxAddedDomains = 100
 foreach ($domain in ($candidates | Select-Object -Unique | Select-Object -First $maxAddedDomains)) {
     $parent = $domain -replace '^.*?([^.]+\.[^.]+)$', '$1'
     if ($parent -in $existing -or $domain -in $existing) {
