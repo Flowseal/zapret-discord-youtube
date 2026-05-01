@@ -1,4 +1,4 @@
-#Scan DNS cache find blocked domains and updates list-general-user.txt
+# scan_dns.ps1 - Scans DNS cache for blocked domains and updates list-general-user.txt
 param(
     [string]$ServiceChoice = "1,2,7",
     [string]$UserList = "..\lists\list-general-user.txt",
@@ -71,47 +71,24 @@ Write-Host "=== VALIDATING LIST FILES ===" -ForegroundColor Cyan
 
 $userListFiles = Get-ChildItem -Path $ListsDir -Filter "*user*.txt" | Where-Object { $_.Name -like "list-general*" -or $_.Name -like "list-exclude*" }
 $totalIssues = 0
-$fixes = @()
 
 foreach ($file in $userListFiles) {
     $issues = @()
     $lines = Get-Content $file.FullName
-    $newLines = @()
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
         $trimmed = $line.Trim()
         
-        if ($trimmed -eq '' -or $trimmed.StartsWith('#')) { $newLines += $line; continue }
+        if ($trimmed -eq '' -or $trimmed.StartsWith('#')) { continue }
         
-        $fixed = $trimmed
-        $changed = $false
-        
-        if ($fixed -match '^https?://') {
-            $issues += "Line $($i+1): Remove 'https://' prefix"
-            $fixed = $fixed -replace '^https?://', ''
-            $changed = $true
+        if ($trimmed -match '^https?://') {
+            $issues += "Line $($i+1): Remove 'https://' prefix -> $($trimmed -replace '^https?://', '')"
+        } elseif ($trimmed -match '\s') {
+            $issues += "Line $($i+1): Contains spaces -> $($trimmed -replace '\s+', '')"
         }
-        if ($fixed -match '\s') {
-            $issues += "Line $($i+1): Contains spaces"
-            $fixed = $fixed -replace '\s+', ''
-            $changed = $true
-        }
-        # Fix accidental merging with comment (e.g., "domain.com# comment")
-        if ($fixed -match '^(.*?)(#.*)$') {
-            $domainPart = $Matches[1]
-            $commentPart = $Matches[2]
-            if ($domainPart -ne '' -and $commentPart -match 'auto-detected') {
-                $issues += "Line $($i+1): Merged with comment, splitting"
-                $newLines += $domainPart
-                $newLines += $commentPart
-                $changed = $true
-                continue
-            }
-        }
-        $newLines += if ($changed) { $fixed } else { $line }
     }
     
-    $duplicates = $newLines | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' } | ForEach-Object { $_.Trim() } | Group-Object | Where-Object { $_.Count -gt 1 }
+    $duplicates = $lines | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' } | ForEach-Object { $_.Trim() } | Group-Object | Where-Object { $_.Count -gt 1 }
     foreach ($dup in $duplicates) {
         $issues += "Duplicate domain found: $($dup.Name) ($($dup.Count) times)"
     }
@@ -122,32 +99,11 @@ foreach ($file in $userListFiles) {
             Write-Host "    $issue" -ForegroundColor Gray
         }
         $totalIssues += $issues.Count
-        
-        $choice = Read-Host "Do you want to fix these issues automatically? (Y/N, default N)"
-        if ($choice -eq 'Y' -or $choice -eq 'y') {
-            # Remove duplicates
-            $unique = $newLines | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' } | ForEach-Object { $_.Trim() } | Select-Object -Unique
-            $comments = $newLines | Where-Object { $_ -match '^\s*#' }
-            $final = @()
-            # Rebuild file preserving comment blocks and unique domains
-            foreach ($line in $newLines) {
-                $trimmed = $line.Trim()
-                if ($trimmed -eq '') { $final += $line; continue }
-                if ($trimmed.StartsWith('#')) {
-                    $final += $line
-                } elseif ($unique -contains $trimmed) {
-                    $final += $trimmed
-                    $unique = $unique -ne $trimmed
-                }
-            }
-            $final | Set-Content $file.FullName -Encoding UTF8
-            Write-Host "    [FIXED] $($issues.Count) issue(s) resolved." -ForegroundColor Green
-        }
     }
 }
 
 if ($totalIssues -gt 0) {
-    Write-Host "[!] Total issues found: $totalIssues." -ForegroundColor Yellow
+    Write-Host "[!] Total issues found: $totalIssues. Consider fixing them for stable bypass." -ForegroundColor Yellow
 } else {
     Write-Host "[OK] No issues found in list files." -ForegroundColor Green
 }
