@@ -1040,7 +1040,7 @@ if not exist "%USER_LIST%" (
     echo Creating %USER_LIST%...
     type nul > "%USER_LIST%"
 )
-
+echo Scanning services: %serviceChoice%
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\scan_dns.ps1" -ServiceChoice "%serviceChoice%" -UserList "%USER_LIST%" -ListsDir "%LISTS_DIR%" -LogFile "%LOG_FILE%"
 
 if !errorlevel! equ 100 (
