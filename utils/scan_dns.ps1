@@ -43,7 +43,6 @@ $added = 0
 $newDomains = @()
 $maxAddedDomains = 50
 foreach ($domain in ($candidates | Select-Object -Unique | Select-Object -First $maxAddedDomains)) {
-    # Skip if parent domain already exists in any list
     $parent = $domain -replace '^.*?([^.]+\.[^.]+)$', '$1'
     if ($parent -in $existing -or $domain -in $existing) {
         continue
