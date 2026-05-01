@@ -124,6 +124,7 @@ exit /b
 
 :: TCP ENABLE ==========================
 :tcp_enable
+chcp 437 > nul
 netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul || netsh interface tcp set global timestamps=enabled > nul 2>&1
 exit /b
 
