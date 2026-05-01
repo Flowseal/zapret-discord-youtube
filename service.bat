@@ -1073,13 +1073,14 @@ if !errorlevel!==0 (
         set "HOURS=6"
         set /p "HOURS=Enter interval in hours (default 6): "
         if "!HOURS!"=="" set "HOURS=6"
-        schtasks /create /tn "zapret_autoscan" /tr "\"%~f0\" autoscan %serviceChoice%" /sc hourly /mo !HOURS! /ru "SYSTEM" /f >nul 2>&1
+        echo Creating scheduled task...
+        schtasks /create /tn "zapret_autoscan" /tr "\"%~f0\" autoscan %serviceChoice%" /sc hourly /mo !HOURS! /ru "SYSTEM" /f
         if !errorlevel!==0 (
             call :PrintGreen "Scheduled auto-scan enabled every !HOURS! hour(s)."
             echo It will scan using service selection: %serviceChoice%
             echo New domains will be added silently. View logs in utils\scan_cache.log
         ) else (
-            call :PrintRed "Failed to create scheduled task. Try running as Administrator."
+            call :PrintRed "Failed to create scheduled task. Make sure you run as Administrator."
         )
     )
 )
