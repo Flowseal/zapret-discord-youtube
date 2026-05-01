@@ -1,4 +1,4 @@
-# scan_dns.ps1 - Scans DNS cache for blocked domains and updates list-general-user.txt
+# scan_dns.ps1
 param(
     [string]$ServiceChoice = "1,2,7",
     [string]$UserList = "..\lists\list-general-user.txt",
