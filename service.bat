@@ -1104,7 +1104,7 @@ if "%~1"=="" (
 ) else (
     set "AUTO_CHOICE=%~1"
 )
-
+echo Scanning services: %serviceChoice%
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\scan_dns.ps1" -ServiceChoice "%AUTO_CHOICE%" -UserList "%USER_LIST%" -ListsDir "%LISTS_DIR%" -LogFile "%LOG_FILE%"
 endlocal
 exit /b
