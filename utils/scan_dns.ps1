@@ -1,6 +1,6 @@
 # scan_dns.ps1
 param(
-    [string]$ServiceChoice = "1,2,7",
+    [string]$ServiceChoice = "1,2",
     [string]$UserList = "..\lists\list-general-user.txt",
     [string]$ListsDir = "..\lists",
     [string]$LogFile = "scan_cache.log"
