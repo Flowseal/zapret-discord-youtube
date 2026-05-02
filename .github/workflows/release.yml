@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify version matches version.txt
+        run: |
+          VERSION=$(cat .service/version.txt)
+          if [ "$VERSION" != "${{ github.event.inputs.tag }}" ]; then
+            echo "Error: tag '${{ github.event.inputs.tag }}' does not match .service/version.txt ('$VERSION')"
+            exit 1
+          fi
+
+      - name: Install tools
+        run: sudo apt-get install -y rar p7zip-full
+
+      - name: Create archives
+        run: |
+          NAME="zapret-discord-youtube-${{ github.event.inputs.tag }}"
+          7z a "${NAME}.zip" bin/ lists/ utils/ *.bat
+          rar a "${NAME}.rar" bin/ lists/ utils/ *.bat
+
+      - name: Print SHA256 checksums
+        run: |
+          NAME="zapret-discord-youtube-${{ github.event.inputs.tag }}"
+          sha256sum "${NAME}.zip" "${NAME}.rar"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          name: ${{ github.event.inputs.tag }}
+          files: |
+            zapret-discord-youtube-${{ github.event.inputs.tag }}.zip
+            zapret-discord-youtube-${{ github.event.inputs.tag }}.rar
