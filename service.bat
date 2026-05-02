@@ -1022,8 +1022,8 @@ echo   11. Cloudflare WARP
 echo   12. ALL (excludes Telegram)
 echo.
 
-set "serviceChoice=1,2,7"
-set /p "serviceChoice=Your selection (default 1,2,7): "
+set "serviceChoice=1,2"
+set /p "serviceChoice=Your selection (default 1,2): "
 
 call :check_command powershell
 if errorlevel 1 (
