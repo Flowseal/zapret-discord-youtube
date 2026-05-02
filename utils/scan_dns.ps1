@@ -47,6 +47,12 @@ foreach ($domain in ($candidates | Select-Object -Unique | Select-Object -First 
     if ($parent -in $existing -or $domain -in $existing) {
         continue
     }
+
+    # skip non-CDN subdomains for googlevideo/ggpht/ytimg
+    if ($domain -match 'googlevideo|ggpht|ytimg' -and $domain -notmatch 'sn-') {
+        continue
+    }
+
     $newDomains += $domain
     $added++
 }
