@@ -68,10 +68,12 @@ if ($added -gt 0) {
     $logEntry | Add-Content -Path $LogFile -Encoding UTF8
     Write-Host "[+] Added $added new domain(s) to list-general-user.txt" -ForegroundColor Green
     Write-Host "    See log: utils\scan_cache.log" -ForegroundColor Gray
+    exit 100
 } else {
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
     $logEntry = "$timestamp | Choice: $ServiceChoice | No new domains"
     $logEntry | Add-Content -Path $LogFile -Encoding UTF8
     Write-Host "[*] No new domains found. Your list is up to date." -ForegroundColor Yellow
     Write-Host "    Tip: manually removed domains may still exist in other lists." -ForegroundColor Gray
+    exit 0
 }
