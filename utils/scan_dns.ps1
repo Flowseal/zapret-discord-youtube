@@ -57,6 +57,27 @@ foreach ($domain in ($candidates | Select-Object -Unique | Select-Object -First 
     $added++
 }
 
+if (Test-Path $UserList) {
+    $lines = Get-Content $UserList -Encoding UTF8
+    $newLines = @()
+    $i = 0
+    while ($i -lt $lines.Count) {
+        $line = $lines[$i]
+        if ($line -match '^# =+') {
+            # Found a separator, skip until the next separator (end of auto-block)
+            $i++
+            while ($i -lt $lines.Count -and $lines[$i] -notmatch '^# =+') {
+                $i++
+            }
+            if ($i -lt $lines.Count) { $i++ }  # skip closing separator
+            continue
+        }
+        $newLines += $line
+        $i++
+    }
+    $newLines | Set-Content $UserList -Encoding UTF8
+}
+
 if ($added -gt 0) {
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
     $separator = '# ' + '='*65
