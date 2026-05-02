@@ -41,6 +41,7 @@ riotcdn.net
 leagueoflegends.com
 playvalorant.com
 marketplace.visualstudio.com
+vsassets.io
 gosuslugi.ru
 gov.ru
 nalog.ru
