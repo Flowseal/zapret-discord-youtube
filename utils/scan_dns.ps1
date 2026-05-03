@@ -1,6 +1,6 @@
 # scan_dns.ps1
 param(
-    [string]$ServiceChoice = "1,2",
+    [string]$ServiceChoice,
     [string]$UserList = "..\lists\list-general-user.txt",
     [string]$ListsDir = "..\lists",
     [string]$LogFile = "scan_cache.log"
@@ -97,6 +97,6 @@ if ($added -gt 0) {
     $logEntry = "$timestamp | Choice: $ServiceChoice | No new domains"
     $logEntry | Add-Content -Path $LogFile -Encoding UTF8
     Write-Host "[*] No new domains found. Your list is up to date." -ForegroundColor Yellow
-    Write-Host "    Tip: manually removed domains may still exist in other lists." -ForegroundColor Gray
+    Write-Host "    Tip: manually removed domains may still exist in other lists." 
     exit 0
 }
