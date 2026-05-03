@@ -20,7 +20,7 @@ if ($choices -contains '8') { $patterns += @('twitter','x.com','twimg','reddit',
 if ($choices -contains '9') { $patterns += @('epicgames','unrealengine','fortnite','battle.net','blizzard','ubisoft','ubi','origin','ea.com','minecraft','mojang','genshin','hoyoverse','mihoyo') }
 if ($choices -contains '10') { $patterns += @('github','githubusercontent','stackoverflow','stackexchange','docker','docker.io','npmjs','npm') }
 if ($choices -contains '11') { $patterns += @('cloudflareclient','warp') }
-if ($choices -contains '12') { $patterns += @('googlevideo','ggpht','ytimg','youtube','youtu.be','googleapis','gvt1','video','play.google.com','discord','discordapp','discord.gg','discord.media','twitch','ttvnw','jtvnw','twitchcdn','spotify','scdn','spotifycdn','soundcloud','sndcdn','roblox','rbxcdn','arkoselabs','rblx','rbx','robloxlabs','ro-blox','roblox-api','twitter','x.com','twimg','reddit','redd.it','redditmedia','pinterest','pinimg','tiktok','tiktokcdn','bytedance','facebook','fbcdn','fb.com','fb.me','instagram','cdninstagram','instagram.feed','whatsapp','whatsapp.net','wa.me','snapchat','snapkit','viber','epicgames','unrealengine','fortnite','battle.net','blizzard','ubisoft','ubi','origin','ea.com','minecraft','mojang','genshin','hoyoverse','mihoyo','github','githubusercontent','stackoverflow','stackexchange','docker','docker.io','npmjs','npm','cloudflareclient','warp') }
+if ($choices -contains '12') { $patterns += @('googlevideo','ggpht','ytimg','youtube','youtu.be','googleapis','gvt1','video','play.google.com','discord','discordapp','discord.gg','discord.media','telegram','t.me','web.telegram','twitch','ttvnw','jtvnw','twitchcdn','spotify','scdn','spotifycdn','soundcloud','sndcdn','roblox','rbxcdn','arkoselabs','rblx','rbx','robloxlabs','ro-blox','roblox-api','twitter','x.com','twimg','reddit','redd.it','redditmedia','pinterest','pinimg','tiktok','tiktokcdn','bytedance','facebook','fbcdn','fb.com','fb.me','instagram','cdninstagram','instagram.feed','whatsapp','whatsapp.net','wa.me','snapchat','snapkit','viber','epicgames','unrealengine','fortnite','battle.net','blizzard','ubisoft','ubi','origin','ea.com','minecraft','mojang','genshin','hoyoverse','mihoyo','github','githubusercontent','stackoverflow','stackexchange','docker','docker.io','npmjs','npm','cloudflareclient','warp') }
 
 $existing = @()
 if (Test-Path $ListsDir) {
@@ -43,9 +43,12 @@ $added = 0
 $newDomains = @()
 
 $currentEntryCount = 0
-if (Test-Path $UserList) {
-    $currentEntryCount = (Get-Content $UserList -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' }).Count
-}
+try {
+    if (Test-Path $UserList) {
+        $currentEntryCount = (Get-Content $UserList -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' }).Count
+    }
+} catch { $currentEntryCount = 0 }
+
 if ($currentEntryCount -lt 200) {
     $maxAddedDomains = 100
 } elseif ($currentEntryCount -lt 500) {
@@ -62,14 +65,13 @@ foreach ($domain in ($sortedCandidates | Select-Object -First $maxAddedDomains))
     if ($parent -in $existing -and $parent -notmatch 'googlevideo|ggpht|ytimg') { continue }
 
     try {
-        $dns = Resolve-DnsName -Name $domain -Type A -QuickTimeout -ErrorAction Stop
-        if (-not $dns -or ($dns.IPAddress -eq '0.0.0.0') -or ($dns.IPAddress -eq '127.0.0.1')) { continue }
+        $dns = Resolve-DnsName -Name $domain -Type A -ErrorAction Stop
+        if (-not $dns -or ($dns.IPAddress -eq '127.0.0.1')) { continue }
     } catch { continue }
 
     $newDomains += $domain
     $added++
 }
-
 if (Test-Path $UserList) {
     $lines = Get-Content $UserList -Encoding UTF8
     $newLines = @()
