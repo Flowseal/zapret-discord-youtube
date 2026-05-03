@@ -1016,9 +1016,9 @@ echo   4. Twitch
 echo   5. Spotify
 echo   6. SoundCloud
 echo   7. Roblox
-echo   8. Social (X, Reddit, Pinterest, TikTok, FB, Instagram, WhatsApp, Snapchat, Viber)
-echo   9. Games (Epic, Battle.net, Ubisoft, EA, Minecraft, Genshin Impact)
-echo   10. Dev (GitHub, Stack Overflow, Docker, NPM)
+echo   8. Social (networks)
+echo   9. Games (launchers)
+echo   10. Dev  (services)
 echo   11. Cloudflare WARP
 echo   12. ALL
 echo.
