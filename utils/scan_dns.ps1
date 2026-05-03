@@ -42,12 +42,17 @@ try {
 $added = 0
 $newDomains = @()
 $maxAddedDomains = 100
+$parentCounts = @{}
 foreach ($domain in ($candidates | Select-Object -Unique | Select-Object -First $maxAddedDomains)) {
     $parent = $domain -replace '^.*?([^.]+\.[^.]+)$', '$1'
-    if ($parent -in $existing -or $domain -in $existing) {
-        continue
-    }
-
+    
+    # Block only if this exact domain is already in lists (not the parent)
+    if ($domain -in $existing) { continue }
+    
+    # Limit subdomains per parent (max 5)
+    if (-not $parentCounts.ContainsKey($parent)) { $parentCounts[$parent] = 0 }
+    if ($parentCounts[$parent] -ge 5) { continue }
+    
     # skip non-CDN subdomains for googlevideo/ggpht/ytimg
     if ($domain -match 'googlevideo|ggpht|ytimg' -and $domain -notmatch 'sn-') {
         continue
@@ -55,6 +60,7 @@ foreach ($domain in ($candidates | Select-Object -Unique | Select-Object -First 
 
     $newDomains += $domain
     $added++
+    $parentCounts[$parent]++
 }
 
 if (Test-Path $UserList) {
