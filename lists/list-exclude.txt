@@ -15,9 +15,6 @@ ya.ru
 dns-shop.ru
 habr.com
 3dnews.ru
-sberbank.ru
-ozon.ru
-wildberries.ru
 microsoft.com
 microsoftonline.com
 live.com
@@ -54,14 +51,11 @@ ok.ru
 mycdn.me
 okcdn.ru
 odkl.ru
-wbbasket.ru
 wb.ru
-ozone.ru
 geobasket.ru
 paywb.com
 rwb.ru
 wb-basket.ru
-wb.ru
 wbbasket.ru
 wbpay.ru
 wibes.ru
