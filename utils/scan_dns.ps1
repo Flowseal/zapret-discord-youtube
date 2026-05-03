@@ -81,20 +81,34 @@ foreach ($domain in ($sortedCandidates | Select-Object -First $maxAddedDomains))
 
 if (Test-Path $UserList) {
     $lines = Get-Content $UserList -Encoding UTF8
-    $newLines = @()
-    $i = 0
-    while ($i -lt $lines.Count) {
-        $line = $lines[$i]
+    $oldDomains = @()
+    $inOldBlock = $false
+
+    foreach ($line in $lines) {
         if ($line -match '^# =+') {
-            $i++
-            while ($i -lt $lines.Count -and $lines[$i] -notmatch '^# =+') {
-                $i++
-            }
-            if ($i -lt $lines.Count) { $i++ }
+            $inOldBlock = -not $inOldBlock
             continue
         }
-        $newLines += $line
-        $i++
+        if ($inOldBlock -and $line -notmatch '^\s*#' -and $line.Trim() -ne '') {
+            $oldDomains += $line.Trim()
+        }
+    }
+
+    $cacheNames = $cache | ForEach-Object { $_.Name }
+    $survivingOld = $oldDomains | Where-Object { $_ -in $cacheNames }
+
+    $newDomains = ($survivingOld + $newDomains) | Select-Object -Unique
+
+    $newLines = @()
+    $skip = $false
+    foreach ($line in $lines) {
+        if ($line -match '^# =+') {
+            $skip = -not $skip
+            continue
+        }
+        if (-not $skip) {
+            $newLines += $line
+        }
     }
     $newLines | Set-Content $UserList -Encoding UTF8
 }
@@ -104,8 +118,8 @@ if ($added -gt 0) {
     $separator = '# ' + '='*65
     $separator | Add-Content -Path $UserList -Encoding UTF8
     "# Auto-detected on $timestamp" | Add-Content -Path $UserList -Encoding UTF8
-    $separator | Add-Content -Path $UserList -Encoding UTF8
     $newDomains | Add-Content -Path $UserList -Encoding UTF8
+    $separator | Add-Content -Path $UserList -Encoding UTF8
     $logEntry = "$timestamp | Choice: $ServiceChoice | Added domains: $added"
     $logEntry | Add-Content -Path $LogFile -Encoding UTF8
     Write-Host "[+] Added $added new domain(s) to list-general-user.txt" -ForegroundColor Green
