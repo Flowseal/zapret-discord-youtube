@@ -1020,7 +1020,7 @@ echo   8. Social (X, Reddit, Pinterest, TikTok, FB, Instagram, WhatsApp, Snapcha
 echo   9. Games (Epic, Battle.net, Ubisoft, EA, Minecraft, Genshin Impact)
 echo   10. Dev (GitHub, Stack Overflow, Docker, NPM)
 echo   11. Cloudflare WARP
-echo   12. ALL (excludes Telegram)
+echo   12. ALL
 echo.
 
 set "serviceChoice=1,2"
