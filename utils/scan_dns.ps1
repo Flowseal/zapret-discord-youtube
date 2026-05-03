@@ -99,35 +99,43 @@ if (Test-Path $UserList) {
 
     $newDomains = ($survivingOld + $newDomains) | Select-Object -Unique
 
-    $newLines = @()
-    $skip = $false
-    foreach ($line in $lines) {
-        if ($line -match '^# =+') {
-            $skip = -not $skip
-            continue
+    if ($newDomains.Count -gt 0) {
+        $newLines = @()
+        $skip = $false
+        foreach ($line in $lines) {
+            if ($line -match '^# =+') {
+                $skip = -not $skip
+                continue
+            }
+            if (-not $skip) {
+                $newLines += $line
+            }
         }
-        if (-not $skip) {
-            $newLines += $line
-        }
-    }
-    $newLines | Set-Content $UserList -Encoding UTF8
-}
+        $newLines | Set-Content $UserList -Encoding UTF8
 
-if ($added -gt 0) {
-    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
-    $separator = '# ' + '='*65
-    $separator | Add-Content -Path $UserList -Encoding UTF8
-    "# Auto-detected on $timestamp" | Add-Content -Path $UserList -Encoding UTF8
-    $newDomains | Add-Content -Path $UserList -Encoding UTF8
-    $separator | Add-Content -Path $UserList -Encoding UTF8
-    $logEntry = "$timestamp | Choice: $ServiceChoice | Added domains: $added"
-    $logEntry | Add-Content -Path $LogFile -Encoding UTF8
-    Write-Host "[+] Added $added new domain(s) to list-general-user.txt" -ForegroundColor Green
-    Write-Host "    See log: utils\scan_cache.log"
+        $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
+        $separator = '# ' + '='*65
+        Add-Content -Path $UserList -Value $separator -Encoding UTF8
+        Add-Content -Path $UserList -Value "# Auto-detected on $timestamp" -Encoding UTF8
+        Add-Content -Path $UserList -Value "# Services: $ServiceChoice" -Encoding UTF8
+        foreach ($domain in $newDomains) {
+            Add-Content -Path $UserList -Value $domain -Encoding UTF8
+        }
+        Add-Content -Path $UserList -Value $separator -Encoding UTF8
+
+        $logEntry = "$timestamp | Choice: $ServiceChoice | Added domains: $added"
+        Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
+        Write-Host "[+] Added $added new domain(s) to list-general-user.txt" -ForegroundColor Green
+        Write-Host "    See log: utils\scan_cache.log"
+    } else {
+        $logEntry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm') | Choice: $ServiceChoice | No new domains"
+        Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
+        Write-Host "[*] No new domains found. Your list is up to date." -ForegroundColor Yellow
+        Write-Host "    Tip: manually removed domains may still exist in other lists." 
+    }
 } else {
-    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
-    $logEntry = "$timestamp | Choice: $ServiceChoice | No new domains"
-    $logEntry | Add-Content -Path $LogFile -Encoding UTF8
+    $logEntry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm') | Choice: $ServiceChoice | No new domains"
+    Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
     Write-Host "[*] No new domains found. Your list is up to date." -ForegroundColor Yellow
     Write-Host "    Tip: manually removed domains may still exist in other lists." 
 }
