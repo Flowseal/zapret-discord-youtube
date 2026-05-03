@@ -41,26 +41,30 @@ try {
 
 $added = 0
 $newDomains = @()
-$maxAddedDomains = 100
-$parentCounts = @{}
-foreach ($domain in ($candidates | Select-Object -Unique | Select-Object -First $maxAddedDomains)) {
-    $parent = $domain -replace '^.*?([^.]+\.[^.]+)$', '$1'
-    
+
+$currentEntryCount = 0
+if (Test-Path $UserList) {
+    $currentEntryCount = (Get-Content $UserList -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' }).Count
+}
+if ($currentEntryCount -lt 200) {
+    $maxAddedDomains = 100
+} elseif ($currentEntryCount -lt 500) {
+    $maxAddedDomains = 20
+} else {
+    $maxAddedDomains = 5
+}
+
+$sortedCandidates = $candidates | Select-Object -Unique | Sort-Object { $_.Length } -Descending
+foreach ($domain in ($sortedCandidates | Select-Object -First $maxAddedDomains)) {
     if ($domain -in $existing) { continue }
-    
-    $entry = $cache | Where-Object { $_.Name -eq $domain } | Select-Object -First 1
-    if ($entry -and $entry.TTL -gt 300) { continue }
-    
-    if (-not $parentCounts.ContainsKey($parent)) { $parentCounts[$parent] = 0 }
-    if ($parentCounts[$parent] -ge 5) { continue }
-    
-    if ($domain -match 'googlevideo|ggpht|ytimg' -and $domain -notmatch 'sn-') {
-        continue
-    }
+
+    try {
+        $dns = Resolve-DnsName -Name $domain -Type A -QuickTimeout -ErrorAction Stop
+        if (-not $dns -or ($dns.IPAddress -eq '0.0.0.0') -or ($dns.IPAddress -eq '127.0.0.1')) { continue }
+    } catch { continue }
 
     $newDomains += $domain
     $added++
-    $parentCounts[$parent]++
 }
 
 if (Test-Path $UserList) {
