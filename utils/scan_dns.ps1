@@ -71,7 +71,7 @@ if (Test-Path $UserList) {
             while ($i -lt $lines.Count -and $lines[$i] -notmatch '^# =+') {
                 $i++
             }
-            if ($i -lt $lines.Count) { $i++ }  # skip closing separator
+            if ($i -lt $lines.Count) { $i++ }
             continue
         }
         $newLines += $line
