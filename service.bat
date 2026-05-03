@@ -1011,7 +1011,7 @@ echo.
 echo Select services to scan (comma-separated numbers):
 echo   1. YouTube
 echo   2. Discord
-echo   3. Telegram [WARNING: may break proxy!]
+echo   3. Telegram
 echo   4. Twitch
 echo   5. Spotify
 echo   6. SoundCloud
@@ -1043,20 +1043,6 @@ if not exist "%USER_LIST%" (
 )
 echo Scanning services: %serviceChoice%
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\scan_dns.ps1" -ServiceChoice "%serviceChoice%" -UserList "%USER_LIST%" -ListsDir "%LISTS_DIR%" -LogFile "%LOG_FILE%"
-
-if !errorlevel! equ 100 (
-    sc query "zapret" >nul 2>&1
-    if !errorlevel!==0 (
-        set "RESTART_CHOICE=N"
-        set /p "RESTART_CHOICE=Restart zapret service now to apply changes? (Y/N, default N): "
-        if /i "!RESTART_CHOICE!"=="Y" (
-            echo Restarting zapret service...
-            net stop zapret >nul 2>&1
-            net start zapret >nul 2>&1
-            call :PrintGreen "zapret service restarted."
-        )
-    )
-)
 
 echo.
 
