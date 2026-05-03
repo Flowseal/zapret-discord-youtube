@@ -2,6 +2,7 @@ yt3.ggpht.com
 yt4.ggpht.com
 yt3.googleusercontent.com
 googlevideo.com
+gstatic.com
 jnn-pa.googleapis.com
 stable.dl2.discordapp.net
 wide-youtube.l.google.com
