@@ -48,6 +48,9 @@ foreach ($domain in ($candidates | Select-Object -Unique | Select-Object -First 
     
     if ($domain -in $existing) { continue }
     
+    $entry = $cache | Where-Object { $_.Name -eq $domain } | Select-Object -First 1
+    if ($entry -and $entry.TTL -gt 300) { continue }
+    
     if (-not $parentCounts.ContainsKey($parent)) { $parentCounts[$parent] = 0 }
     if ($parentCounts[$parent] -ge 5) { continue }
     
