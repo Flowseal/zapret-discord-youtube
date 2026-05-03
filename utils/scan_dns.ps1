@@ -58,6 +58,9 @@ $sortedCandidates = $candidates | Select-Object -Unique | Sort-Object { $_.Lengt
 foreach ($domain in ($sortedCandidates | Select-Object -First $maxAddedDomains)) {
     if ($domain -in $existing) { continue }
 
+    $parent = $domain -replace '^.*?([^.]+\.[^.]+)$', '$1'
+    if ($parent -in $existing -and $parent -notmatch 'googlevideo|ggpht|ytimg') { continue }
+
     try {
         $dns = Resolve-DnsName -Name $domain -Type A -QuickTimeout -ErrorAction Stop
         if (-not $dns -or ($dns.IPAddress -eq '0.0.0.0') -or ($dns.IPAddress -eq '127.0.0.1')) { continue }
