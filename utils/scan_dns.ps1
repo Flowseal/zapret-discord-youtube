@@ -94,20 +94,19 @@ if (Test-Path $UserList) {
     $cleaned | Select-Object -Unique -CaseSensitive:$false | Set-Content $UserList -Encoding UTF8
     $lines = $cleaned
 
-    if ($added -gt 0) {
-        $oldDomains = @()
-        $inOldBlock = $false
-
-        foreach ($line in $lines) {
-            if ($line -match '^# =+') {
-                $inOldBlock = -not $inOldBlock
-                continue
-            }
-            if ($inOldBlock -and $line -notmatch '^\s*#' -and $line.Trim() -ne '') {
-                $oldDomains += $line.Trim()
-            }
+    $oldDomains = @()
+    $inOldBlock = $false
+    foreach ($line in $lines) {
+        if ($line -match '^# =+') {
+            $inOldBlock = -not $inOldBlock
+            continue
         }
+        if ($inOldBlock -and $line -notmatch '^\s*#' -and $line.Trim() -ne '') {
+            $oldDomains += $line.Trim()
+        }
+    }
 
+    if ($added -gt 0) {
         $cacheNames = $cache | % { $_.Name }
         $survivingOld = $oldDomains | ? { $_ -in $cacheNames }
 
@@ -143,23 +142,12 @@ if (Test-Path $UserList) {
         Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
         Write-Host "[+] Added $added new domain(s) to list-general-user.txt" -ForegroundColor Green
         Write-Host "    See log: utils\scan_cache.log"
-       } else {
+    } else {
         $logEntry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm') | Choice: $ServiceChoice | No new domains"
         Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
         Write-Host "[*] No new domains found. Your list is up to date." -ForegroundColor Yellow
 
         if ($currentEntryCount -gt 1000) {
-            $oldDomains = @()
-            $inOldBlock = $false
-            foreach ($line in $lines) {
-                if ($line -match '^# =+') {
-                    $inOldBlock = -not $inOldBlock
-                    continue
-                }
-                if ($inOldBlock -and $line -notmatch '^\s*#' -and $line.Trim() -ne '') {
-                    $oldDomains += $line.Trim()
-                }
-            }
             $cacheNames = $cache | % { $_.Name }
             $survivingOld = $oldDomains | ? { $_ -in $cacheNames }
             $newDomains = $survivingOld | Select-Object -Unique
@@ -185,3 +173,4 @@ if (Test-Path $UserList) {
         }
         Write-Host "    Tip: manually removed domains may still exist in other lists." 
     }
+}
