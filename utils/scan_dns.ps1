@@ -88,10 +88,10 @@ if (Test-Path $UserList) {
         if ($_ -match '^\s*#') {
             $_
         } else {
-            ($_.Trim() -split '\s+')[0]
+            ($_.Trim() -split '\s+')[0].ToLower()
         }
     }
-    $cleaned | Select-Object -Unique -CaseSensitive:$false | Set-Content $UserList -Encoding UTF8
+    $cleaned | Select-Object -Unique | Set-Content $UserList -Encoding UTF8
     $lines = $cleaned
 
     $oldDomains = @()
