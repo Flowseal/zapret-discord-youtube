@@ -54,7 +54,10 @@ try {
     }
 } catch { $currentEntryCount = 0 }
 
-$maxAddedDomains = [Math]::Max(5, [Math]::Min(100, [int]($currentEntryCount * 0.2)))
+$maxAddedDomains = [int]($currentEntryCount * 0.2)
+if ($maxAddedDomains -lt 5) { $maxAddedDomains = 5 }
+if ($maxAddedDomains -gt 100) { $maxAddedDomains = 100 }
+if ($currentEntryCount -gt 1000) { $maxAddedDomains = 1 }
 
 $sortedCandidates = $candidates | Select-Object -Unique | Sort-Object { $_.Length } -Descending
 foreach ($domain in ($sortedCandidates | Select-Object -First $maxAddedDomains)) {
@@ -88,7 +91,7 @@ if (Test-Path $UserList) {
             ($_.Trim() -split '\s+')[0]
         }
     }
-    $cleaned | Select-Object -Unique | Set-Content $UserList -Encoding UTF8
+    $cleaned | Select-Object -Unique -CaseSensitive:$false | Set-Content $UserList -Encoding UTF8
     $lines = $cleaned
 
     if ($added -gt 0) {
@@ -144,6 +147,29 @@ if (Test-Path $UserList) {
         $logEntry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm') | Choice: $ServiceChoice | No new domains"
         Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
         Write-Host "[*] No new domains found. Your list is up to date." -ForegroundColor Yellow
+                if ($currentEntryCount -gt 1000) {
+            $cacheNames = $cache | % { $_.Name }
+            $survivingOld = $oldDomains | ? { $_ -in $cacheNames }
+            $newDomains = $survivingOld | Select-Object -Unique
+            if ($newDomains.Count -ne $oldDomains.Count) {
+                $newLines = @()
+                $skip = $false
+                foreach ($line in $lines) {
+                    if ($line -match '^# =+') { $skip = -not $skip; continue }
+                    if (-not $skip) { $newLines += $line }
+                }
+                $newLines | Set-Content $UserList -Encoding UTF8
+                $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
+                $separator = '# ' + '='*65
+                Add-Content -Path $UserList -Value $separator -Encoding UTF8
+                Add-Content -Path $UserList -Value "# Auto-detected on $timestamp" -Encoding UTF8
+                Add-Content -Path $UserList -Value "# Services: $ServiceChoice" -Encoding UTF8
+                foreach ($domain in $newDomains) {
+                    Add-Content -Path $UserList -Value $domain -Encoding UTF8
+                }
+                Add-Content -Path $UserList -Value $separator -Encoding UTF8
+            }
+        }
         Write-Host "    Tip: manually removed domains may still exist in other lists." 
     }
 }
