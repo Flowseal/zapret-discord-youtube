@@ -1061,6 +1061,8 @@ if !SCAN_ERROR! equ 100 (
 )
 
 if !SCAN_ERROR! equ 0 goto skip_autoscan
+echo.
+pause
 goto menu
 
 :skip_autoscan
