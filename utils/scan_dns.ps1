@@ -6,6 +6,12 @@ param(
 )
 
 $choices = $ServiceChoice.Split(',') | % { $_ -replace '[^\d]','' } | ? { $_ -ne '' } | Select-Object -Unique
+$valid = $choices | ? { $_ -in 1..12 }
+if (-not $valid) {
+    Write-Host "Invalid service choice. Use numbers 1-12." -ForegroundColor Red
+    exit 2
+}
+$choices = $valid
 
 $patterns = @()
 if ($choices -contains '1') { $patterns += @('googlevideo','ggpht','ytimg','youtube','youtu.be','googleapis','gvt1','video','play.google.com') }
@@ -79,38 +85,38 @@ foreach ($domain in ($sortedCandidates | Select-Object -First $maxAddedDomains))
     $added++
 }
 
-if (Test-Path $UserList) {
-    $lines = Get-Content $UserList -Encoding UTF8
-    $cleaned = $lines | % {
-        if ($_ -match '^\s*#') {
-            $_
-        } else {
-            ($_.Trim() -split '\s+')[0]
+if ($added -gt 0) {
+    if (Test-Path $UserList) {
+        $lines = Get-Content $UserList -Encoding UTF8
+        $cleaned = $lines | % {
+            if ($_ -match '^\s*#') {
+                $_
+            } else {
+                ($_.Trim() -split '\s+')[0]
+            }
         }
-    }
-    $cleaned | Set-Content $UserList -Encoding UTF8
-    
-    $lines = $cleaned
+        $cleaned | Set-Content $UserList -Encoding UTF8
 
-    $oldDomains = @()
-    $inOldBlock = $false
+        $lines = $cleaned
 
-    foreach ($line in $lines) {
-        if ($line -match '^# =+') {
-            $inOldBlock = -not $inOldBlock
-            continue
+        $oldDomains = @()
+        $inOldBlock = $false
+
+        foreach ($line in $lines) {
+            if ($line -match '^# =+') {
+                $inOldBlock = -not $inOldBlock
+                continue
+            }
+            if ($inOldBlock -and $line -notmatch '^\s*#' -and $line.Trim() -ne '') {
+                $oldDomains += $line.Trim()
+            }
         }
-        if ($inOldBlock -and $line -notmatch '^\s*#' -and $line.Trim() -ne '') {
-            $oldDomains += $line.Trim()
-        }
-    }
 
-    $cacheNames = $cache | % { $_.Name }
-    $survivingOld = $oldDomains | ? { $_ -in $cacheNames }
+        $cacheNames = $cache | % { $_.Name }
+        $survivingOld = $oldDomains | ? { $_ -in $cacheNames }
 
-    $newDomains = ($survivingOld + $newDomains) | Select-Object -Unique
+        $newDomains = ($survivingOld + $newDomains) | Select-Object -Unique
 
-    if ($newDomains.Count -gt 0) {
         $newLines = @()
         $skip = $false
         foreach ($line in $lines) {
@@ -123,27 +129,22 @@ if (Test-Path $UserList) {
             }
         }
         $newLines | Set-Content $UserList -Encoding UTF8
-
-        $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
-        $separator = '# ' + '='*65
-        Add-Content -Path $UserList -Value $separator -Encoding UTF8
-        Add-Content -Path $UserList -Value "# Auto-detected on $timestamp" -Encoding UTF8
-        Add-Content -Path $UserList -Value "# Services: $ServiceChoice" -Encoding UTF8
-        foreach ($domain in $newDomains) {
-            Add-Content -Path $UserList -Value $domain -Encoding UTF8
-        }
-        Add-Content -Path $UserList -Value $separator -Encoding UTF8
-
-        $logEntry = "$timestamp | Choice: $ServiceChoice | Added domains: $added"
-        Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
-        Write-Host "[+] Added $added new domain(s) to list-general-user.txt" -ForegroundColor Green
-        Write-Host "    See log: utils\scan_cache.log"
-    } else {
-        $logEntry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm') | Choice: $ServiceChoice | No new domains"
-        Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
-        Write-Host "[*] No new domains found. Your list is up to date." -ForegroundColor Yellow
-        Write-Host "    Tip: manually removed domains may still exist in other lists." 
     }
+
+    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
+    $separator = '# ' + '='*65
+    Add-Content -Path $UserList -Value $separator -Encoding UTF8
+    Add-Content -Path $UserList -Value "# Auto-detected on $timestamp" -Encoding UTF8
+    Add-Content -Path $UserList -Value "# Services: $ServiceChoice" -Encoding UTF8
+    foreach ($domain in $newDomains) {
+        Add-Content -Path $UserList -Value $domain -Encoding UTF8
+    }
+    Add-Content -Path $UserList -Value $separator -Encoding UTF8
+
+    $logEntry = "$timestamp | Choice: $ServiceChoice | Added domains: $added"
+    Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
+    Write-Host "[+] Added $added new domain(s) to list-general-user.txt" -ForegroundColor Green
+    Write-Host "    See log: utils\scan_cache.log"
 } else {
     $logEntry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm') | Choice: $ServiceChoice | No new domains"
     Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
