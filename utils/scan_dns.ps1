@@ -40,7 +40,7 @@ $candidates = @()
 try {
     $cache = Get-DnsClientCache -ErrorAction SilentlyContinue
     if ($cache) {
-      $candidates += $cache | ? { $_.Name -match ($patterns -join '|') } | % { $_.Name }
+        $candidates += $cache | ? { $_.Name -match ($patterns -join '|') -or $_.Data -match ($patterns -join '|') } | % { $_.Name }
     }
 } catch {}
 
@@ -54,13 +54,7 @@ try {
     }
 } catch { $currentEntryCount = 0 }
 
-if ($currentEntryCount -lt 200) {
-    $maxAddedDomains = 100
-} elseif ($currentEntryCount -lt 500) {
-    $maxAddedDomains = 20
-} else {
-    $maxAddedDomains = 5
-}
+$maxAddedDomains = [Math]::Max(5, [Math]::Min(100, [int]($currentEntryCount * 0.2)))
 
 $sortedCandidates = $candidates | Select-Object -Unique | Sort-Object { $_.Length } -Descending
 foreach ($domain in ($sortedCandidates | Select-Object -First $maxAddedDomains)) {
@@ -94,7 +88,7 @@ if (Test-Path $UserList) {
             ($_.Trim() -split '\s+')[0]
         }
     }
-    $cleaned | Set-Content $UserList -Encoding UTF8
+    $cleaned | Select-Object -Unique | Set-Content $UserList -Encoding UTF8
     $lines = $cleaned
 
     if ($added -gt 0) {
@@ -140,6 +134,9 @@ if (Test-Path $UserList) {
         Add-Content -Path $UserList -Value $separator -Encoding UTF8
 
         $logEntry = "$timestamp | Choice: $ServiceChoice | Added domains: $added"
+        if ($added -gt 0) {
+            $logEntry += " | " + ($newDomains -join ', ')
+        }
         Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
         Write-Host "[+] Added $added new domain(s) to list-general-user.txt" -ForegroundColor Green
         Write-Host "    See log: utils\scan_cache.log"
