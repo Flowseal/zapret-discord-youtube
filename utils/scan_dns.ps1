@@ -5,7 +5,7 @@ param(
     [string]$LogFile = "scan_cache.log"
 )
 
-$choices = $ServiceChoice.Split(',') | ForEach-Object { $_ -replace '[^\d]','' } | Where-Object { $_ -ne '' } | Select-Object -Unique
+$choices = $ServiceChoice.Split(',') | % { $_ -replace '[^\d]','' } | ? { $_ -ne '' } | Select-Object -Unique
 
 $patterns = @()
 if ($choices -contains '1') { $patterns += @('googlevideo','ggpht','ytimg','youtube','youtu.be','googleapis','gvt1','video','play.google.com') }
@@ -25,7 +25,7 @@ $existing = @()
 if (Test-Path $ListsDir) {
     $listFiles = Get-ChildItem -Path $ListsDir -Filter *.txt | Where-Object { $_.Name -notlike 'ipset-*' -and $_.Name -notlike '*-exclude-user.txt' }
     foreach ($file in $listFiles) {
-        $existing += Get-Content $file.FullName | Where-Object { $_ -notmatch '^\s*#' } | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+    $existing += Get-Content $file.FullName | ? { $_ -notmatch '^\s*#' } | % { $_.Trim() } | ? { $_ -ne '' }
     }
     $existing = $existing | Select-Object -Unique
 }
@@ -44,7 +44,7 @@ $newDomains = @()
 $currentEntryCount = 0
 try {
     if (Test-Path $UserList) {
-        $currentEntryCount = (Get-Content $UserList -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' }).Count
+        $currentEntryCount = (Get-Content $UserList -Encoding UTF8 | ? { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' }).Count
     }
 } catch { $currentEntryCount = 0 }
 
@@ -105,8 +105,8 @@ if (Test-Path $UserList) {
         }
     }
 
-    $cacheNames = $cache | ForEach-Object { $_.Name }
-    $survivingOld = $oldDomains | Where-Object { $_ -in $cacheNames }
+    $cacheNames = $cache | % { $_.Name }
+    $survivingOld = $oldDomains | ? { $_ -in $cacheNames }
 
     $newDomains = ($survivingOld + $newDomains) | Select-Object -Unique
 
