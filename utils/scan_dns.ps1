@@ -23,7 +23,7 @@ if ($choices -contains '12') { $patterns += @('googlevideo','ggpht','ytimg','you
 
 $existing = @()
 if (Test-Path $ListsDir) {
-    $listFiles = Get-ChildItem -Path $ListsDir -Filter *.txt | Where-Object { $_.Name -notlike 'ipset-*' -and $_.Name -notlike '*-exclude-user.txt' }
+    $listFiles = Get-ChildItem -Path $ListsDir -Filter *.txt | ? { $_.Name -notlike 'ipset-*' -and $_.Name -notlike '*-exclude-user.txt' }
     foreach ($file in $listFiles) {
     $existing += Get-Content $file.FullName | ? { $_ -notmatch '^\s*#' } | % { $_.Trim() } | ? { $_ -ne '' }
     }
@@ -34,7 +34,7 @@ $candidates = @()
 try {
     $cache = Get-DnsClientCache -ErrorAction SilentlyContinue
     if ($cache) {
-        $candidates += $cache | Where-Object { $_.Name -match ($patterns -join '|') } | ForEach-Object { $_.Name }
+      $candidates += $cache | ? { $_.Name -match ($patterns -join '|') } | % { $_.Name }
     }
 } catch {}
 
