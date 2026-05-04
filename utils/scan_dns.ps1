@@ -143,14 +143,27 @@ if (Test-Path $UserList) {
         Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
         Write-Host "[+] Added $added new domain(s) to list-general-user.txt" -ForegroundColor Green
         Write-Host "    See log: utils\scan_cache.log"
-    } else {
+       } else {
         $logEntry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm') | Choice: $ServiceChoice | No new domains"
         Add-Content -Path $LogFile -Value $logEntry -Encoding UTF8
         Write-Host "[*] No new domains found. Your list is up to date." -ForegroundColor Yellow
-                if ($currentEntryCount -gt 1000) {
+
+        if ($currentEntryCount -gt 1000) {
+            $oldDomains = @()
+            $inOldBlock = $false
+            foreach ($line in $lines) {
+                if ($line -match '^# =+') {
+                    $inOldBlock = -not $inOldBlock
+                    continue
+                }
+                if ($inOldBlock -and $line -notmatch '^\s*#' -and $line.Trim() -ne '') {
+                    $oldDomains += $line.Trim()
+                }
+            }
             $cacheNames = $cache | % { $_.Name }
             $survivingOld = $oldDomains | ? { $_ -in $cacheNames }
             $newDomains = $survivingOld | Select-Object -Unique
+
             if ($newDomains.Count -ne $oldDomains.Count) {
                 $newLines = @()
                 $skip = $false
@@ -172,4 +185,3 @@ if (Test-Path $UserList) {
         }
         Write-Host "    Tip: manually removed domains may still exist in other lists." 
     }
-}
