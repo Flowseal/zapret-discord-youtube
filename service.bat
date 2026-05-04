@@ -1068,7 +1068,6 @@ goto menu
 :skip_autoscan
 echo.
 
-
 :: Manage scheduled auto-scan
 schtasks /query /tn "zapret_autoscan" >nul 2>&1
 if !errorlevel!==0 (
@@ -1082,7 +1081,7 @@ if !errorlevel!==0 (
     set "SCHEDULE_CHOICE=N"
     set /p "SCHEDULE_CHOICE=Schedule automatic domain scan every N hours? (Y/N, default N): "
     if /i "!SCHEDULE_CHOICE!"=="Y" (
-                       set "HOURS=6"
+        set "HOURS=6"
         set /p "HOURS=Enter interval in hours (default 6, max 23): "
         if "!HOURS!"=="" set "HOURS=6"
         if !HOURS! lss 1 (
