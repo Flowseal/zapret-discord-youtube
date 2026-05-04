@@ -81,6 +81,17 @@ foreach ($domain in ($sortedCandidates | Select-Object -First $maxAddedDomains))
 
 if (Test-Path $UserList) {
     $lines = Get-Content $UserList -Encoding UTF8
+    $cleaned = $lines | % {
+        if ($_ -match '^\s*#') {
+            $_
+        } else {
+            ($_.Trim() -split '\s+')[0]
+        }
+    }
+    $cleaned | Set-Content $UserList -Encoding UTF8
+    
+    $lines = $cleaned
+
     $oldDomains = @()
     $inOldBlock = $false
 
