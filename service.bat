@@ -1043,7 +1043,27 @@ if not exist "%USER_LIST%" (
 )
 echo Scanning services: %serviceChoice%
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\scan_dns.ps1" -ServiceChoice "%serviceChoice%" -UserList "%USER_LIST%" -ListsDir "%LISTS_DIR%" -LogFile "%LOG_FILE%"
+set "SCAN_ERROR=!errorlevel!"
 
+if !SCAN_ERROR! equ 100 (
+    sc query "zapret" >nul 2>&1
+    if !errorlevel!==0 (
+        set "RESTART_CHOICE=N"
+        set /p "RESTART_CHOICE=Restart zapret service now to apply changes? (Y/N, default N): "
+        if /i "!RESTART_CHOICE!"=="Y" (
+            echo Restarting zapret service...
+            net stop zapret >nul 2>&1
+            net start zapret >nul 2>&1
+            call :PrintGreen "zapret service restarted."
+        )
+    )
+    goto skip_autoscan
+)
+
+if !SCAN_ERROR! equ 0 goto skip_autoscan
+goto menu
+
+:skip_autoscan
 echo.
 
 :: Manage scheduled auto-scan
