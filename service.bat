@@ -1,5 +1,5 @@
 @echo off
-set "LOCAL_VERSION=1.9.8"
+set "LOCAL_VERSION=1.9.8b"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -124,6 +124,7 @@ exit /b
 
 :: TCP ENABLE ==========================
 :tcp_enable
+chcp 437 > nul
 netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul || netsh interface tcp set global timestamps=enabled > nul 2>&1
 exit /b
 
