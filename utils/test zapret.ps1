@@ -894,13 +894,20 @@ try {
             foreach ($targetRes in $results) {
                 $id = $targetRes.TargetId
                 $provider = $targetRes.Provider
-                Add-Content $resultFile "  Target: $id ($provider)"
+                $country = $targetRes.Country
+                if ($country) {
+                    Add-Content $resultFile "  Target: [$country] $id ($provider)"
+                } else {
+                    Add-Content $resultFile "  Target: $id ($provider)"
+                }
                 foreach ($line in $targetRes.Lines) {
                     $test = $line.TestLabel
                     $code = $line.Code
-                    $size = $line.SizeKB
+                    $up = $line.UpKB
+                    $down = $line.DownKB
+                    $time = $line.Time
                     $status = $line.Status
-                    Add-Content $resultFile "    ${test}: code=${code} size=${size} KB status=${status}"
+                    Add-Content $resultFile "    ${test}: code=${code}  up=${up} KB  down=${down} KB  time=${time}s  status=${status}"
                 }
             }
         }
