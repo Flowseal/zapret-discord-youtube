@@ -41,6 +41,7 @@ try {
     $cache = Get-DnsClientCache -ErrorAction SilentlyContinue
     if ($cache) {
         $candidates += $cache | ? { $_.Name -match ($patterns -join '|') } | % { $_.Name }
+        $candidates += $cache | ? { $_.Data -match ($patterns -join '|') } | % { $_.Data }
     }
 } catch {}
 
@@ -55,21 +56,29 @@ try {
 } catch { $currentEntryCount = 0 }
 
 if ($currentEntryCount -lt 200) {
-    $maxAddedDomains = 100
+    $maxAddedDomains = 200
 } elseif ($currentEntryCount -lt 500) {
     $maxAddedDomains = 20
 } else {
     $maxAddedDomains = 5
 }
 
-$sortedCandidates = $candidates | Select-Object -Unique | Sort-Object { $_.Length } -Descending
+$ytPatterns = @('googlevideo','ggpht','ytimg','youtube','youtu.be','googleapis','gvt1','video','play.google.com','discord','discordapp','discord.gg','discord.media')
+$ytCandidates = $candidates | Select-Object -Unique | ? { $_ -match ($ytPatterns -join '|') }
+$otherCandidates = $candidates | Select-Object -Unique | ? { $_ -notmatch ($ytPatterns -join '|') }
+$sortedCandidates = ($ytCandidates | Sort-Object { $_.Length } -Descending) + ($otherCandidates | Sort-Object { $_.Length } -Descending)
+
 foreach ($domain in ($sortedCandidates | Select-Object -First $maxAddedDomains)) {
+    if ($domain -notmatch '\.') { continue }
+    if ($domain -match '^\d+\.\d+\.\d+\.\d+$') { continue }
+    if ($domain.Length -le 5) { continue }
+    if ($domain -match '\s|[^a-zA-Z0-9.\-]') { continue }
     if ($domain -in $existing) { continue }
 
     $parent = $domain -replace '^.*?([^.]+\.[^.]+)$', '$1'
     if ($parent -in $existing -and $parent -notmatch 'googlevideo|ggpht|ytimg') { continue }
 
-    if ($choices -contains '12') {
+    if ($choices -contains '12' -and $parent -notmatch 'googlevideo|ggpht|ytimg') {
         try {
             $reachable = Test-Connection -ComputerName $domain -Count 1 -Quiet -TimeoutSeconds 1
             if ($reachable) { continue }
@@ -97,23 +106,20 @@ if (Test-Path $UserList) {
     $cleaned | Set-Content $UserList -Encoding UTF8
     $lines = $cleaned
 
-    if ($added -gt 0) {
-        $oldDomains = @()
-        $inOldBlock = $false
-        foreach ($line in $lines) {
-            if ($line -match '^# =+') {
-                $inOldBlock = -not $inOldBlock
-                continue
-            }
-            if ($inOldBlock -and $line -notmatch '^\s*#' -and $line.Trim() -ne '') {
-                $oldDomains += $line.Trim()
-            }
+    $oldDomains = @()
+    $inOldBlock = $false
+    foreach ($line in $lines) {
+        if ($line -match '^# =+') {
+            $inOldBlock = -not $inOldBlock
+            continue
         }
+        if ($inOldBlock -and $line -notmatch '^\s*#' -and $line.Trim() -ne '') {
+            $oldDomains += $line.Trim()
+        }
+    }
 
-        $cacheNames = $cache | % { $_.Name }
-        $survivingOld = $oldDomains | ? { $_ -in $cacheNames }
-
-        $newDomains = ($survivingOld + $newDomains) | Select-Object -Unique
+    if ($added -gt 0) {
+        $newDomains = ($oldDomains + $newDomains) | Select-Object -Unique
 
         $newLines = @()
         $skip = $false
