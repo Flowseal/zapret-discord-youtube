@@ -1011,16 +1011,14 @@ echo.
 echo Select services to scan (comma-separated numbers):
 echo   1. YouTube
 echo   2. Discord
-echo   3. Telegram
-echo   4. Twitch
-echo   5. Spotify
-echo   6. SoundCloud
-echo   7. Roblox
-echo   8. Social (networks)
-echo   9. Games (launchers)
-echo   10. Dev  (services)
-echo   11. Cloudflare WARP
-echo   12. ALL
+echo   3. Twitch
+echo   4. Spotify
+echo   5. SoundCloud
+echo   6. Social (networks)
+echo   7. Games (launchers)
+echo   8. Dev  (services)
+echo   9. Cloudflare WARP
+echo   10. ALL
 echo.
 
 set "serviceChoice=1,2"
