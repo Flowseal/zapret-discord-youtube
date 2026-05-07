@@ -58,11 +58,13 @@ cls
 call :ipset_switch_status
 call :game_switch_status
 call :check_updates_switch_status
+call :get_strategy_name
 
 set "menu_choice=null"
 
 echo.
 echo   ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
+echo   Strategy: !CurrentStrategy!
 echo   ----------------------------------------
 echo.
 echo   :: SERVICE
@@ -993,6 +995,13 @@ echo.
 start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test zapret.ps1"
 pause
 goto menu
+
+
+:: Get strategy name
+:get_strategy_name
+set "CurrentStrategy=not installed"
+for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "CurrentStrategy=%%B"
+exit /b
 
 
 :: Utility functions
