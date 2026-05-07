@@ -16,16 +16,14 @@ $choices = $valid
 $patterns = @()
 if ($choices -contains '1') { $patterns += @('googlevideo','ggpht','ytimg','youtube','youtu.be','googleapis','gvt1','video','play.google.com') }
 if ($choices -contains '2') { $patterns += @('discord','discordapp','discord.gg','discord.media') }
-if ($choices -contains '3') { $patterns += @('telegram','t.me','web.telegram') }
 if ($choices -contains '4') { $patterns += @('twitch','ttvnw','jtvnw','twitchcdn') }
 if ($choices -contains '5') { $patterns += @('spotify','scdn','spotifycdn') }
 if ($choices -contains '6') { $patterns += @('soundcloud','sndcdn') }
-if ($choices -contains '7') { $patterns += @('roblox','rbxcdn','arkoselabs','rblx','rbx','robloxlabs','ro-blox','roblox-api') }
 if ($choices -contains '8') { $patterns += @('twitter','x.com','twimg','reddit','redd.it','redditmedia','pinterest','pinimg','tiktok','tiktokcdn','bytedance','facebook','fbcdn','fb.com','fb.me','instagram','cdninstagram','instagram.feed','whatsapp','whatsapp.net','wa.me','snapchat','snapkit','viber') }
 if ($choices -contains '9') { $patterns += @('epicgames','unrealengine','fortnite','battle.net','blizzard','ubisoft','ubi','origin','ea.com','minecraft','mojang','genshin','hoyoverse','mihoyo') }
 if ($choices -contains '10') { $patterns += @('github','githubusercontent','stackoverflow','stackexchange','docker','docker.io','npmjs','npm') }
 if ($choices -contains '11') { $patterns += @('cloudflareclient','warp') }
-if ($choices -contains '12') { $patterns += @('googlevideo','ggpht','ytimg','youtube','youtu.be','googleapis','gvt1','video','play.google.com','discord','discordapp','discord.gg','discord.media','telegram','t.me','web.telegram','twitch','ttvnw','jtvnw','twitchcdn','spotify','scdn','spotifycdn','soundcloud','sndcdn','roblox','rbxcdn','arkoselabs','rblx','rbx','robloxlabs','ro-blox','roblox-api','twitter','x.com','twimg','reddit','redd.it','redditmedia','pinterest','pinimg','tiktok','tiktokcdn','bytedance','facebook','fbcdn','fb.com','fb.me','instagram','cdninstagram','instagram.feed','whatsapp','whatsapp.net','wa.me','snapchat','snapkit','viber','epicgames','unrealengine','fortnite','battle.net','blizzard','ubisoft','ubi','origin','ea.com','minecraft','mojang','genshin','hoyoverse','mihoyo','github','githubusercontent','stackoverflow','stackexchange','docker','docker.io','npmjs','npm','cloudflareclient','warp') }
+if ($choices -contains '12') { $patterns += @('googlevideo','ggpht','ytimg','youtube','youtu.be','googleapis','gvt1','video','play.google.com','discord','discordapp','discord.gg','discord.media','twitch','ttvnw','jtvnw','twitchcdn','spotify','scdn','spotifycdn','soundcloud','sndcdn','twitter','x.com','twimg','reddit','redd.it','redditmedia','pinterest','pinimg','tiktok','tiktokcdn','bytedance','facebook','fbcdn','fb.com','fb.me','instagram','cdninstagram','instagram.feed','whatsapp','whatsapp.net','wa.me','snapchat','snapkit','viber','epicgames','unrealengine','fortnite','battle.net','blizzard','ubisoft','ubi','origin','ea.com','minecraft','mojang','genshin','hoyoverse','mihoyo','github','githubusercontent','stackoverflow','stackexchange','docker','docker.io','npmjs','npm','cloudflareclient','warp') }
 
 $existing = @()
 if (Test-Path $ListsDir) {
