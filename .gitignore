@@ -3,3 +3,6 @@
 /lists/ipset-exclude-user.txt
 /lists/list-general-user.txt
 /lists/list-exclude-user.txt
+
+.vscode/
+/build/
