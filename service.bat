@@ -64,7 +64,7 @@ set "menu_choice=null"
 
 echo.
 echo   ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
-echo   Strategy: !CurrentStrategy!
+echo.  !CurrentStrategy!
 echo   ----------------------------------------
 echo.
 echo   :: SERVICE
@@ -999,8 +999,8 @@ goto menu
 
 :: Get strategy name
 :get_strategy_name
-set "CurrentStrategy=not installed"
-for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "CurrentStrategy=%%B"
+set "CurrentStrategy="
+for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "CurrentStrategy=Strategy: %%B"
 exit /b
 
 
