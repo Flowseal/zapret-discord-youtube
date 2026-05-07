@@ -1,5 +1,5 @@
 @echo off
-set "LOCAL_VERSION=1.9.8b"
+set "LOCAL_VERSION=1.9.8c"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -58,11 +58,13 @@ cls
 call :ipset_switch_status
 call :game_switch_status
 call :check_updates_switch_status
+call :get_strategy_name
 
 set "menu_choice=null"
 
 echo.
 echo   ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
+echo.  !CurrentStrategy!
 echo   ----------------------------------------
 echo.
 echo   :: SERVICE
@@ -1125,6 +1127,10 @@ if "%~1"=="" (
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\scan_dns.ps1" -ServiceChoice "%AUTO_CHOICE%" -UserList "%USER_LIST%" -ListsDir "%LISTS_DIR%" -LogFile "%LOG_FILE%"
 endlocal
+:: Get strategy name
+:get_strategy_name
+set "CurrentStrategy="
+for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "CurrentStrategy=Strategy: %%B"
 exit /b
 
 
