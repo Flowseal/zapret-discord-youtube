@@ -1075,7 +1075,9 @@ if !errorlevel!==0 (
     set /p "DISABLE_CHOICE=Disable scheduled auto-scan? (Y/N, default N): "
     if /i "!DISABLE_CHOICE!"=="Y" (
         schtasks /delete /tn "zapret_autoscan" /f >nul 2>&1
+        echo.
         call :PrintGreen "Scheduled auto-scan disabled."
+        echo.
     )
 ) else (
     set "SCHEDULE_CHOICE=N"
@@ -1094,20 +1096,18 @@ if !errorlevel!==0 (
         )
         echo Creating scheduled task...
         schtasks /create /tn "zapret_autoscan" /tr "\"%~f0\" autoscan %serviceChoice%" /sc hourly /mo !HOURS! /ru "SYSTEM" /f
-            if !errorlevel!==0 (
+        if !errorlevel!==0 (
             echo.
             call :PrintGreen "Scheduled auto-scan enabled every !HOURS! hour(s)."
             echo It will scan using service selection: %serviceChoice%
             echo New domains will be added silently. View logs in utils\scan_cache.log
-            echo.
-            echo.
         ) else (
             call :PrintRed "Failed to create scheduled task. Make sure you run as Administrator."
         )
     )
+    echo.
 )
 
-echo.
 echo ============================================
 echo  Scan completed. Press any key to return to menu.
 echo ============================================
