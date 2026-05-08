@@ -495,7 +495,7 @@ if ($mode -eq 'select') {
 
 # Load targets once for standard mode
 $targetList = @()
-$maxNameLen = 10
+$maxNameLen = 20
 if ($testType -eq 'standard') {
     $targetsFile = Join-Path $utilsDir "targets.txt"
     $rawTargets = New-OrderedDict

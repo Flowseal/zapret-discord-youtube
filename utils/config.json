@@ -1,0 +1,32 @@
+{
+  "pcap": {
+    "mtu": 1500,
+    "network": "172.26.0.0/16",
+    "localIP": "172.26.0.1"
+  },
+  "dns": {
+    "servers": [
+      {
+        "address": "local"
+      }
+    ]
+  },
+  "routing": {
+    "rules": [
+      {
+        "dstPort": "53",
+        "outboundTag": "dns-out"
+      }
+    ]
+  },
+  "outbounds": [
+    {
+      "tag": "",
+      "direct": {}
+    },
+    {
+      "tag": "dns-out",
+      "dns": {}
+    }
+  ]
+}
