@@ -1,5 +1,19 @@
 @echo off
-set "LOCAL_VERSION=1.9.8c"
+set "LOCAL_VERSION=1.9.8d"
+
+
+:: OS DETECTION ========================
+:: Enable Virtual Terminal Processing (ANSI) for Windows 10/11.
+ver | findstr /i "10\.0\." > nul
+if %errorlevel%==0 (
+    set "IS_WIN10_OR_NEWER=1"
+    reg query "HKCU\Console" /v VirtualTerminalLevel 2>nul | findstr "0x1" >nul
+    if errorlevel 1 (
+        reg add "HKCU\Console" /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
+    )
+) else (
+    set "IS_WIN10_OR_NEWER=0"
+)
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -55,6 +69,7 @@ if "%1"=="admin" (
 setlocal EnableDelayedExpansion
 :menu
 cls
+
 call :ipset_switch_status
 call :game_switch_status
 call :check_updates_switch_status
@@ -62,34 +77,54 @@ call :get_strategy_name
 
 set "menu_choice=null"
 
-echo.
-echo   ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
-echo.  !CurrentStrategy!
-echo   ----------------------------------------
-echo.
-echo   :: SERVICE
-echo      1. Install Service
-echo      2. Remove Services
-echo      3. Check Status
-echo.
-echo   :: SETTINGS
-echo      4. Game Filter         [!GameFilterStatus!]
-echo      5. IPSet Filter        [!IPsetStatus!]
-echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
-echo.
-echo   :: UPDATES
-echo      7. Update IPSet List
-echo      8. Update Hosts File
-echo      9. Check for Updates
-echo.
-echo   :: TOOLS
-echo      10. Run Diagnostics
-echo      11. Run Tests
-echo.
-echo   ----------------------------------------
-echo      0. Exit
-echo.
+:: Set dynamic colors based on OS
+if "!IS_WIN10_OR_NEWER!"=="1" (
+    for /F %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
+    set "C_BLUE=!ESC![94m"
+    set "C_WHITE=!ESC![97m"
+    set "C_GRAY=!ESC![90m"
+    set "C_YELLOW=!ESC![93m"
+    set "C_GREEN=!ESC![92m"
+    set "C_RED=!ESC![91m"
+    set "C_RESET=!ESC![0m"
+	chcp 65001 > nul
+) else (
+    set "C_BLUE="
+    set "C_WHITE="
+    set "C_GRAY="
+    set "C_YELLOW="
+    set "C_GREEN="
+    set "C_RED="
+    set "C_RESET="
+)
 
+echo   !C_BLUE!========================================!C_RESET!
+echo      !C_WHITE!ZAPRET SERVICE MANAGER!C_RESET! !C_GRAY!v!LOCAL_VERSION!!C_RESET!
+echo        !C_YELLOW!Strategy: !CurrentStrategy!!C_RESET!
+echo   !C_BLUE!========================================!C_RESET!
+echo.
+echo  !C_BLUE!::SERVICE!C_RESET!
+echo     !C_WHITE!1.!C_RESET! Install Service
+echo     !C_WHITE!2.!C_RESET! Remove Service
+echo     !C_WHITE!3.!C_RESET! Check Status
+echo.
+echo  !C_GREEN!::SETTINGS!C_RESET!
+echo     !C_WHITE!4.!C_RESET! Game Filter        !C_YELLOW![!GameFilterStatus!]!C_RESET!
+echo     !C_WHITE!5.!C_RESET! IPSet Mode         !C_YELLOW![!IPsetStatus!]!C_RESET!
+echo     !C_WHITE!6.!C_RESET! Auto Updates       !C_YELLOW![!CheckUpdatesStatus!]!C_RESET!
+echo.
+echo  !C_GREEN!::UPDATES!C_RESET!
+echo     !C_WHITE!7.!C_RESET! Update IPSet List
+echo     !C_WHITE!8.!C_RESET! Update Hosts File
+echo     !C_WHITE!9.!C_RESET! Check Updates
+echo.
+echo  !C_RED!::TOOLS!C_RESET!
+echo     !C_WHITE!10.!C_RESET! Run Diagnostics
+echo     !C_WHITE!11.!C_RESET! Run Tests
+echo   ------------
+echo   !C_RED!0. Exit!C_RESET!
+echo   ----------------------------------------
+echo.
 set /p menu_choice=   Select option (0-11): 
 
 if "%menu_choice%"=="1" goto service_install
@@ -120,7 +155,6 @@ if not exist "%LISTS_PATH%list-general-user.txt" (
 if not exist "%LISTS_PATH%list-exclude-user.txt" (
     echo domain.example.abc>"%LISTS_PATH%list-exclude-user.txt"
 )
-
 exit /b
 
 
@@ -180,7 +214,6 @@ if "%ServiceStatus%"=="RUNNING" (
 ) else if not "%~2"=="soft" (
     echo "%ServiceName%" service is NOT running.
 )
-
 exit /b
 
 
@@ -396,11 +429,9 @@ echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
 echo Opening the download page...
 start "" "%GITHUB_DOWNLOAD_URL%"
 
-
 if "%1"=="soft" exit 
 pause
 goto menu
-
 
 
 :: DIAGNOSTICS =========================
@@ -699,7 +730,6 @@ if /i "!CHOICE!"=="Y" (
     )
 )
 echo:
-
 pause
 goto menu
 
@@ -903,7 +933,6 @@ if exist "%SystemRoot%\System32\curl.exe" (
 )
 
 echo Finished
-
 pause
 goto menu
 
@@ -996,16 +1025,13 @@ start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test za
 pause
 goto menu
 
-
 :: Get strategy name
 :get_strategy_name
-set "CurrentStrategy="
-for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "CurrentStrategy=Strategy: %%B"
+set "CurrentStrategy=not installed"
+for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "CurrentStrategy=%%B"
 exit /b
 
-
 :: Utility functions
-
 :PrintGreen
 powershell -NoProfile -Command "Write-Host \"%~1\" -ForegroundColor Green"
 exit /b
