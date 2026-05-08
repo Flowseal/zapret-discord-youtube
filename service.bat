@@ -836,40 +836,94 @@ cls
 set "listFile=%~dp0lists\ipset-all.txt"
 set "backupFile=%listFile%.backup"
 
-if "%IPsetStatus%"=="loaded" (
-    echo Switching to none mode...
-    
-    if not exist "%backupFile%" (
-        ren "%listFile%" "ipset-all.txt.backup"
-    ) else (
-        del /f /q "%backupFile%"
-        ren "%listFile%" "ipset-all.txt.backup"
+set "ipset_already_set=0"
+
+echo Select IPSet filter mode:
+echo   0. none
+echo   1. loaded
+echo   2. any
+echo.
+set "ipset_choice=0"
+set /p "ipset_choice=Select option (0-2, default: 0): "
+
+if "%ipset_choice%"=="" (
+    set "ipset_choice=0"
+)
+
+echo.
+
+if "%IPSetStatus%"=="none" (
+    if "%ipset_choice%"=="0" (
+        set "ipset_already_set=1"
     )
-    
+)
+
+if "%IPSetStatus%"=="loaded" (
+    if "%ipset_choice%"=="1" (
+        set "ipset_already_set=1"
+    )
+)
+
+if "%IPSetStatus%"=="any" (
+    if "%ipset_choice%"=="2" (
+        set "ipset_already_set=1"
+    )
+)
+
+if "%ipset_already_set%"=="1" (
+    call :PrintRed "Error: this filter is already applied."
+    echo.
+
+    pause
+    goto menu
+)
+
+if "%ipset_choice%"=="0" (
+    echo Switching IPSet filter to "none" mode...
+
+    if "%IPSetStatus%"=="loaded" (
+        if exist "%listFile%" (
+            move /y "%listFile%" "%backupFile%" > nul
+        )
+    )
+
     >"%listFile%" (
         echo 203.0.113.113/32
     )
-    
-) else if "%IPsetStatus%"=="none" (
-    echo Switching to any mode...
-    
-    >"%listFile%" (
-        rem Creating empty file
-    )
-    
-) else if "%IPsetStatus%"=="any" (
-    echo Switching to loaded mode...
-    
+) else if "%ipset_choice%"=="1" (
+    echo Switching IPSet filter to "loaded" mode...
+
     if exist "%backupFile%" (
-        del /f /q "%listFile%"
-        ren "%backupFile%" "ipset-all.txt"
+        move /y "%backupFile%" "%listFile%" > nul
     ) else (
-        echo Error: no backup to restore. Update list from service menu first
+        echo.
+        call :PrintRed "Error: no backup to restore. Update list from the service menu first."
+        echo.
+
         pause
         goto menu
     )
-    
+) else if "%ipset_choice%"=="2" (
+    echo Switching IPSet filter to "any" mode...
+
+    if "%IPSetStatus%"=="loaded" (
+        if exist "%listFile%" (
+            move /y "%listFile%" "%backupFile%" > nul
+        )
+    )
+
+    rem Creating an empty file
+
+    type nul > "%listFile%"
+) else (
+    echo Invalid choice, exiting...
+    echo.
+
+    pause
+    goto menu
 )
+
+echo.
 
 pause
 goto menu
