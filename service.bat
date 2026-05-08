@@ -1094,10 +1094,13 @@ if !errorlevel!==0 (
         )
         echo Creating scheduled task...
         schtasks /create /tn "zapret_autoscan" /tr "\"%~f0\" autoscan %serviceChoice%" /sc hourly /mo !HOURS! /ru "SYSTEM" /f
-        if !errorlevel!==0 (
+            if !errorlevel!==0 (
+            echo.
             call :PrintGreen "Scheduled auto-scan enabled every !HOURS! hour(s)."
             echo It will scan using service selection: %serviceChoice%
             echo New domains will be added silently. View logs in utils\scan_cache.log
+            echo.
+            echo.
         ) else (
             call :PrintRed "Failed to create scheduled task. Make sure you run as Administrator."
         )
