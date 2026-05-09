@@ -89,3 +89,17 @@ tbank.ru
 tochka-tech.com
 tochka.com
 vtb.ru
+ubisoft.com
+ubisoftconnect.com
+ubi.com
+кubi.com
+public-ubiservices.ubi.com
+api-ubiservices.ubi.com
+connect.ubi.com
+cdn.ubi.com
+static2.cdn.ubi.com
+ubistatic-a.akamaihd.net
+accounts.ubisoft.com
+legal.ubi.com
+store.ubisoft.com
+ubistatic-a.akamaihd.net
