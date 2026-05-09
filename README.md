@@ -46,7 +46,36 @@
 
 5. Запустите нужный файл
 
+## 🚀All-in-One Launcher (NEW в этом форке)
+
+[**`launcher.bat`**](./launcher.bat) — единое меню, которое объединяет всё ниже в одном месте:
+
+- **Toggle services** — включить/выключить обход для каждого сервиса по отдельности.
+  - Built-in (всегда включены, как в апстриме): YouTube, Discord/Cloudflare/Twitch-чат.
+  - Toggleable (управляются launcher'ом через `lists/list-general-user.txt`):
+    - **Meta** (Instagram, Facebook, Threads, WhatsApp web) — [`lists/list-meta.txt`](./lists/list-meta.txt)
+    - **X / Twitter** — [`lists/list-x.txt`](./lists/list-x.txt)
+    - **LinkedIn** — [`lists/list-linkedin.txt`](./lists/list-linkedin.txt)
+    - **Signal** — [`lists/list-signal.txt`](./lists/list-signal.txt)
+    - **TikTok** — [`lists/list-tiktok.txt`](./lists/list-tiktok.txt)
+    - **News** (BBC, DW, Meduza, RFE/RL и т. п.) — [`lists/list-news.txt`](./lists/list-news.txt) (по умолчанию выключено)
+- **Pick strategy** — выбрать любой из существующих `general*.bat` (`ALT`, `FAKE TLS AUTO` и др.) одним кликом.
+- **Start / Stop bypass** — поднять/прибить выбранную стратегию (без необходимости лезть в `service.bat`).
+- **Edit custom domain list** — открыть `lists/list-custom.txt` в Блокноте: туда можно вписывать свои домены, которые тоже будут попадать под обход.
+- **Update domain lists** — подтянуть свежие `list-*.txt` и `ipset-*.txt` из апстрима.
+- **Cloudflare WARP** — установка через `winget install Cloudflare.Warp`, переключение режимов (`warp` / `warp+doh` / `doh` / `proxy`), connect/disconnect.
+  - WARP даёт другой выходной IP (помогает с частью гео-блокировок), но **не заменяет zapret** для обхода РФ-DPI.
+- **Custom VPN / Proxy** — раздел для **твоего собственного** доверенного VPN/прокси:
+  - Импорт WireGuard `.conf` (поднимается через `wireguard.exe /installtunnelservice`).
+  - Установка системного SOCKS5/HTTP прокси через реестр + `netsh winhttp`.
+  - **Никаких scraped public proxies из интернета здесь нет**: они в 95% случаев — honeypot'ы, MITM-ят HTTPS, дохнут за часы. Если у тебя есть свой VPS / купленный VPN — клади его конфиг сюда.
+- **Run diagnostics** — переброс на `service.bat → Run Diagnostics`.
+
+Launcher автоматически перезаписывает `lists/list-general-user.txt` (этот файл уже подхватывают все апстрим-стратегии), поэтому никакие `.bat` файлы апстрима не модифицируются — обновления `flowseal/zapret-discord-youtube` мерджатся как обычно.
+
 ## ℹ️Краткие описания файлов
+
+- [**`launcher.bat`**](./launcher.bat) - единое TUI-меню (см. раздел выше). Рекомендуется для большинства пользователей.
 
 - [**`general.bat ...`**](./general.bat) - запуск стратегии вручную
 
