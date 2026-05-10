@@ -1,0 +1,5 @@
+claude.ai
+anthropic.com
+console.anthropic.com
+api.anthropic.com
+claudeusercontent.com

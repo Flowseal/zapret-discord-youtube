@@ -1,0 +1,6 @@
+copilot.microsoft.com
+github.com
+api.githubcopilot.com
+copilot-proxy.githubusercontent.com
+copilot.github.com
+copilot-telemetry.githubusercontent.com

@@ -7,7 +7,9 @@
 # Launcher: user-managed runtime files (never commit).
 /launcher.conf
 /lists/list-custom.txt
+/lists/geo-custom.txt
 /custom-vpn/
+/utils/launcher.pac
 
 .vscode/
 /build/

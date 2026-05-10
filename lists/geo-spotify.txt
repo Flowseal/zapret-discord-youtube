@@ -1,0 +1,9 @@
+spotify.com
+scdn.co
+spotifycdn.com
+spoti.fi
+audio-fa.scdn.co
+audio-akp-quic-control.spotifycdn.com
+gew4-spclient.spotify.com
+api-partner.spotify.com
+spclient.wg.spotify.com

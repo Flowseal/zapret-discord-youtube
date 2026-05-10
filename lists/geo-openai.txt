@@ -1,0 +1,17 @@
+openai.com
+chat.openai.com
+chatgpt.com
+oaistatic.com
+oaiusercontent.com
+sora.com
+operator.chatgpt.com
+auth0.openai.com
+api.openai.com
+labs.openai.com
+platform.openai.com
+help.openai.com
+auth.openai.com
+cdn.openai.com
+ab.chatgpt.com
+files.oaiusercontent.com
+videos.openai.com

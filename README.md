@@ -48,30 +48,71 @@
 
 ## 🚀All-in-One Launcher (NEW в этом форке)
 
-[**`launcher.bat`**](./launcher.bat) — единое меню, которое объединяет всё ниже в одном месте:
+[**`launcher.bat`**](./launcher.bat) — единая входная точка. По умолчанию запрашивает права админа и открывает **WPF-окно** ([`utils/launcher.gui.ps1`](./utils/launcher.gui.ps1)). Старое консольное меню осталось как fallback — `launcher.bat cli` ([`utils/launcher.ps1`](./utils/launcher.ps1)).
 
-- **Toggle services** — включить/выключить обход для каждого сервиса по отдельности.
-  - Built-in (всегда включены, как в апстриме): YouTube, Discord/Cloudflare/Twitch-чат.
-  - Toggleable (управляются launcher'ом через `lists/list-general-user.txt`):
-    - **Meta** (Instagram, Facebook, Threads, WhatsApp web) — [`lists/list-meta.txt`](./lists/list-meta.txt)
+**Скриншот логики работы:** запрет (DPI desync, провайдерский слой) и WARP (другой выходной IP, серверный геоблок) — это два *разных* барьера. Один launcher умеет оба сразу.
+
+### 1. DPI bypass (zapret) — толстые блокировки от провайдера
+
+- **Toggle services** (чекбоксы в GUI):
+  - Always-on (захардкожено в апстрим-стратегиях): YouTube, Discord/Cloudflare/Twitch-чат.
+  - Toggleable — `launcher` дописывает их домены в [`lists/list-general-user.txt`](./lists/list-general-user.txt) (этот файл уже включён в каждую `general*.bat` через `--hostlist`):
+    - **Meta** (Instagram/Facebook/Threads/WhatsApp web) — [`lists/list-meta.txt`](./lists/list-meta.txt)
+    - **Telegram** (web/CDN) — [`lists/list-telegram.txt`](./lists/list-telegram.txt) — *примечание: десктоп-клиент Telegram использует MTProto на нестандартных портах, для него лучше [tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy); zapret-листы покрывают веб-версию и CDN.*
     - **X / Twitter** — [`lists/list-x.txt`](./lists/list-x.txt)
-    - **LinkedIn** — [`lists/list-linkedin.txt`](./lists/list-linkedin.txt)
-    - **Signal** — [`lists/list-signal.txt`](./lists/list-signal.txt)
-    - **TikTok** — [`lists/list-tiktok.txt`](./lists/list-tiktok.txt)
-    - **News** (BBC, DW, Meduza, RFE/RL и т. п.) — [`lists/list-news.txt`](./lists/list-news.txt) (по умолчанию выключено)
-- **Pick strategy** — выбрать любой из существующих `general*.bat` (`ALT`, `FAKE TLS AUTO` и др.) одним кликом.
-- **Start / Stop bypass** — поднять/прибить выбранную стратегию (без необходимости лезть в `service.bat`).
-- **Edit custom domain list** — открыть `lists/list-custom.txt` в Блокноте: туда можно вписывать свои домены, которые тоже будут попадать под обход.
-- **Update domain lists** — подтянуть свежие `list-*.txt` и `ipset-*.txt` из апстрима.
-- **Cloudflare WARP** — установка через `winget install Cloudflare.Warp`, переключение режимов (`warp` / `warp+doh` / `doh` / `proxy`), connect/disconnect.
-  - WARP даёт другой выходной IP (помогает с частью гео-блокировок), но **не заменяет zapret** для обхода РФ-DPI.
-- **Custom VPN / Proxy** — раздел для **твоего собственного** доверенного VPN/прокси:
-  - Импорт WireGuard `.conf` (поднимается через `wireguard.exe /installtunnelservice`).
-  - Установка системного SOCKS5/HTTP прокси через реестр + `netsh winhttp`.
-  - **Никаких scraped public proxies из интернета здесь нет**: они в 95% случаев — honeypot'ы, MITM-ят HTTPS, дохнут за часы. Если у тебя есть свой VPS / купленный VPN — клади его конфиг сюда.
-- **Run diagnostics** — переброс на `service.bat → Run Diagnostics`.
+    - **LinkedIn**, **Signal**, **TikTok**, **Reddit**, **Patreon**, **Notion (DPI)**, **Imgur**, **Spotify (web, DPI)**, **News** (BBC/DW/Meduza/RFE/RL — по умолчанию выкл.)
+- **Pick strategy** — любой из существующих `general*.bat` (`ALT`, `FAKE TLS AUTO`, `SIMPLE FAKE` и т. п.) одной кнопкой.
+- **Start / Stop bypass** — поднять/прибить `winws.exe` (без правки `service.bat`).
+- **Custom DPI domains** — `lists/list-custom.txt` в Блокноте; всё оттуда тоже идёт под обход.
+- **Update domain lists** — подтянуть свежие `list-*.txt` / `ipset-*.txt` из апстрима.
 
-Launcher автоматически перезаписывает `lists/list-general-user.txt` (этот файл уже подхватывают все апстрим-стратегии), поэтому никакие `.bat` файлы апстрима не модифицируются — обновления `flowseal/zapret-discord-youtube` мерджатся как обычно.
+### 2. Cloudflare WARP — для геоблокировок (не DPI)
+
+WARP даёт другой выходной IP. Используется здесь не как замена zapret, а как **второй слой**: для сервисов, которые блокируют доступ по IP-геолокации, и DPI-обход бесполезен.
+
+- **Install (winget Cloudflare.Warp)** — установка одним кликом, регистрация клиента.
+- **Auto-start WARP вместе с bypass** (чекбокс, по умолчанию ON если установлен): когда вы жмёте *Start bypass*, после старта `winws.exe` launcher:
+  1. ставит `warp-cli set-mode proxy` (поднимает локальный SOCKS5 на `127.0.0.1:40000`),
+  2. подключает WARP (`warp-cli connect`),
+  3. генерирует [`utils/launcher.pac`](./utils/launcher.pac) и прописывает его в `HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\AutoConfigURL`.
+- При *Stop bypass* всё это раскручивается обратно: `winws.exe` убит, `warp-cli disconnect`, `AutoConfigURL` снят.
+- Manual mode + кнопки Connect/Disconnect/Show status для отладки.
+
+### 3. Geo-blocked services — selective routing через WARP (PAC)
+
+Домены, для которых zapret **принципиально** не помогает (сервер сам отказывает РФ-IP). Эти сайты ходят через WARP, всё остальное — напрямую (где DPI, разрулит zapret).
+
+| Toggle | Домены |
+|---|---|
+| ChatGPT / OpenAI | [`lists/geo-openai.txt`](./lists/geo-openai.txt) — `openai.com`, `chatgpt.com`, `oaistatic.com`, `sora.com` … |
+| Claude / Anthropic | [`lists/geo-claude.txt`](./lists/geo-claude.txt) |
+| Google Gemini / AI Studio | [`lists/geo-gemini.txt`](./lists/geo-gemini.txt) |
+| Cursor | [`lists/geo-cursor.txt`](./lists/geo-cursor.txt) |
+| GitHub Copilot | [`lists/geo-copilot.txt`](./lists/geo-copilot.txt) |
+| Spotify (geo) | [`lists/geo-spotify.txt`](./lists/geo-spotify.txt) |
+| Notion (geo) | [`lists/geo-notion.txt`](./lists/geo-notion.txt) |
+| Свой список | `lists/geo-custom.txt` — кнопка *Edit custom geo list…* |
+
+Как это работает: launcher собирает выбранные домены в один [PAC-файл](https://en.wikipedia.org/wiki/Proxy_auto-config), который для каждого URL отвечает либо `SOCKS5 127.0.0.1:40000` (→ WARP), либо `DIRECT` (→ обычный путь, где работает zapret).
+
+**Поддержка браузеров:**
+- **Chrome / Edge / IE / Opera / Brave** — читают системный AutoConfigURL автоматически. Ничего настраивать не надо.
+- **Firefox** — игнорирует системный, нужен ручной шаг: *about:preferences → Network Settings → Automatic proxy configuration URL → вставить URL*. Кнопка **«Copy PAC URL (for Firefox)»** в GUI кладёт нужный `file:///...` URL в буфер.
+- **Не-браузерные приложения** (Discord-desktop, Steam, Telegram-desktop, etc.) PAC не уважают — для них selective routing не работает. Если очень нужно — переключите WARP в `mode warp` (full tunnel), но имейте в виду, что некоторые сервисы (банки, Госуслуги) могут сломаться от изменившегося IP.
+
+**Чего эта схема не пробьёт:** Netflix / Disney+ / банки и т. п. палят датацентровые IP Cloudflare WARP и блочат. Для них нужен полноценный VPN с residential IP — это раздел ниже.
+
+### 4. Custom VPN / Proxy — твой собственный
+
+- **Импорт WireGuard `.conf`** — кнопка *Import WireGuard .conf…*, загружает `wireguard.exe /installtunnelservice` (нужна установленная [WireGuard for Windows](https://www.wireguard.com/install/), кнопка установки тоже есть).
+- **Системный SOCKS5/HTTP прокси** — через реестр + `netsh winhttp set proxy`.
+- **Никаких scraped public proxies здесь нет.** Они в 95% случаев — honeypot'ы, MITM-ят HTTPS, дохнут за часы. Если есть свой VPS / купленный VPN — клади его конфиг в `custom-vpn/`.
+
+### 5. Прочее
+
+Launcher автоматически перезаписывает `lists/list-general-user.txt` — апстрим-стратегии его уже подхватывают через `--hostlist`. Никакие `.bat` файлы апстрима не модифицируются, обновления `flowseal/zapret-discord-youtube` мерджатся как обычно.
+
+Сохранение состояния — `launcher.conf` (key=value, UTF-8 без BOM). Файл в `.gitignore`, в репу не попадает.
 
 ## ℹ️Краткие описания файлов
 

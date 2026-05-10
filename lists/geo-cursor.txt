@@ -1,0 +1,8 @@
+cursor.com
+cursor.sh
+cursor-cdn.com
+api2.cursor.sh
+api3.cursor.sh
+api4.cursor.sh
+download.cursor.sh
+download.cursor.com

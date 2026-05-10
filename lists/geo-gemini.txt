@@ -1,0 +1,5 @@
+gemini.google.com
+ai.google.dev
+aistudio.google.com
+makersuite.google.com
+generativelanguage.googleapis.com
