@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Shared logic for the zapret-discord-youtube launcher (CLI + GUI).
+  Shared logic for the codeDPI launcher (CLI + GUI).
 .DESCRIPTION
   Pure-ish library: no console writes, no [Console]::ReadLine prompts. The
   caller (CLI or GUI) supplies a $Script:LogSink scriptblock — see
@@ -117,7 +117,7 @@ function Write-Utf8NoBom([string]$path, [string[]]$lines) {
 }
 
 function Save-Config([hashtable]$cfg) {
-    $lines = @('# zapret-discord-youtube launcher config — managed automatically.')
+    $lines = @('# codeDPI launcher config — managed automatically.')
     foreach ($k in $cfg.Keys) {
         $lines += "$k=$($cfg[$k])"
     }
@@ -215,7 +215,7 @@ function Build-PacScript([string[]]$domains, [string]$proxyTarget = 'SOCKS5 127.
         '"' + ($_ -replace '\\', '\\' -replace '"', '\"') + '"'
     }) -join ", "
     $pac = @"
-// zapret-discord-youtube launcher PAC — auto-generated.
+// codeDPI launcher PAC — auto-generated.
 // Routes geo-blocked domains via Cloudflare WARP SOCKS5; everything else direct
 // (so zapret/winws can do its DPI desync on the rest).
 function FindProxyForURL(url, host) {

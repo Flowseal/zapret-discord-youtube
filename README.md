@@ -1,10 +1,12 @@
 <div align="center">
 
-# <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=28 /> <a href="https://github.com/Flowseal/">Flowseal</a><a href="https://github.com/Flowseal/zapret-discord-youtube">/zapret-discord-youtube</a> <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=28 />
+# codeDPI
 
-**NEW**: Ускорение Telegram Desktop - https://github.com/Flowseal/tg-ws-proxy  
-Альтернатива https://github.com/bol-van/zapret-win-bundle  
-Также вы можете материально поддержать оригинального разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
+**All-in-One Windows DPI bypass + WARP + PAC routing**
+
+Форк [Flowseal/zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube) с добавлением минималистичного launcher-а ([`start.bat`](./start.bat)), WPF-настроек, поддержкой Telegram/Reddit/Patreon/Notion/Imgur/Spotify, авто-WARP и selective routing через PAC для гео-блоков (ChatGPT/Claude/Gemini/Cursor/Copilot).
+
+Альтернатива [bol-van/zapret-win-bundle](https://github.com/bol-van/zapret-win-bundle). Поддержать оригинального разработчика zapret можно [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0). Telegram Desktop ускорение — [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).
 </div>
 
 > [!CAUTION]

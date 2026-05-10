@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  WPF-based GUI for zapret-discord-youtube launcher.
+  WPF-based GUI for codeDPI launcher.
 .DESCRIPTION
   Loads launcher.lib.ps1, builds a single-window WPF UI for:
     - DPI services (winws.exe via zapret)
@@ -29,7 +29,7 @@ $ErrorActionPreference = 'Stop'
 $xamlText = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="zapret all-in-one"
+        Title="codeDPI — settings"
         Width="760" Height="780"
         Background="#1b1d22" Foreground="#dddddd"
         FontFamily="Segoe UI" FontSize="12"

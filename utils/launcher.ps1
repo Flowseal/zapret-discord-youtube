@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  zapret-discord-youtube All-in-One Launcher (CLI / TUI).
+  codeDPI All-in-One Launcher (CLI / TUI).
 
 .DESCRIPTION
   Console menu for managing DPI services, strategy, WARP, custom VPN, and the
@@ -319,7 +319,7 @@ function Show-MainMenu {
     Apply-Services $cfg
 
     while ($true) {
-        Print-Header "ZAPRET ALL-IN-ONE LAUNCHER v$Version"
+        Print-Header "CODEDPI LAUNCHER v$Version"
 
         $enabledNames = @()
         foreach ($key in $Services.Keys) {

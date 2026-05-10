@@ -23,7 +23,7 @@ $Script:Cfg = Read-Config
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="zapret launcher" Width="380" Height="320"
+        Title="codeDPI" Width="380" Height="320"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Background="#1e1e1e"
@@ -96,7 +96,7 @@ $xaml = @'
             <Button x:Name="btnTest"     Grid.Row="1" Grid.Column="1" Style="{StaticResource ActionButton}" Content="✓  Тест связи"/>
         </Grid>
         <TextBlock Grid.Row="2" x:Name="lblFoot" Margin="4,12,4,0" Foreground="#777" FontSize="11"
-                   TextAlignment="Center" Text="zapret-discord-youtube · launcher v1.2.1"/>
+                   TextAlignment="Center" Text="codeDPI · v1.2.1"/>
     </Grid>
 </Window>
 '@
@@ -114,7 +114,7 @@ $btnStop   = Find 'btnStop'
 $btnSettings = Find 'btnSettings'
 $btnTest   = Find 'btnTest'
 
-$lblFoot.Text = "zapret-discord-youtube · launcher v$Script:Version"
+$lblFoot.Text = "codeDPI · v$Script:Version"
 
 # ============================================================================
 # Status updater

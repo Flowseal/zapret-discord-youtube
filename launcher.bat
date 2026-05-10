@@ -1,5 +1,5 @@
 @echo off
-:: zapret-discord-youtube — All-in-One Launcher.
+:: codeDPI — All-in-One Launcher.
 :: Self-elevates via UAC, then opens the minimal chooser by default.
 ::   launcher.bat            -> chooser (utils\launcher.chooser.ps1)
 ::   launcher.bat gui        -> full WPF launcher (utils\launcher.gui.ps1)

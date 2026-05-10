@@ -1,5 +1,5 @@
 @echo off
-:: zapret-discord-youtube — minimal one-screen launcher.
+:: codeDPI — minimal one-screen launcher.
 :: Self-elevates via UAC, then opens the chooser (4 buttons: Start / Stop / Settings / Test).
 :: Pass-through:
 ::   start.bat            -> chooser (default)
