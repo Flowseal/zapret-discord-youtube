@@ -4,5 +4,10 @@
 /lists/list-general-user.txt
 /lists/list-exclude-user.txt
 
+# Launcher: user-managed runtime files (never commit).
+/launcher.conf
+/lists/list-custom.txt
+/custom-vpn/
+
 .vscode/
 /build/

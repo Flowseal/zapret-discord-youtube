@@ -1,0 +1,13 @@
+signal.org
+signal.art
+whispersystems.org
+signalusers.org
+updates.signal.org
+chat.signal.org
+storage.signal.org
+ud-chat.signal.org
+textsecure-service.whispersystems.org
+cdn.signal.org
+cdn2.signal.org
+cdn3.signal.org
+cdsi.signal.org
