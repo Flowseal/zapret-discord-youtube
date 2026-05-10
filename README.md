@@ -2,289 +2,118 @@
 
 # codeDPI
 
-**All-in-One Windows DPI bypass + WARP + PAC routing**
+**All-in-One Windows DPI bypass + Cloudflare WARP + PAC routing — в одном маленьком окне.**
 
-Форк [Flowseal/zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube) с добавлением минималистичного launcher-а ([`start.bat`](./start.bat)), WPF-настроек, поддержкой Telegram/Reddit/Patreon/Notion/Imgur/Spotify, авто-WARP и selective routing через PAC для гео-блоков (ChatGPT/Claude/Gemini/Cursor/Copilot).
-
-Альтернатива [bol-van/zapret-win-bundle](https://github.com/bol-van/zapret-win-bundle). Поддержать оригинального разработчика zapret можно [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0). Telegram Desktop ускорение — [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).
 </div>
 
-> [!CAUTION]
->
-> ### ФЕЙКИ
-> Я не веду никакие другие страницы/группы в телеграм/ютуб каналы  
-> Если вы наткнулись на что-то вне этой страницы гитхаба, что распространяется от моего лица - **ФЕЙК**.
+---
 
-> [!WARNING]
->
-> ### АНТИВИРУСЫ
-> WinDivert может вызвать реакцию антивируса.
-> WinDivert - это инструмент для перехвата и фильтрации трафика, необходимый для работы zapret.
-> Замена iptables и NFQUEUE в Linux, которых нет под Windows.
-> Он может использоваться как хорошими, так и плохими программами, но сам по себе не является вирусом.
-> Драйвер WinDivert64.sys подписан для возможности загрузки в 64-битное ядро Windows.
->
-> **Выдержка из [`readme.md`](https://github.com/bol-van/zapret-win-bundle/blob/master/readme.md#%D0%B0%D0%BD%D1%82%D0%B8%D0%B2%D0%B8%D1%80%D1%83%D1%81%D1%8B) репозитория [bol-van/zapret-win-bundle](https://github.com/bol-van/zapret-win-bundle)*
->
-> Некоторые антивирусы склонны относить файлы WinDivert к классам повышенного риска или хакерским инструментам. Происходит удаление файла и помещение его в карантин. При этом детект обязательно имеет название `WinDivert` или `Not-a-virus:RiskTool.Multi.WinDivert`
->
-> В случае проблем с антивирусом добавьте папку с запретом в исключения, либо отключите детектирование PUA (потенциально нежелательных приложений). Например, в касперском есть галочка "Обнаруживать легальные приложения, которые злоумышленники часто используют для нанесения вреда". При аккуратной и правильной настройке исключений - рекомендуется настроить исключение, но если вы не до конца понимаете что делаете - рекомендуется отключить детект PUA.
+## Что это
 
-> [!IMPORTANT]
-> Все бинарные файлы в папке [`bin`](./bin) взяты из [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws) и [zapret/releases](https://github.com/bol-van/zapret/releases). Вы можете это проверить с помощью хэшей/контрольных сумм. Проверяйте, что запускаете, используя сборки из интернета!
+Один кликабельный `.bat` поднимает систему обхода блокировок для Windows. Под капотом — два разных слоя, потому что блокировки в России двух разных типов:
 
-## ⚙️Использование
+| Тип блокировки | Кто блокирует | Чем codeDPI обходит |
+|---|---|---|
+| **DPI** (TLS SNI / QUIC) — Discord, YouTube, Telegram-web, Meta, X, LinkedIn, Signal, TikTok, Reddit, Patreon, Notion-DPI, Imgur, Spotify-web | Российский провайдер | `winws.exe` десинхронизирует первые пакеты соединения через драйвер `WinDivert` — DPI не успевает прочитать SNI |
+| **Гео** (server-side) — ChatGPT, Claude, Gemini, Cursor, Copilot, Spotify-geo, Notion-geo | Сам сервис, по IP-геолокации | Через **Cloudflare WARP** (бесплатный SOCKS5 на `127.0.0.1:40000`) только для выбранных доменов — остальной трафик идёт обычным путём |
 
-1. Включите Secure DNS
-    * В Chrome - "Использовать безопасный DNS", и выбрать поставщика услуг DNS (выбрать вариант, отличный от поставщика по умолчанию)
-    * В Firefox - "Включить DNS через HTTPS, используя: Максимальную защиту", затем "Выбрать поставщика" и вписать URL поставщика вручную, например можно использовать `https://dns.google/dns-query` (т.к. поставщик Cloudflare может быть заблокирован)
-    * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://www.howtogeek.com/765940/how-to-enable-dns-over-https-on-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
+Гео-роутинг работает через локальный PAC-файл, который раздаётся встроенным HTTP-сервером на `http://127.0.0.1:27289/launcher.pac`. Браузеры (Chrome / Edge / Opera / Brave) подхватывают его автоматически через `HKCU\...\AutoConfigURL`. Firefox — отдельная вставка URL в `about:preferences → Network Settings`.
 
-2. Скачайте архив (zip/rar) со [страницы последнего релиза](https://github.com/Flowseal/zapret-discord-youtube/releases/latest)
+## Как запустить
 
-3. Зайдите в свойства скачанного архива и поставьте галочку "Разблокировать". Если вы используете архиватор 7-Zip или PeaZip, этот шаг можно пропустить
+1. **Скачай репо:** `Code → Download ZIP` или `git clone https://github.com/defomok-max/codeDPI.git`.
+2. **Распакуй** в путь без кириллицы и пробелов.
+3. **Двойной клик [`start.bat`](./start.bat)** — попросит UAC и поднимет маленькое окно с 4 кнопками:
 
-4. Распакуйте содержимое архива по пути, который не содержит кириллицу/спец. символы
+   - **▶  Запустить** — DPI bypass + WARP + PAC одной командой.
+   - **■  Остановить** — гасит всё.
+   - **⚙  Настройки** — открывает полный WPF GUI: чекбоксы каждого сервиса, выбор стратегии (`ALT*`/`FAKE TLS AUTO*`/`SIMPLE FAKE*`), ручное управление WARP, импорт WireGuard-конфига, системный прокси и т. д.
+   - **✓  Тест связи** — за ~10 сек прогоняет smoke-test: PAC server / WARP / DPI (`youtube.com/generate_204`) / Geo (`chatgpt.com` через WARP).
 
-5. Запустите нужный файл
+   Сверху — точка статуса (зелёная / жёлтая / серая) и одна строка с деталями вида `winws · warp · pac:27289`.
 
-## 🚀All-in-One Launcher (NEW в этом форке)
+Альтернативные точки входа:
 
-**Кликни [`start.bat`](./start.bat)** — поднимется маленькое окно с 4 кнопками: *Запустить / Остановить / Настройки / Тест связи*. Этого достаточно в 90% случаев. Внутри — единая логика для DPI bypass + WARP + PAC routing.
+- `start.bat gui` — сразу полный WPF GUI (вместо chooser-а).
+- `start.bat cli` — консольное TUI (на случай если WPF/PowerShell GUI не нужен).
+- `launcher.bat` — то же самое, что `start.bat`, для обратной совместимости.
 
-Альтернативные точки входа (для тех, кому надо больше контроля):
+## Стратегии DPI
 
-- [**`start.bat`**](./start.bat) (или [**`launcher.bat`**](./launcher.bat)) — минимальный chooser (4 кнопки).
-- `start.bat gui` (или `launcher.bat gui`) — полный WPF GUI ([`utils/launcher.gui.ps1`](./utils/launcher.gui.ps1)) со всеми чекбоксами сервисов, выбором стратегии, импортом WireGuard, системным прокси и т. д.
-- `start.bat cli` (или `launcher.bat cli`) — консольное TUI ([`utils/launcher.ps1`](./utils/launcher.ps1)).
+В `bin/` лежат `winws.exe` + `WinDivert64.sys` от [bol-van/zapret-win-bundle](https://github.com/bol-van/zapret-win-bundle). В корне репо — набор `general*.bat`, каждый — это **одна стратегия** (фиксированный набор флагов `winws.exe`). Провайдеры разные, поэтому стратегии разные:
 
-**Скриншот логики работы:** запрет (DPI desync, провайдерский слой) и WARP (другой выходной IP, серверный геоблок) — это два *разных* барьера. Один launcher умеет оба сразу.
+- `general.bat`, `general (ALT).bat` ... `general (ALT11).bat`
+- `general (FAKE TLS AUTO).bat` ... `(FAKE TLS AUTO ALT3).bat`
+- `general (SIMPLE FAKE).bat`, `(SIMPLE FAKE ALT).bat`, `(SIMPLE FAKE ALT2).bat`
 
-### 1. DPI bypass (zapret) — толстые блокировки от провайдера
+В chooser-е при первом запуске берётся `general.bat`. Если у тебя зеленится статус, но конкретный сервис всё равно не открывается — открой *Настройки* и переключи стратегию в дропдауне. Та, что работает у одного провайдера, может не работать у другого.
 
-- **Toggle services** (чекбоксы в GUI):
-  - Always-on (захардкожено в апстрим-стратегиях): YouTube, Discord/Cloudflare/Twitch-чат.
-  - Toggleable — `launcher` дописывает их домены в [`lists/list-general-user.txt`](./lists/list-general-user.txt) (этот файл уже включён в каждую `general*.bat` через `--hostlist`):
-    - **Meta** (Instagram/Facebook/Threads/WhatsApp web) — [`lists/list-meta.txt`](./lists/list-meta.txt)
-    - **Telegram** (web/CDN) — [`lists/list-telegram.txt`](./lists/list-telegram.txt) — *примечание: десктоп-клиент Telegram использует MTProto на нестандартных портах, для него лучше [tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy); zapret-листы покрывают веб-версию и CDN.*
-    - **X / Twitter** — [`lists/list-x.txt`](./lists/list-x.txt)
-    - **LinkedIn**, **Signal**, **TikTok**, **Reddit**, **Patreon**, **Notion (DPI)**, **Imgur**, **Spotify (web, DPI)**, **News** (BBC/DW/Meduza/RFE/RL — по умолчанию выкл.)
-- **Pick strategy** — любой из существующих `general*.bat` (`ALT`, `FAKE TLS AUTO`, `SIMPLE FAKE` и т. п.) одной кнопкой.
-- **Start / Stop bypass** — поднять/прибить `winws.exe` (без правки `service.bat`).
-- **Custom DPI domains** — `lists/list-custom.txt` в Блокноте; всё оттуда тоже идёт под обход.
-- **Update domain lists** — подтянуть свежие `list-*.txt` / `ipset-*.txt` из апстрима.
+## Поддерживаемые сервисы
 
-### 2. Cloudflare WARP — для геоблокировок (не DPI)
+### DPI (zapret) — toggle в *Настройках*
 
-WARP даёт другой выходной IP. Используется здесь не как замена zapret, а как **второй слой**: для сервисов, которые блокируют доступ по IP-геолокации, и DPI-обход бесполезен.
+YouTube, Discord, Cloudflare, Twitch chat, Meta (Instagram / Facebook / Threads / WhatsApp web), Telegram-web + CDN, X / Twitter, LinkedIn, Signal, TikTok, Reddit, Patreon, Notion (DPI-вариант), Imgur, Spotify (web), News (BBC/DW/Meduza/RFE/RL — выкл. по умолчанию).
 
-- **Install (winget Cloudflare.Warp)** — установка одним кликом, регистрация клиента.
-- **Auto-start WARP вместе с bypass** (чекбокс, по умолчанию ON если установлен): когда вы жмёте *Start bypass*, после старта `winws.exe` launcher:
-  1. ставит `warp-cli set-mode proxy` (поднимает локальный SOCKS5 на `127.0.0.1:40000`),
-  2. подключает WARP (`warp-cli connect`),
-  3. генерирует [`utils/launcher.pac`](./utils/launcher.pac) и прописывает его в `HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings\AutoConfigURL`.
-- При *Stop bypass* всё это раскручивается обратно: `winws.exe` убит, `warp-cli disconnect`, `AutoConfigURL` снят.
-- Manual mode + кнопки Connect/Disconnect/Show status для отладки.
+Хочется свои домены — добавь в [`lists/list-custom.txt`](./lists/list-custom.txt) (по одному на строку).
 
-### 3. Geo-blocked services — selective routing через WARP (PAC)
+### Geo (через WARP+PAC) — toggle в *Настройках*
 
-Домены, для которых zapret **принципиально** не помогает (сервер сам отказывает РФ-IP). Эти сайты ходят через WARP, всё остальное — напрямую (где DPI, разрулит zapret).
+ChatGPT / OpenAI, Claude / Anthropic, Google Gemini / AI Studio, Cursor, GitHub Copilot, Spotify (geo), Notion (geo). Свой список — `lists/geo-custom.txt`.
 
-| Toggle | Домены |
+## Чего codeDPI **не** сделает
+
+- **Telegram Desktop** — он ходит по MTProto на нестандартных портах, DPI-обход не поможет. Используй [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy). codeDPI покрывает только web-версию + CDN.
+- **Netflix / Disney+ / банки** — они палят датацентровые IP Cloudflare WARP и блокируют его не хуже. Нужен полноценный VPN с residential IP — кладёшь свой WireGuard-конфиг в раздел *Custom VPN / Proxy* в полном GUI.
+- **Discord-desktop / Steam / любые не-браузерные приложения** — PAC они не читают. Selective routing для них не работает; либо ставь WARP в `mode warp` (full tunnel, но тогда сломаются банки и Госуслуги), либо вешай прокси системно.
+
+## Файлы
+
+| Что | Зачем |
 |---|---|
-| ChatGPT / OpenAI | [`lists/geo-openai.txt`](./lists/geo-openai.txt) — `openai.com`, `chatgpt.com`, `oaistatic.com`, `sora.com` … |
-| Claude / Anthropic | [`lists/geo-claude.txt`](./lists/geo-claude.txt) |
-| Google Gemini / AI Studio | [`lists/geo-gemini.txt`](./lists/geo-gemini.txt) |
-| Cursor | [`lists/geo-cursor.txt`](./lists/geo-cursor.txt) |
-| GitHub Copilot | [`lists/geo-copilot.txt`](./lists/geo-copilot.txt) |
-| Spotify (geo) | [`lists/geo-spotify.txt`](./lists/geo-spotify.txt) |
-| Notion (geo) | [`lists/geo-notion.txt`](./lists/geo-notion.txt) |
-| Свой список | `lists/geo-custom.txt` — кнопка *Edit custom geo list…* |
+| [`start.bat`](./start.bat) | Главная точка входа — открывает chooser. |
+| [`launcher.bat`](./launcher.bat) | Алиас `start.bat` для обратной совместимости. |
+| [`utils/launcher.chooser.ps1`](./utils/launcher.chooser.ps1) | Минимальный WPF-чекбокс на 4 кнопки. |
+| [`utils/launcher.gui.ps1`](./utils/launcher.gui.ps1) | Полный WPF GUI (все сервисы, стратегия, WARP, кастомный VPN). |
+| [`utils/launcher.ps1`](./utils/launcher.ps1) | Консольное TUI (для тех, кому WPF не нужен). |
+| [`utils/launcher.lib.ps1`](./utils/launcher.lib.ps1) | Общая логика. CLI и GUI вызывают её одинаково. |
+| [`utils/launcher.pacserver.ps1`](./utils/launcher.pacserver.ps1) | HTTP-сервер для отдачи PAC по `http://127.0.0.1:27289/launcher.pac`. |
+| `lists/list-*.txt` | Списки доменов под DPI-обход. |
+| `lists/geo-*.txt` | Списки доменов, для которых нужен другой выходной IP. |
+| `lists/list-custom.txt`, `lists/geo-custom.txt` | Твои собственные домены. |
+| `general*.bat` | Стратегии `winws.exe` (флаги десинхронизации). От апстрима. |
+| `bin/` | `winws.exe` + `WinDivert64.sys` + готовые TLS/QUIC-фейк-пакеты. От апстрима. |
+| `service.bat` | Установка `winws` как Windows-службу + диагностика. От апстрима. |
+| `launcher.conf` | Сохранённое состояние GUI (чекбоксы, стратегия). В репо не попадает. |
 
-Как это работает: launcher собирает выбранные домены в один [PAC-файл](https://en.wikipedia.org/wiki/Proxy_auto-config), который для каждого URL отвечает либо `SOCKS5 127.0.0.1:40000` (→ WARP), либо `DIRECT` (→ обычный путь, где работает zapret).
+## Конфигурация
 
-PAC отдаётся локальным HTTP-сервером на `http://127.0.0.1:27289/launcher.pac` (порт настраивается через `pac_port` в `launcher.conf`). HTTP-форма выбрана вместо `file:///` потому, что современные Chrome/Edge/Firefox по-разному (и часто плохо) обрабатывают `file://` PAC URL. Сервер автоматически стартует/стопится вместе с bypass; его PID хранится в `launcher.pac-server.pid`.
+`launcher.conf` (создаётся при первом запуске GUI) — `key=value`, UTF-8 без BOM. Ключи, которые могут быть полезны вручную:
 
-**Поддержка браузеров:**
-- **Chrome / Edge / IE / Opera / Brave** — читают системный AutoConfigURL автоматически. Ничего настраивать не надо.
-- **Firefox** — игнорирует системный, нужен ручной шаг: *about:preferences → Network Settings → Automatic proxy configuration URL → вставить URL*. Кнопка **«Copy PAC URL (for Firefox)»** в GUI кладёт `http://127.0.0.1:.../launcher.pac` в буфер.
-- **Не-браузерные приложения** (Discord-desktop, Steam, Telegram-desktop, etc.) PAC не уважают — для них selective routing не работает. Если очень нужно — переключите WARP в `mode warp` (full tunnel), но имейте в виду, что некоторые сервисы (банки, Госуслуги) могут сломаться от изменившегося IP.
-
-**Чего эта схема не пробьёт:** Netflix / Disney+ / банки и т. п. палят датацентровые IP Cloudflare WARP и блочат. Для них нужен полноценный VPN с residential IP — это раздел ниже.
-
-### 4. Custom VPN / Proxy — твой собственный
-
-- **Импорт WireGuard `.conf`** — кнопка *Import WireGuard .conf…*, загружает `wireguard.exe /installtunnelservice` (нужна установленная [WireGuard for Windows](https://www.wireguard.com/install/), кнопка установки тоже есть).
-- **Системный SOCKS5/HTTP прокси** — через реестр + `netsh winhttp set proxy`.
-- **Никаких scraped public proxies здесь нет.** Они в 95% случаев — honeypot'ы, MITM-ят HTTPS, дохнут за часы. Если есть свой VPS / купленный VPN — клади его конфиг в `custom-vpn/`.
-
-### 5. Connectivity smoke-test
-
-Кнопка *Run connectivity test* в GUI (или пункт **12** в CLI) проверяет 4 вещи в течение ~10 секунд:
-- **PacServer** — отвечает ли локальный PAC-сервер на `http://127.0.0.1:<port>/launcher.pac`.
-- **Warp** — открыт ли SOCKS5-листенер `127.0.0.1:40000` (WARP в proxy mode).
-- **Dpi** — `https://www.youtube.com/generate_204` через DIRECT (zapret-путь). 204/200 = OK.
-- **Geo** — `https://chatgpt.com/` через WARP-прокси. 200..499 = OK (даже 403 значит, что мы дошли до сервера; контент-блок — тема приложения).
-
-В логе печатается human-readable отчёт `[OK]` / `[FAIL]` — удобно, чтобы быстро понять, что именно сломалось при странных симптомах.
-
-### 6. Прочее
-
-Launcher автоматически перезаписывает `lists/list-general-user.txt` — апстрим-стратегии его уже подхватывают через `--hostlist`. Никакие `.bat` файлы апстрима не модифицируются, обновления `flowseal/zapret-discord-youtube` мерджатся как обычно.
-
-Сохранение состояния — `launcher.conf` (key=value, UTF-8 без BOM). Файл в `.gitignore`, в репу не попадает.
-
-## ℹ️Краткие описания файлов
-
-- [**`start.bat`**](./start.bat) / [**`launcher.bat`**](./launcher.bat) — точки входа в All-in-One launcher (см. раздел выше). Рекомендуется для большинства пользователей.
-
-- [**`general.bat ...`**](./general.bat) - запуск стратегии вручную
-
-  Запуск вручную можно использовать для проверки работоспособности стратегий. Работоспособность той или иной стратегии зависит от многих факторов. **Пробуйте разные стратегии (ALT, FAKE и другие), пока не найдёте рабочее для вас решение**
-
-- [**`service.bat`**](./service.bat) - установка в автозапуск и другие функции:
-  - <ins>**`Install Service`** - установка любой стратегии в автозапуск (services.msc)</ins>
-  - **`Remove Services`** - удаление стратегии и WinDivert из служб
-  - **`Check Status`** - проверка статуса обхода и служб (стратегии на автозапуске и WinDivert)
-  - **`Game Filter`** - переключение режима обхода для игр (и других сервисов, использующих UDP и TCP на портах выше 1023).  
-  **После переключения требуется перезапуск стратегии.**  
-  В скобках указан текущий статус (включено/выключено).
-  - **`IPSet Filter`** - переключение режима обхода сервисов из `ipset-all.txt`.  
-  Полезно при тестировании, если не работает ресурс, который без zapret работает  
-  В скобках указан текущий статус:
-    - `none` - никакие айпи не попадают под проверку
-    - `loaded` - айпи проверяется на вхождение в список
-    - `any` - любой айпи попадает под фильтр  
-  - **`Auto-Update Check`** - Вкл/Выкл автоматическую проверку на обновления
-  - **`Update IPSet List`** - обновление списка `ipset-all.txt` актуальным из репозитория
-  - **`Update Hosts File`** - обновление файла hosts <ins>**для починки веб версии телеграма и подключения к голосовому чату Discord**</ins>
-  - **`Check for Updates`** - проверка на обновления
-  - **`Run Diagnostics`** - диагностика на распространённые причины, по которым zapret может не работать.  
-  В конце можно очистить кэш <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=11 /> `Discord`, что может помочь, если он неожиданно перестал работать
-  - **`Run Tests`** - запуск утилиты для проверки стратегий на работоспособность:
-    - `Standard tests` - проверка сайтов из `utils/targets.txt`
-    - `DPI checkers` - проверка DPI на различных провайдерах (Cloudflare, Amazon и др.)
-
-
-## ☑️Распространенные вопросы и проблемы
-
-### После запуска скрипта `general*` ничего не происходит
-
-- После запуска стратегии (отдельным bat файлом, не через service), должен открыться winws.exe (обход), который можно увидеть в панели задач.  
-Если этого не произошло, то см. [#522](https://github.com/Flowseal/zapret-discord-youtube/issues/522)
-
-### Не работает телеграм (веб версия) или бесконечное "подключение" к голосовому чату Discord
-Запустите **`service.bat`**, выберите пункт **`Update hosts file`**. После чего, если ваш hosts будет неактуальным, то Вам будет предложено обновить его самостоятельно:  
-  - Скопируйте весь текст из открывшегося блокнота
-  - Откройте файл `hosts` в появившейся папке с помощью текстового редактора, открытого от имени администратора
-  - Добавьте в конец файла `hosts` то, что скопировали (или замените, если до этого Вы уже добавляли подобное)
-  - Сохраните и перепроверьте подключение. Если не работает - убедитесь, что файл `hosts` действительно сохранился.
-
-### Обход не работает / перестал работать
-
-> [!IMPORTANT]
-> **Стратегии со временем могут переставать работать.**
-> Определенная стратегия может работать какое-то время, но со временем она может переставать работать из-за обнаружения.
-> В репозитории представлены множество различных стратегий для обхода. Если ни одна из них вам не помогает, то вам необходимо создать новую, взяв за основу одну из представленных здесь и изменив её параметры.
-> Информацию про параметры стратегий вы можете найти [тут](https://github.com/bol-van/zapret/blob/master/docs/readme.md#nfqws).
-
-- Проверьте, чтобы не было ошибок в `service.bat` -> `Run Diagnostics`
-
-- Убедитесь, что адрес ресурса записан в списках доменов или IP
-
-- Проверьте другие стратегии (**`ALT`**/**`FAKE`** и другие)
-
-- Попробуйте полную переустановку (см. раздел ниже)
-
-- См. [#765](https://github.com/Flowseal/zapret-discord-youtube/issues/765)
-
-### Как переустановить/обновить полностью?
-- Сохраните ресурсы/данные, которые вы сами добавляли
-- Перезапустите устройство
-- `service.bat` -> `Remove Services`
-- `service.bat` -> `Run Diagnostics` (если есть ошибки - устраните их) -> в конце Y
-- Удалите папку с запретом
-- Скачайте последнюю версию [со страницы релизов](https://github.com/Flowseal/zapret-discord-youtube/releases) (`zapret-discord-youtube-...`)
-- Нажмите пкм по архиву -> свойства. Если снизу справа есть галочка разблокировать, то нажмите на неё -> применить -> ОК
-- Распакуйте в новую папку в корне диска (без спец. символов и пробелов)
-- Далее пробуйте запускать различные `general` скрипты (стратегии). Проверьте доступность интернет ресурсов - если не работают, то закрывайте программу (в панели задач иконка замочка) и пробуйте другую стратегию
-- Как найдёте рабочую стратегию, можете поставить её на автозапуск: `service.bat` -> `Install Service` -> выбираете нужную
-
-### Не работает игра/приложение с включённым запретом
-
-- Проверьте, что в service.bat `Game Filter` **`disabled`**, а `IPSet Filter` **`none`**. Иначе это может затронуть доступность ресурсов, которых вы не ожидали.
-
-### Античит ругается на WinDivert
-
-- Прочитайте инструкцию тут - https://github.com/bol-van/zapret-win-bundle/tree/master/windivert-hide
-
-### Требуется цифровая подпись драйвера WinDivert (Windows 7)
-
-- Замените файлы `WinDivert.dll` и `WinDivert64.sys` в папке [`bin`](./bin) на одноименные из [zapret-win-bundle/win7](https://github.com/bol-van/zapret-win-bundle/tree/master/win7)
-
-### При удалении с помощью [**`service.bat`**](./service.bat), WinDivert остается в службах
-
-1. Узнайте название службы с помощью команды, в командной строке Windows (Win+R, `cmd`):
-
-```cmd
-driverquery | find "Divert"
+```
+strategy=general (ALT3).bat   # имя выбранного general*.bat
+warp_autostart=1               # 0/1 — поднимать WARP вместе с bypass
+geo_routing=1                  # 0/1 — включить PAC routing для гео-доменов
+pac_port=27289                 # порт локального PAC HTTP-сервера
+service_meta=1                 # 0/1 — DPI-обход для Meta (аналогично для других сервисов)
+geo_openai=1                   # 0/1 — gео-роутинг для OpenAI/ChatGPT
 ```
 
-2. Остановите и удалите службу командами:
+Менять ключи можно прямо в Блокноте — chooser перечитывает конфиг при открытии *Настроек*.
 
-```cmd
-sc stop название_из_первого_шага
+## WinDivert и антивирусы
 
-sc delete название_из_первого_шага
-```
+`WinDivert64.sys` — kernel-driver для перехвата трафика (аналог `iptables`/`NFQUEUE` в Linux, которых на Windows нет). Антивирусы иногда помечают его как `RiskTool.WinDivert` — это **не вирус**, просто инструмент двойного назначения; драйвер подписан Microsoft-совместимой подписью для загрузки в 64-битное ядро. В случае ругани добавь папку `bin/` в исключения антивируса (или выключи детект PUA, если разбираешься).
 
-### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
+## Что внутри. Откуда что взято
 
-- Убедитесь что вы настроили Secure DNS.
-- Отключите блокировщик рекламы, известно что YouTube начал с ними бороться.
-- Пробуйте все другие стратегии (если раньше работало, но перестало).
-- См. также [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
+codeDPI = launcher + апстримные движки.
 
-### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
+- **DPI-обход:** [bol-van/zapret](https://github.com/bol-van/zapret) — кросс-платформенный механизм десинхронизации, изначально под Linux/iptables. Windows-сборка — [bol-van/zapret-win-bundle](https://github.com/bol-van/zapret-win-bundle): `winws.exe` + `WinDivert`. Бинарники в `bin/` идут оттуда.
+- **Стратегии (`general*.bat`):** [Flowseal/zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube) — апстримная подборка флагов `winws.exe` под российских провайдеров. codeDPI — форк этого репо с добавленным launcher-ом и поддержкой большего числа сервисов + WARP-интеграцией.
+- **Cloudflare WARP** — бесплатный, [`1.1.1.1` от Cloudflare](https://1.1.1.1/). Используется здесь не как VPN, а как локальный SOCKS5 для гео-роутинга.
 
-- Желательно сначала узнать, на какой стратегии открывается сайт YouTube. Запустите эту стратегию.
-- Проверьте Discord в браузере: https://discord.com/app. В браузере работает? Если работает, то можете пользоваться в нём.
-- Если Discord и в браузере не работает, убедитесь что вы настроили Secure DNS, и после этого ещё раз пробуйте все стратегии. Бывает такое, что на одной стратегии YouTube работает, а Discord нет.
-- См. также [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
+Поддержать оригинального разработчика zapret можно [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0).
 
-### Не нашли своей проблемы
+## Лицензия
 
-* Создайте её [тут](https://github.com/Flowseal/zapret-discord-youtube/issues)
-
-## 🗒️Добавление адресов прочих ресурсов
-
-Список адресов для обхода можно расширить, добавляя их в:
-- **`list-general-user.txt`** для доменов (поддомены автоматически учитываются)
-- **`list-exclude-user.txt`** для исключения доменов (например, если айпи сети указан в `ipset-all.txt`, но конкретный домен из этой сети не надо фильтровать)
-- **`ipset-all.txt`** для IP и подсетей
-- **`ipset-exclude-user.txt`** для исключения IP и подсетей
-  - Файлы **`*-user.txt`** автоматически создадутся при первом запуске `zapret` или `service.bat`
-
-## ⭐Поддержка проекта
-
-Вы можете поддержать проект, поставив :star: этому репозиторию (сверху справа этой страницы)
-
-Также вы можете материально поддержать оригинального разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
-
-<a href="https://star-history.com/#Flowseal/zapret-discord-youtube&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date" />
- </picture>
-</a>
-
-## ⚖️Лицензирование
-
-Проект распространяется на условиях лицензии [MIT](https://github.com/Flowseal/zapret-discord-youtube/blob/main/LICENSE.txt)
-
-## 🩷Благодарность участникам проекта
-
-[![Contributors](https://contrib.rocks/image?repo=Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discord-youtube/graphs/contributors)
-
-💖 Отдельная благодарность разработчику [zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van)
+[MIT](./LICENSE.txt) — наследуется от апстрима. Бинарники `bin/` — от bol-van, под их соответствующими лицензиями (см. их репо).
