@@ -1,2 +1,24 @@
-*.bat text eol=crlf
-*.ps1 text eol=crlf
+* text=auto eol=lf
+
+# Windows-only batch files — must use CRLF or cmd.exe misbehaves.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# PowerShell scripts — work on Linux/Windows, normalise to LF.
+*.ps1   text eol=lf
+
+# Markdown / config — LF.
+*.md    text eol=lf
+*.txt   text eol=lf
+*.conf  text eol=lf
+*.json  text eol=lf
+*.pac   text eol=lf
+
+# Binary blobs.
+*.exe   binary
+*.dll   binary
+*.sys   binary
+*.bin   binary
+*.png   binary
+*.jpg   binary
+*.ico   binary

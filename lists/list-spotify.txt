@@ -1,0 +1,6 @@
+spotify.com
+spotifycdn.com
+scdn.co
+spoti.fi
+audio-fa.scdn.co
+audio-akp-quic-control.spotifycdn.com
