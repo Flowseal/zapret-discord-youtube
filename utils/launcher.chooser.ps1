@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   Minimal launcher chooser — single small WPF window with 4 actions.
@@ -13,6 +13,31 @@
 #>
 
 $ErrorActionPreference = 'Stop'
+
+# Top-level safety net: any uncaught error gets logged and shown to the user
+# instead of silently closing the cmd window before they can read it.
+trap {
+    $err = $_
+    $msg = "$($err.Exception.GetType().Name): $($err.Exception.Message)"
+    try {
+        $logPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'launcher.log'
+        $line = "[{0}] chooser FATAL: {1}`n{2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $msg, $err.ScriptStackTrace
+        Add-Content -LiteralPath $logPath -Value $line -Encoding UTF8
+    } catch { }
+    Write-Host ''
+    Write-Host '=====================================================================' -ForegroundColor Red
+    Write-Host '  codeDPI chooser — FATAL ERROR' -ForegroundColor Red
+    Write-Host '=====================================================================' -ForegroundColor Red
+    Write-Host $msg -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host 'Stack:' -ForegroundColor DarkGray
+    Write-Host $err.ScriptStackTrace -ForegroundColor DarkGray
+    Write-Host ''
+    Write-Host 'Press ENTER to close this window...' -ForegroundColor DarkGray
+    try { [void][Console]::ReadLine() } catch { Start-Sleep -Seconds 30 }
+    exit 1
+}
+
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase

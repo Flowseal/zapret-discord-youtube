@@ -1,4 +1,4 @@
-$hasErrors = $false
+﻿$hasErrors = $false
 
 $rootDir = Split-Path $PSScriptRoot
 $listsDir = Join-Path $rootDir "lists"
