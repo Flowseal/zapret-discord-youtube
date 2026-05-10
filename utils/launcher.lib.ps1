@@ -181,7 +181,11 @@ function Apply-Services([hashtable]$cfg) {
 # ============================================================================
 function Get-StrategyFiles {
     Get-ChildItem -LiteralPath $RepoRoot -Filter '*.bat' |
-        Where-Object { $_.Name -notlike 'service*' -and $_.Name -notlike 'launcher*' } |
+        Where-Object {
+            $_.Name -notlike 'service*' -and
+            $_.Name -notlike 'launcher*' -and
+            $_.Name -notlike 'start*'
+        } |
         Sort-Object {
             [Regex]::Replace($_.Name, '(\d+)', { param($m) $m.Value.PadLeft(8, '0') })
         } |

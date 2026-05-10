@@ -1,11 +1,10 @@
 @echo off
-:: zapret-discord-youtube — All-in-One Launcher.
-:: Self-elevates via UAC, then opens the minimal chooser by default.
-::   launcher.bat            -> chooser (utils\launcher.chooser.ps1)
-::   launcher.bat gui        -> full WPF launcher (utils\launcher.gui.ps1)
-::   launcher.bat cli        -> console TUI (utils\launcher.ps1)
-::
-:: New top-level entry point: start.bat (same behavior).
+:: zapret-discord-youtube — minimal one-screen launcher.
+:: Self-elevates via UAC, then opens the chooser (4 buttons: Start / Stop / Settings / Test).
+:: Pass-through:
+::   start.bat            -> chooser (default)
+::   start.bat gui        -> full WPF launcher (utils\launcher.gui.ps1)
+::   start.bat cli        -> console TUI (utils\launcher.ps1)
 
 setlocal
 

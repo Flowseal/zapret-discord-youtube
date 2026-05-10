@@ -48,7 +48,13 @@
 
 ## 🚀All-in-One Launcher (NEW в этом форке)
 
-[**`launcher.bat`**](./launcher.bat) — единая входная точка. По умолчанию запрашивает права админа и открывает **WPF-окно** ([`utils/launcher.gui.ps1`](./utils/launcher.gui.ps1)). Старое консольное меню осталось как fallback — `launcher.bat cli` ([`utils/launcher.ps1`](./utils/launcher.ps1)).
+**Кликни [`start.bat`](./start.bat)** — поднимется маленькое окно с 4 кнопками: *Запустить / Остановить / Настройки / Тест связи*. Этого достаточно в 90% случаев. Внутри — единая логика для DPI bypass + WARP + PAC routing.
+
+Альтернативные точки входа (для тех, кому надо больше контроля):
+
+- [**`start.bat`**](./start.bat) (или [**`launcher.bat`**](./launcher.bat)) — минимальный chooser (4 кнопки).
+- `start.bat gui` (или `launcher.bat gui`) — полный WPF GUI ([`utils/launcher.gui.ps1`](./utils/launcher.gui.ps1)) со всеми чекбоксами сервисов, выбором стратегии, импортом WireGuard, системным прокси и т. д.
+- `start.bat cli` (или `launcher.bat cli`) — консольное TUI ([`utils/launcher.ps1`](./utils/launcher.ps1)).
 
 **Скриншот логики работы:** запрет (DPI desync, провайдерский слой) и WARP (другой выходной IP, серверный геоблок) — это два *разных* барьера. Один launcher умеет оба сразу.
 
@@ -128,7 +134,7 @@ Launcher автоматически перезаписывает `lists/list-gen
 
 ## ℹ️Краткие описания файлов
 
-- [**`launcher.bat`**](./launcher.bat) - единое TUI-меню (см. раздел выше). Рекомендуется для большинства пользователей.
+- [**`start.bat`**](./start.bat) / [**`launcher.bat`**](./launcher.bat) — точки входа в All-in-One launcher (см. раздел выше). Рекомендуется для большинства пользователей.
 
 - [**`general.bat ...`**](./general.bat) - запуск стратегии вручную
 
