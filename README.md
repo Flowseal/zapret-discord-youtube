@@ -162,9 +162,26 @@ sc delete название_из_первого_шага
 - Если Discord и в браузере не работает, убедитесь что вы настроили Secure DNS, и после этого ещё раз пробуйте все стратегии. Бывает такое, что на одной стратегии YouTube работает, а Discord нет.
 - См. также [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
 
+### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968804.png" height=18 /> Telegram
+
+- Используйте программу [tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy)
+- Или используйте бесплатные MTProto прокси из интернета
+
+### Не работают игры
+
+Есть много разных игр. Исследовать и чинить каждую из них нет возможности.
+
+Наиболее универсальный рецепт такой:
+- через `service.bat` обновите ipset и включите `Game Filter`
+- если это не поможет, то попробуйте также включить настройку `ipset any`
+
+Но помните, что при включении `ipset any` появятся проблемы с открытием многих сайтов. Чтобы этого избежать, не используйте `ipset any` на постоянной основе. Вместо этого нужно выяснить все IP адреса, которые используются игрой, и добавить их в `ipset-all.txt`
+
+Если и это не помогло, создайте ветку обсуждений в разделе [Discussions](https://github.com/Flowseal/zapret-discord-youtube/discussions) (не в issues) и ждите помощи от других игроков.
+
 ### Не нашли своей проблемы
 
-* Создайте её [тут](https://github.com/Flowseal/zapret-discord-youtube/issues)
+- Создайте её [тут](https://github.com/Flowseal/zapret-discord-youtube/issues)
 
 ## 🗒️Добавление адресов прочих ресурсов
 
