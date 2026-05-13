@@ -39,6 +39,7 @@ leagueoflegends.com
 playvalorant.com
 marketplace.visualstudio.com
 gosuslugi.ru
+esia.gosuslugi.ru
 gov.ru
 nalog.ru
 spb.ru
@@ -89,3 +90,7 @@ tbank.ru
 tochka-tech.com
 tochka.com
 vtb.ru
+iu.ru
+infourok.ru
+nsportal.ru
+swimrocket.com
