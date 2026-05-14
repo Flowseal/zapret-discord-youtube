@@ -58,6 +58,7 @@ cls
 call :ipset_switch_status
 call :game_switch_status
 call :check_updates_switch_status
+call :zapret_cli_switch_status
 call :get_strategy_name
 
 set "menu_choice=null"
@@ -85,12 +86,13 @@ echo.
 echo   :: TOOLS
 echo      10. Run Diagnostics
 echo      11. Run Tests
+echo      12. Terminal command zapret [!ZapretCliStatus!]
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -103,6 +105,7 @@ if "%menu_choice%"=="8" goto hosts_update
 if "%menu_choice%"=="9" goto service_check_updates
 if "%menu_choice%"=="10" goto service_diagnostics
 if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="12" goto zapret_cli_menu
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -995,6 +998,99 @@ echo.
 start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test zapret.ps1"
 pause
 goto menu
+
+
+:: TERMINAL COMMAND ZAPRET (PATH + shim; path = folder of this service.bat)
+:zapret_cli_switch_status
+chcp 437 > nul
+set "ZapretCliStatus=unavailable"
+set "ZAPRET_CLI_SHIM_PS1=%~dp0utils\zapret_cli_shim.ps1"
+if not exist "%ZAPRET_CLI_SHIM_PS1%" (
+    exit /b
+)
+set "_zroot=%~dp0"
+set "_zroot=!_zroot:~0,-1!"
+set "ZAPRET_CLI_SERVICE_ROOT=!_zroot!"
+for /f "delims=" %%A in ('powershell -NoProfile -ExecutionPolicy Bypass -File "%ZAPRET_CLI_SHIM_PS1%" -Action status 2^>nul') do set "ZapretCliStatus=%%A"
+set "ZAPRET_CLI_SERVICE_ROOT="
+if "!ZapretCliStatus!"=="" set "ZapretCliStatus=unavailable"
+exit /b
+
+
+:zapret_cli_menu
+chcp 437 > nul
+cls
+call :zapret_cli_switch_status
+set "_zroot=%~dp0"
+set "_zroot=!_zroot:~0,-1!"
+echo   TERMINAL COMMAND [zapret]
+echo   ----------------------------------------
+echo   Launches this service.bat from any terminal after install.
+echo   Install folder (this copy of service.bat):
+echo     !_zroot!
+echo.
+echo   Status: !ZapretCliStatus!
+echo   Shim and PATH entry: %%LOCALAPPDATA%%\zapret-discord-youtube-cli\
+echo.
+echo      1. Install or update ^(rewrite launcher + user PATH^)
+echo      2. Remove ^(remove PATH entry + delete shim files^)
+echo      0. Back to main menu
+echo.
+set "zapret_cli_sub=0"
+set /p "zapret_cli_sub=   Select option (0-2): "
+if "!zapret_cli_sub!"=="" set "zapret_cli_sub=0"
+if "!zapret_cli_sub!"=="0" goto menu
+if "!zapret_cli_sub!"=="1" goto zapret_cli_install
+if "!zapret_cli_sub!"=="2" goto zapret_cli_remove
+echo Invalid choice.
+pause
+goto zapret_cli_menu
+
+
+:zapret_cli_install
+chcp 437 > nul
+cls
+if not exist "%ZAPRET_CLI_SHIM_PS1%" (
+    call :PrintRed "Missing utils\zapret_cli_shim.ps1"
+    pause
+    goto zapret_cli_menu
+)
+set "_zroot=%~dp0"
+set "_zroot=!_zroot:~0,-1!"
+echo Installing / updating [zapret] CLI shim...
+set "ZAPRET_CLI_SERVICE_ROOT=!_zroot!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ZAPRET_CLI_SHIM_PS1%" -Action install
+set "ZAPRET_CLI_SERVICE_ROOT="
+if !errorlevel! neq 0 (
+    call :PrintRed "Install failed."
+) else (
+    call :PrintGreen "Done. Open a NEW terminal window and run: zapret"
+)
+pause
+goto zapret_cli_menu
+
+
+:zapret_cli_remove
+chcp 437 > nul
+cls
+if not exist "%ZAPRET_CLI_SHIM_PS1%" (
+    call :PrintRed "Missing utils\zapret_cli_shim.ps1"
+    pause
+    goto zapret_cli_menu
+)
+set "_zroot=%~dp0"
+set "_zroot=!_zroot:~0,-1!"
+echo Removing [zapret] from user PATH and deleting shim files...
+set "ZAPRET_CLI_SERVICE_ROOT=!_zroot!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ZAPRET_CLI_SHIM_PS1%" -Action uninstall
+set "ZAPRET_CLI_SERVICE_ROOT="
+if !errorlevel! neq 0 (
+    call :PrintRed "Remove failed."
+) else (
+    call :PrintGreen "Done. Close other terminals and open a new one so PATH refreshes."
+)
+pause
+goto zapret_cli_menu
 
 
 :: Get strategy name
