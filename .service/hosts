@@ -1,3 +1,12 @@
+149.154.167.220 my.telegram.org
+149.154.167.220 oauth.telegram.org
+149.154.167.220 cdn.telesco.pe
+149.154.167.220 cdn1.telesco.pe
+149.154.167.220 cdn2.telesco.pe
+149.154.167.220 cdn3.telesco.pe
+149.154.167.220 cdn4.telesco.pe
+149.154.167.220 cdn5.telesco.pe
+149.154.167.220 core.telegram.org
 149.154.167.220 zws4.web.telegram.org
 149.154.167.220 vesta.web.telegram.org
 149.154.167.220 vesta-1.web.telegram.org
@@ -20,6 +29,12 @@
 149.154.167.220 zws2-1.web.telegram.org
 149.154.167.220 zws2.web.telegram.org
 149.154.167.220 zws4-1.web.telegram.org
+
+185.199.109.133 raw.githubusercontent.com
+185.199.109.133 release-assets.githubusercontent.com
+185.199.108.133 private-user-images.githubusercontent.com
+185.199.108.133 gist.githubusercontent.com
+185.199.108.133 avatars.githubusercontent.com
 
 104.25.158.178 finland10000.discord.media
 104.25.158.178 finland10001.discord.media
