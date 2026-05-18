@@ -38,58 +38,13 @@
     * В Firefox - "Включить DNS через HTTPS, используя: Максимальную защиту", затем "Выбрать поставщика" и вписать URL поставщика вручную, например можно использовать `https://dns.google/dns-query` (т.к. поставщик Cloudflare может быть заблокирован)
     * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://www.howtogeek.com/765940/how-to-enable-dns-over-https-on-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
 
-2. Получите файлы проекта одним из способов:
+2. Скачайте архив (zip/rar) со [страницы последнего релиза](https://github.com/Flowseal/zapret-discord-youtube/releases/latest)
 
-   **А) Автоустановка** (скачивается последний релизный zip с GitHub, распаковывается, снимается блокировка «из интернета»): в PowerShell:
+3. Зайдите в свойства скачанного архива и поставьте галочку "Разблокировать". Если вы используете архиватор 7-Zip или PeaZip, этот шаг можно пропустить
 
-   ```powershell
-   irm https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/scripts/install.ps1 | iex
-   ```
-
-   Скрипт: [`scripts/install.ps1`](./scripts/install.ps1). Каталог по умолчанию: `%USERPROFILE%\zapret-discord-youtube`; если в пути профиля есть символы вне ASCII (например кириллица в имени пользователя), используется `C:\zapret-discord-youtube`. Регистрация команды `zapret` выполняется через тот же модуль, что и **п. 12** в `service.bat` ([`utils/zapret_cli_shim.ps1`](./utils/zapret_cli_shim.ps1)) — после установки из архива он уже на диске.
-
-   Параметры `install.ps1` (функция `Install-ZapretDiscordYoutube`):
-
-   | Параметр | Тип | По умолчанию | Назначение |
-   |----------|-----|----------------|------------|
-   | `-Help` | switch | — | Справка и выход |
-   | `-Version` | switch | — | Версия установщика и выход |
-   | `-Channel` | string | `stable` | Сейчас допустимо только **`stable`**, иначе установщик завершится с ошибкой |
-   | `-Repo` | string | `Flowseal/zapret-discord-youtube` | Репозиторий для GitHub API `releases/latest` (для форка: `владелец/имя-репо`) |
-   | `-DryRun` | switch | — | Не скачивать и не распаковывать: только план (URL, каталог, проверка SHA256, shim) |
-   | `-RegisterZapretCommand` | switch | — | После установки сразу зарегистрировать команду `zapret` в PATH (без вопроса) |
-   | `-SkipRegisterZapretCommand` | switch | — | Не спрашивать и не регистрировать `zapret` |
-
-   Если не указаны ни `-RegisterZapretCommand`, ни `-SkipRegisterZapretCommand`, после распаковки будет **вопрос в консоли**, регистрировать ли `zapret`.
-
-   Примеры с локальным файлом:
-
-   ```powershell
-   .\scripts\install.ps1 -DryRun
-   .\scripts\install.ps1 -Repo MyFork/zapret-discord-youtube -DryRun
-   .\scripts\install.ps1 -RegisterZapretCommand
-   .\scripts\install.ps1 -SkipRegisterZapretCommand
-   ```
-
-   Однострочник `irm … | iex` **не передаёт** аргументы в скрипт. Чтобы вызвать с ключами после загрузки функций в текущей сессии PowerShell:
-
-   ```powershell
-   irm https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/scripts/install.ps1 | iex
-   Install-ZapretDiscordYoutube -DryRun
-   ```
-
-   **Б) Вручную** — скачайте архив (zip/rar) со [страницы последнего релиза](https://github.com/Flowseal/zapret-discord-youtube/releases/latest)
-
-3. Зайдите в свойства скачанного архива и поставьте галочку "Разблокировать". Если вы используете архиватор 7-Zip или PeaZip, этот шаг можно пропустить (при автоустановке через `install.ps1` этот шаг не нужен)
-
-4. Распакуйте содержимое архива по пути, который не содержит кириллицу/спец. символы (при автоустановке путь выбирает скрипт)
+4. Распакуйте содержимое архива по пути, который не содержит кириллицу/спец. символы
 
 5. Запустите нужный файл
-
-> [!NOTE]
-> **Старый архив релиза.** Если в распакованной сборке **нет** [`utils/zapret_cli_shim.ps1`](./utils/zapret_cli_shim.ps1), регистрация `zapret` из установщика завершится ошибкой. Возьмите [актуальный релиз](https://github.com/Flowseal/zapret-discord-youtube/releases/latest) или включите команду из **service.bat** (п. 12) уже из обновлённой папки.
->
-> **`irm … | iex`.** Команда загружает и сразу выполняет скрипт с GitHub от вашего имени — это стандартный риск такого способа установки (не «нулевая доверенность»). При сомнениях откройте [сырой `install.ps1`](https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/scripts/install.ps1) в браузере, сохраните файл и запустите локально: `.\install.ps1`.
 
 ## ℹ️Краткие описания файлов
 
@@ -232,7 +187,7 @@ sc delete название_из_первого_шага
 ### Команда `zapret` не находится после установки
 
 - Закройте старые окна терминала и откройте новое (PATH подхватывается при запуске процесса).
-- Зарегистрируйте снова: **`service.bat`** → **Terminal command zapret** → **Install or update**, либо переустановите через [`install.ps1`](./scripts/install.ps1) с `-RegisterZapretCommand`.
+- Зарегистрируйте снова: **`service.bat`** → **Terminal command zapret** → **Install or update**.
 - Снять регистрацию и удалить файлы shim: тот же пункт **12** → **Remove**.
 
 ## 🗒️Добавление адресов прочих ресурсов
