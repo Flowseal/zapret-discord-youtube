@@ -1,3 +1,12 @@
+1.1.1.1 one.one.one.one
+2606:4700:4700::1111 one.one.one.one
+
+8.8.4.4 dns.google
+2001:4860:4860::8844 dns.google
+
+146.112.41.2 doh.opendns.com
+2620:119:fc::2 doh.opendns.com
+
 185.199.109.133 objects.githubusercontent.com
 185.199.109.133 raw.githubusercontent.com
 185.199.109.133 release-assets.githubusercontent.com
