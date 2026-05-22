@@ -4,6 +4,9 @@
 8.8.8.8 dns.google
 2001:4860:4860::8888 dns.google
 
+146.112.41.2 doh.opendns.com
+2620:119:fc::2 doh.opendns.com
+
 149.154.167.220 my.telegram.org
 149.154.167.220 oauth.telegram.org
 149.154.167.220 cdn.telesco.pe
