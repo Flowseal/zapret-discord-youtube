@@ -88,7 +88,7 @@ if "!IS_WIN10_OR_NEWER!"=="1" (
     set "C_GREEN=!ESC![92m"
     set "C_RED=!ESC![91m"
     set "C_RESET=!ESC![0m"
-	chcp 65001 > nul
+    chcp 65001 > nul
 ) else (
     set "C_BLUE="
     set "C_WHITE="
@@ -109,17 +109,17 @@ echo     !C_WHITE!1.!C_RESET! Install Service
 echo     !C_WHITE!2.!C_RESET! Remove Service
 echo     !C_WHITE!3.!C_RESET! Check Status
 echo.
-echo  !C_GREEN!::SETTINGS!C_RESET!
+echo  !C_BLUE!::SETTINGS!C_RESET!
 echo     !C_WHITE!4.!C_RESET! Game Filter        !C_YELLOW![!GameFilterStatus!]!C_RESET!
 echo     !C_WHITE!5.!C_RESET! IPSet Mode         !C_YELLOW![!IPsetStatus!]!C_RESET!
 echo     !C_WHITE!6.!C_RESET! Auto Updates       !C_YELLOW![!CheckUpdatesStatus!]!C_RESET!
 echo.
-echo  !C_GREEN!::UPDATES!C_RESET!
+echo  !C_BLUE!::UPDATES!C_RESET!
 echo     !C_WHITE!7.!C_RESET! Update IPSet List
 echo     !C_WHITE!8.!C_RESET! Update Hosts File
 echo     !C_WHITE!9.!C_RESET! Check Updates
 echo.
-echo  !C_RED!::TOOLS!C_RESET!
+echo  !C_BLUE!::TOOLS!C_RESET!
 echo     !C_WHITE!10.!C_RESET! Run Diagnostics
 echo     !C_WHITE!11.!C_RESET! Run Tests
 echo   ------------
