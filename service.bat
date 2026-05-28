@@ -1,5 +1,5 @@
 @echo off
-set "LOCAL_VERSION=1.9.8d"
+set "LOCAL_VERSION=1.9.9a"
 
 
 :: OS DETECTION ========================
@@ -14,6 +14,7 @@ if %errorlevel%==0 (
 ) else (
     set "IS_WIN10_OR_NEWER=0"
 )
+set "LOCAL_VERSION=1.9.9a"
 
 :: External commands
 if "%~1"=="status_zapret" (
