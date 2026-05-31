@@ -4,6 +4,8 @@ $rootDir = Split-Path $PSScriptRoot
 $listsDir = Join-Path $rootDir "lists"
 $utilsDir = Join-Path $rootDir "utils"
 $resultsDir = Join-Path $utilsDir "test results"
+$ipsetFlagFile = Join-Path $rootDir "ipset_switched.flag"
+$originalIpsetStatus = $null
 if (-not (Test-Path $resultsDir)) { New-Item -ItemType Directory -Path $resultsDir | Out-Null }
 
 # Define functions early
@@ -25,25 +27,14 @@ function Set-IpsetMode {
         if (Test-Path $listFile) {
             Copy-Item $listFile $backupFile -Force
         } else {
-            # If none, create empty backup
-            "" | Out-File $backupFile -Encoding UTF8
+            [IO.File]::WriteAllText($backupFile, "")
         }
-        # Make file empty
-        "" | Out-File $listFile -Encoding UTF8
+        [IO.File]::WriteAllText($listFile, "")
     } elseif ($mode -eq "restore") {
         if (Test-Path $backupFile) {
             Move-Item $backupFile $listFile -Force
         }
     }
-}
-
-trap {
-    Write-Host "[ERROR] Script interrupted. Restoring ipset..." -ForegroundColor Red
-    if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
-        Set-IpsetMode -mode "restore"
-    }
-    Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
-    break
 }
 
 function New-OrderedDict { New-Object System.Collections.Specialized.OrderedDictionary }
@@ -149,6 +140,7 @@ function Invoke-DpiSuite {
     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($payload)
 
     $payloadFile = New-TemporaryFile
+    try {
     [IO.File]::WriteAllBytes($payloadFile, $payload)
 
     $scriptBlock = {
@@ -248,6 +240,8 @@ function Invoke-DpiSuite {
     }
 
     $results = @()
+    $dpiCompleted = 0
+    $dpiTotal = $runspaces.Count
     foreach ($rs in $runspaces) {
         # Wait for the runspace to complete with a small grace period beyond curl's timeout
         try {
@@ -296,7 +290,13 @@ function Invoke-DpiSuite {
             $results += [PSCustomObject]@{ TargetId = 'UNKNOWN'; Provider = 'UNKNOWN'; Lines = @($failedLine); Warned = $false }
         }
         $rs.Powershell.Dispose()
+        $dpiCompleted++
+        if ($dpiTotal -gt 0) {
+            $pct = [int](100 * $dpiCompleted / $dpiTotal)
+            Write-Progress -Activity "DPI TCP 16-20 checks" -Status "$dpiCompleted / $dpiTotal targets" -PercentComplete $pct
+        }
     }
+    Write-Progress -Activity "DPI TCP 16-20 checks" -Completed
     $runspacePool.Close()
     $runspacePool.Dispose()
 
@@ -309,6 +309,9 @@ function Invoke-DpiSuite {
     }
 
     return $results
+    } finally {
+        Remove-Item $payloadFile -ErrorAction SilentlyContinue
+    }
 }
 
 function Test-ZapretServiceConflict {
@@ -334,15 +337,22 @@ if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
 }
 
 # Check for leftover ipset flag from previous interrupted run
-$ipsetFlagFile = Join-Path $rootDir "ipset_switched.flag"
 if (Test-Path $ipsetFlagFile) {
     Write-Host "[INFO] Detected leftover ipset switch flag. Restoring ipset..." -ForegroundColor Yellow
     Set-IpsetMode -mode "restore"
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 }
 
-# Get original ipset status early
 $originalIpsetStatus = Get-IpsetStatus
+
+trap {
+    Write-Host "[ERROR] Script interrupted. Restoring ipset..." -ForegroundColor Red
+    if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
+        Set-IpsetMode -mode "restore"
+    }
+    Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
+    break
+}
 
 # Warn about ipset switching and X button behavior
 if ($originalIpsetStatus -ne "any") {
@@ -434,7 +444,7 @@ function Read-ConfigSelection {
             continue
         }
         $selectedIndices = @()
-        $hasErrors = $false
+        $hasRangeErrors = $false
         
         foreach ($part in $parts) {
             if ($part -match '^(\d+)-(\d+)$') {
@@ -443,13 +453,13 @@ function Read-ConfigSelection {
                 
                 if ($start -gt $end) {
                     Write-Host "  [WARN] Invalid range '$part' (start > end). Skipping." -ForegroundColor Yellow
-                    $hasErrors = $true
+                    $hasRangeErrors = $true
                     continue
                 }
                 
                 if ($start -lt 1 -or $end -gt $allFiles.Count) {
                     Write-Host "  [WARN] Range '$part' out of bounds (valid: 1-$($allFiles.Count)). Skipping invalid parts." -ForegroundColor Yellow
-                    $hasErrors = $true
+                    $hasRangeErrors = $true
                     $start = [Math]::Max($start, 1)
                     $end = [Math]::Min($end, $allFiles.Count)
                 }
@@ -463,7 +473,7 @@ function Read-ConfigSelection {
                     $selectedIndices += $num
                 } else {
                     Write-Host "  [WARN] Number '$num' out of bounds (valid: 1-$($allFiles.Count)). Skipping." -ForegroundColor Yellow
-                    $hasErrors = $true
+                    $hasRangeErrors = $true
                 }
             }
         }
@@ -476,7 +486,7 @@ function Read-ConfigSelection {
 
         # Checker
          Write-Host "Selected configs: $($valid -join ', ')" -ForegroundColor Green
-        if ($hasErrors) {
+        if ($hasRangeErrors) {
             Write-Host "Some entries were skipped due to errors (see warnings above)." -ForegroundColor Yellow
         }
         
@@ -555,8 +565,10 @@ function Stop-Zapret {
 
 # Capture/restore running winws instances to return user ipset/config
 function Get-WinwsSnapshot {
+    $winwsPath = [IO.Path]::GetFullPath((Join-Path $rootDir "bin\winws.exe"))
     try {
         return Get-CimInstance Win32_Process -Filter "Name='winws.exe'" |
+            Where-Object { $_.ExecutablePath -and ([IO.Path]::GetFullPath($_.ExecutablePath) -eq $winwsPath) } |
             Select-Object ProcessId, CommandLine, ExecutablePath
     } catch {
         return @()
@@ -838,18 +850,13 @@ try {
 
     Write-Host ""
     Write-Host "=== ANALYTICS ===" -ForegroundColor Cyan
-    $maxConfigLen = ($analytics.Keys | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum
     foreach ($config in $analytics.Keys) {
         $a = $analytics[$config]
-        $configPadded = $config.PadRight($maxConfigLen)
         if ($a.ContainsKey('PingOK')) {
-            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}" -f `
-                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail
+            Write-Host "$config : HTTP OK: $($a.OK), ERR: $($a.ERROR), UNSUP: $($a.UNSUP), Ping OK: $($a.PingOK), Fail: $($a.PingFail)" -ForegroundColor Yellow
         } else {
-            $line = "{0} : OK: {1,3}, FAIL: {2,3}, UNSUP: {3,3}, BLOCKED: {4,3}" -f `
-                $configPadded, $a.OK, $a.FAIL, $a.UNSUPPORTED, $a.LIKELY_BLOCKED
+            Write-Host "$config : OK: $($a.OK), FAIL: $($a.FAIL), UNSUP: $($a.UNSUPPORTED), BLOCKED: $($a.LIKELY_BLOCKED)" -ForegroundColor Yellow
         }
-        Write-Host $line -ForegroundColor Yellow
     }
 
     # Determine best strategy
@@ -858,7 +865,11 @@ try {
     $maxPing = -1
     foreach ($config in $analytics.Keys) {
         $a = $analytics[$config]
-        $score = $a.OK
+        if ($a.ContainsKey('LIKELY_BLOCKED')) {
+            $score = $a.OK - $a.LIKELY_BLOCKED
+        } else {
+            $score = $a.OK
+        }
         $pingScore = 0
         if ($a.ContainsKey('PingOK')) {
             $pingScore = $a.PingOK
@@ -921,18 +932,13 @@ try {
 
     # Add analytics
     Add-Content $resultFile "=== ANALYTICS ==="
-    $maxConfigLen = ($analytics.Keys | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum
     foreach ($config in $analytics.Keys) {
         $a = $analytics[$config]
-        $configPadded = $config.PadRight($maxConfigLen)
         if ($a.ContainsKey('PingOK')) {
-            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}" -f `
-                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail
+            Add-Content $resultFile "$config : HTTP OK: $($a.OK), ERR: $($a.ERROR), UNSUP: $($a.UNSUP), Ping OK: $($a.PingOK), Fail: $($a.PingFail)"
         } else {
-            $line = "{0} : OK: {1,3}, FAIL: {2,3}, UNSUP: {3,3}, BLOCKED: {4,3}" -f `
-                $configPadded, $a.OK, $a.FAIL, $a.UNSUPPORTED, $a.LIKELY_BLOCKED
+            Add-Content $resultFile "$config : OK: $($a.OK), FAIL: $($a.FAIL), UNSUP: $($a.UNSUPPORTED), BLOCKED: $($a.LIKELY_BLOCKED)"
         }
-        Add-Content $resultFile $line
     }
 
     Add-Content $resultFile "Best strategy: $bestConfig"
