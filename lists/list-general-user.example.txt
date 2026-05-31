@@ -1,0 +1,13 @@
+chess.com
+figma.com
+notepad-plus-plus.org
+disqus.com
+disquscdn.com
+itch.io
+itch.zone
+soundcloud.cloud
+soundcloud.com
+sndcdn.com
+x.com
+twitter.com
+twimg.com
