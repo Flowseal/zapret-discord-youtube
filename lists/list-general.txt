@@ -207,6 +207,7 @@ speedtest.co
 speedtest.net
 speedtestcustom.com
 webtest.net
+downdetector.com
 
 www.speedtest.net.cdn.cloudflare.net
 
