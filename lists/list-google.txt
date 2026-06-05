@@ -16,7 +16,6 @@ youtu.be
 yt-video-upload.l.google.com
 ytimg.com
 ytimg.l.google.com
-discord-attachments-uploads-prd.storage.googleapis.com
 play.google.com
 market.google.com
 google.ru
