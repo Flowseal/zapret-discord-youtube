@@ -113,5 +113,3 @@ tochka-tech.com
 tochka.com
 vtb.ru
 steamcommunity.com
-fonts.gstatic.com
-ssl.gstatic.com
