@@ -47,3 +47,15 @@ betterttv.net
 7tv.io
 localizeapi.com
 klipy.com
+roblox.com
+rbxcdn.com
+rbxcdn.net
+rbxtrk.com
+cdn.arkoselabs.com
+roblox-api.arkoselabs.com
+rblx.social
+rblx.games
+rblx.name
+rblx.clothing
+rblx.media
+rover.link
