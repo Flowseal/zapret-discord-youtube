@@ -92,3 +92,15 @@ tochka-tech.com
 tochka.com
 vtb.ru
 steamcommunity.com
+://microsoft.com
+windowsupdate.com
+microsoftonline.com
+://microsoft.com
+://live.com
+xboxlive.com
+telemetry.battle.net
+epicgames.com
+steampowered.com
+steamcommunity.com
+overwolf.com
+
