@@ -216,3 +216,12 @@ sc delete название_из_первого_шага
 [![Contributors](https://contrib.rocks/image?repo=Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discord-youtube/graphs/contributors)
 
 💖 Отдельная благодарность разработчику [zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van)
+
+## ✨ Частые проблемы и их решение (FAQ)
+
+* **Зависает ПК или `service.bat` закрывается с красной ошибкой:** 
+  Перенесите папку со сборкой строго в корень диска (например, `C:\zapret`). Убедитесь, что в пути нет кириллицы и спецсимволов (особенно восклицательных знаков `!`). Запускайте файлы строго от имени Администратора.
+* **Высокий пинг (900+ мс) в онлайн-играх:** 
+  Откройте `service.bat` от админа и переведите параметр **Game Filter** в режим `disabled`.
+* **В Google Chrome не работает YouTube:** 
+  Отключите встроенные протоколы в браузере. Перейдите по ссылкам `chrome://flags/#enable-quic` и `chrome://flags/#tls-bytestream-kyber`, переведите оба флага в режим **Disabled** и перезапустите браузер.
