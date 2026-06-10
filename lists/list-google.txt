@@ -5,14 +5,9 @@ googlevideo.com
 jnn-pa.googleapis.com
 stable.dl2.discordapp.net
 wide-youtube.l.google.com
-youtube-nocookie.com
-youtube-ui.l.google.com
 youtube.com
-youtubeembeddedplayer.googleapis.com
+youtube-nocookie.com
 youtubekids.com
 youtubei.googleapis.com
 youtu.be
-yt-video-upload.l.google.com
 ytimg.com
-ytimg.l.google.com
-play.google.com
