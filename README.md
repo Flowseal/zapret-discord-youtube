@@ -168,7 +168,7 @@ sc delete название_из_первого_шага
 - Используйте программу [tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy)
 - Или используйте бесплатные MTProto прокси из интернета
 
-### Не работает <img src="https://cdn-icons-png.flaticon.com/512/15071/15071850.png" height=18 /> Roblox
+### Не работает <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Roblox_%282025%29_%28App_Icon%29.svg/960px-Roblox_%282025%29_%28App_Icon%29.svg.png" height=18 /> Roblox
 
 Если у тебя Windows 11, то обнови ipset через `service.bat`, включи Game Filter (Game Filter > UDP Only или UDP+TCP), и настрой Secure DNS прямо в настройках ОС Windows 11. Про настройку Secure DNS для Windows 11 написано в самом начале этого файла и есть ссылка на инструкцию.
 
