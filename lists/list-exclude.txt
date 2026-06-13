@@ -18,6 +18,7 @@ habr.com
 microsoft.com
 microsoftonline.com
 live.com
+sharepoint.com
 minecraft.net
 xboxlive.com
 akamaitechnologies.com
