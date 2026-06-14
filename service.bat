@@ -819,7 +819,7 @@ for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%
 if !lineCount!==0 (
     set "IPsetStatus=any"
 ) else (
-    findstr /R "^203\.0\.113\.113/32$" "%listFile%" >nul
+    findstr /C:"203.0.113.113/32" "%listFile%" >nul
     if !errorlevel!==0 (
         set "IPsetStatus=none"
     ) else (
