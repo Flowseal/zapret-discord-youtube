@@ -54,7 +54,10 @@ if "%1"=="admin" (
 :: MENU ================================
 setlocal EnableDelayedExpansion
 :menu
+
 cls
+title ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
+
 call :ipset_switch_status
 call :game_switch_status
 call :check_updates_switch_status
