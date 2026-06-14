@@ -52,11 +52,11 @@ if "%1"=="admin" (
 
 
 :: MENU ================================
+title ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
 setlocal EnableDelayedExpansion
 :menu
 
 cls
-title ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
 
 call :ipset_switch_status
 call :game_switch_status
