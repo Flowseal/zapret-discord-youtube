@@ -26,18 +26,45 @@ jobs:
           fi
 
       - name: Install tools
-        run: sudo apt-get install -y rar p7zip-full
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip tar rar
+
+      - name: Prepare release bundle
+        run: |
+          NAME="zapret-discord-youtube-${{ github.event.inputs.tag }}"
+
+          mkdir "$NAME"
+
+          cp -r bin "$NAME/"
+          cp -r lists "$NAME/"
+          cp -r utils "$NAME/"
+          cp *.bat "$NAME/"
+
+          cp README.md "$NAME/"
+          cp LICENSE.txt "$NAME/"
+
+          (
+            cd "$NAME"
+            find . -type f -exec sha256sum {} \;
+          ) > "$NAME/SHA256SUMS.txt"
 
       - name: Create archives
         run: |
           NAME="zapret-discord-youtube-${{ github.event.inputs.tag }}"
-          7z a "${NAME}.zip" bin/ lists/ utils/ *.bat
-          rar a "${NAME}.rar" bin/ lists/ utils/ *.bat
+
+          zip -qr "${NAME}.zip" "$NAME"
+          rar a -idq "${NAME}.rar" "$NAME"
+          tar --owner=0 --group=0 -czf "${NAME}.tar.gz" "$NAME"
 
       - name: Print SHA256 checksums
         run: |
           NAME="zapret-discord-youtube-${{ github.event.inputs.tag }}"
-          sha256sum "${NAME}.zip" "${NAME}.rar"
+
+          sha256sum \
+            "${NAME}.zip" \
+            "${NAME}.rar" \
+            "${NAME}.tar.gz"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -47,3 +74,4 @@ jobs:
           files: |
             zapret-discord-youtube-${{ github.event.inputs.tag }}.zip
             zapret-discord-youtube-${{ github.event.inputs.tag }}.rar
+            zapret-discord-youtube-${{ github.event.inputs.tag }}.tar.gz
