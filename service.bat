@@ -52,8 +52,8 @@ if "%1"=="admin" (
 
 
 :: MENU ================================
-title ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
 setlocal EnableDelayedExpansion
+title ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
 :menu
 
 cls
