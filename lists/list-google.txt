@@ -10,9 +10,11 @@ youtube-ui.l.google.com
 youtube.com
 youtubeembeddedplayer.googleapis.com
 youtubekids.com
+youtube.googleapis.com
 youtubei.googleapis.com
 youtu.be
 yt-video-upload.l.google.com
 ytimg.com
 ytimg.l.google.com
 play.google.com
+google.ru
