@@ -1,3 +1,12 @@
+1.1.1.1 one.one.one.one
+2606:4700:4700::1111 one.one.one.one
+
+8.8.8.8 dns.google
+2001:4860:4860::8888 dns.google
+
+146.112.41.2 doh.opendns.com
+2620:119:fc::2 doh.opendns.com
+
 149.154.167.220 my.telegram.org
 149.154.167.220 oauth.telegram.org
 149.154.167.220 cdn.telesco.pe
