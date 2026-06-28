@@ -181,7 +181,7 @@ sc delete название_из_первого_шага
 Если и это не помогло, создайте ветку обсуждений в разделе [Discussions](https://github.com/Flowseal/zapret-discord-youtube/discussions) (не в issues) и ждите помощи от других игроков.
 
 ### Не нашли своей проблемы
-
+- Если проблема связана с твичом в obs, попробуйте поискать решение в [README форка](https://github.com/ShadowCreator-5/zapret-discord-youtube-fixes#%D0%BD%D0%B5-%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%B0%D0%B5%D1%82-%D0%B0%D0%B2%D1%82%D0%BE%D1%80%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F)
 - Создайте её [тут](https://github.com/Flowseal/zapret-discord-youtube/issues)
 
 ## 🗒️Добавление адресов прочих ресурсов
