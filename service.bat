@@ -238,16 +238,22 @@ echo Pick one of the options:
 set "count=0"
 for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -LiteralPath '.' -Filter '*.bat' | Where-Object { $_.Name -notlike 'service*' } | Sort-Object { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) } | ForEach-Object { $_.Name }"') do (
     set /a count+=1
-    echo !count!. %%F
+    echo   !count!. %%F
     set "file!count!=%%F"
 )
 
+echo   0. Exit
+
+echo.
+
 :: Choosing file
 set "choice="
-set /p "choice=Input file index (number): "
+set /p "choice=Input option (0-!count!, default: 0): "
 if "!choice!"=="" (
-    echo The choice is empty, exiting...
-    pause
+    set "choice=0"
+)
+
+if "!choice!"=="0" (
     goto menu
 )
 
