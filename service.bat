@@ -253,16 +253,29 @@ if "!choice!"=="" (
     set "choice=0"
 )
 
-if "!choice!"=="0" (
-    goto menu
-)
-
-set "selectedFile=!file%choice%!"
-if not defined selectedFile (
+echo !choice!| findstr /r "^[0-9][0-9]*$" >nul || (
     echo Invalid choice, exiting...
     pause
     goto menu
 )
+
+if "!choice!"=="0" (
+    goto menu
+)
+
+set /a choiceNum=!choice! + 0
+if !choiceNum! LSS 1 (
+    echo Invalid choice, exiting...
+    pause
+    goto menu
+)
+if !choiceNum! GTR !count! (
+    echo Invalid choice, exiting...
+    pause
+    goto menu
+)
+
+set "selectedFile=!file%choiceNum%!"
 
 :: Args that should be followed by value
 set "args_with_value=sni host altorder"
