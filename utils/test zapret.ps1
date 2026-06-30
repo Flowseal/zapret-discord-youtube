@@ -624,12 +624,35 @@ try {
     # Cleanup
     Stop-Zapret
     
+    $cleanupSw = [System.Diagnostics.Stopwatch]::StartNew()
+    while ((Get-Process -Name "winws" -ErrorAction Ignore) -and ($cleanupSw.Elapsed.TotalSeconds -lt 3)) {
+        Start-Sleep -Milliseconds 100
+    }
+    $cleanupSw.Stop()
+    
     # Start config
     Write-Host "  > Starting config..." -ForegroundColor Cyan
     $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($file.FullName)`"" -WorkingDirectory $targetDir -PassThru -WindowStyle Minimized
     
     # Wait init
-    Start-Sleep -Seconds 5
+    $timeout = 10
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $ready = $false
+
+    while ($sw.Elapsed.TotalSeconds -lt $timeout) {
+        if (Get-Process -Name "winws" -ErrorAction Ignore) {
+            $ready = $true
+            Start-Sleep -Milliseconds 500
+            break
+        }
+        Start-Sleep -Milliseconds 100
+    }
+    $sw.Stop()
+
+    if (-not $ready) {
+        Write-Host "  > Failed to start configuration, skipping" -ForegroundColor Red
+        continue
+    }
     
     if ($testType -eq 'standard') {
         $curlTimeoutSeconds = 5
