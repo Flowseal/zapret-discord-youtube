@@ -1,3 +1,6 @@
+soundcloud.cloud
+soundcloud.com
+sndcdn.com
 cloudflare-ech.com
 encryptedsni.com
 cloudflareaccess.com
