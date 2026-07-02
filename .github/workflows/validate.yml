@@ -20,7 +20,7 @@ jobs:
 
       - name: Check bat files syntax
         shell: pwsh
-        run:
+        run: |
           $errors = @()
           Get-ChildItem -Filter "*.bat" | ForEach-Object {
             $content = Get-Content $_.FullName -Raw
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check list files
-        run:
+        run: |
           echo "=== Checking list-general.txt ==="
           if [ ! -f lists/list-general.txt ]; then echo "MISSING: list-general.txt"; exit 1; fi
           if [ ! -s lists/list-general.txt ]; then echo "EMPTY: list-general.txt"; exit 1; fi
@@ -69,7 +69,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check required bin files
-        run:
+        run: |
           required_files=(
             "bin/winws.exe"
             "bin/WinDivert64.sys"
