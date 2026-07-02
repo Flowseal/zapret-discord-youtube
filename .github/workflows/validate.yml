@@ -1,0 +1,87 @@
+name: Validate
+
+on:
+  push:
+    paths:
+      - '*.bat'
+      - 'lists/**'
+      - 'bin/**'
+  pull_request:
+    paths:
+      - '*.bat'
+      - 'lists/**'
+      - 'bin/**'
+
+jobs:
+  validate-bat:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check bat files syntax
+        shell: pwsh
+        run:
+          $errors = @()
+          Get-ChildItem -Filter "*.bat" | ForEach-Object {
+            $content = Get-Content $_.FullName -Raw
+            if ($content -match '\^\s*$' -and $content -match '\^\s*\r?\n\s*\r?\n') {
+              $errors += "$($_.Name): empty line after continuation char ^"
+            }
+            if ($content -notmatch '@echo off') {
+              $errors += "$($_.Name): missing @echo off"
+            }
+          }
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host "All bat files passed syntax check"
+
+  validate-lists:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check list files
+        run:
+          echo "=== Checking list-general.txt ==="
+          if [ ! -f lists/list-general.txt ]; then echo "MISSING: list-general.txt"; exit 1; fi
+          if [ ! -s lists/list-general.txt ]; then echo "EMPTY: list-general.txt"; exit 1; fi
+
+          echo "=== Checking list-gaming.txt ==="
+          if [ ! -f lists/list-gaming.txt ]; then echo "MISSING: list-gaming.txt"; exit 1; fi
+          if [ ! -s lists/list-gaming.txt ]; then echo "EMPTY: list-gaming.txt"; exit 1; fi
+
+          echo "=== Checking ipset-all.txt ==="
+          if [ ! -f lists/ipset-all.txt ]; then echo "MISSING: ipset-all.txt"; exit 1; fi
+          if grep -q "203.0.113.113/32" lists/ipset-all.txt; then
+            echo "WARNING: ipset-all.txt contains placeholder 203.0.113.113/32"
+          fi
+
+          echo "=== Checking ipset-exclude.txt ==="
+          if [ ! -f lists/ipset-exclude.txt ]; then echo "MISSING: ipset-exclude.txt"; exit 1; fi
+
+          echo "=== All list files validated ==="
+
+  validate-bin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required bin files
+        run:
+          required_files=(
+            "bin/winws.exe"
+            "bin/WinDivert64.sys"
+            "bin/WinDivert.dll"
+            "bin/quic_initial_4pda.to.bin"
+            "bin/tls_clienthello_www_google_com.bin"
+            "bin/tls_clienthello_max_ru.bin"
+          )
+          for f in "${required_files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              exit 1
+            fi
+          done
+          echo "All required bin files present"

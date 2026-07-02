@@ -1,77 +1,31 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Release tag'
-        required: true
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
+    runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Verify version matches version.txt
-        run: |
-          VERSION=$(cat .service/version.txt)
-          if [ "$VERSION" != "${{ github.event.inputs.tag }}" ]; then
-            echo "Error: tag '${{ github.event.inputs.tag }}' does not match .service/version.txt ('$VERSION')"
-            exit 1
-          fi
-
-      - name: Install tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y zip tar rar
-
-      - name: Prepare release bundle
-        run: |
-          NAME="zapret-discord-youtube-${{ github.event.inputs.tag }}"
-
-          mkdir "$NAME"
-
-          cp -r bin "$NAME/"
-          cp -r lists "$NAME/"
-          cp -r utils "$NAME/"
-          cp *.bat "$NAME/"
-
-          cp README.md "$NAME/"
-          cp LICENSE.txt "$NAME/"
-
-          (
-            cd "$NAME"
-            find . -type f -exec sha256sum {} \;
-          ) > "$NAME/SHA256SUMS.txt"
-
-      - name: Create archives
-        run: |
-          NAME="zapret-discord-youtube-${{ github.event.inputs.tag }}"
-
-          zip -qr "${NAME}.zip" "$NAME"
-          rar a -idq "${NAME}.rar" "$NAME"
-          tar --owner=0 --group=0 -czf "${NAME}.tar.gz" "$NAME"
-
-      - name: Print SHA256 checksums
-        run: |
-          NAME="zapret-discord-youtube-${{ github.event.inputs.tag }}"
-
-          sha256sum \
-            "${NAME}.zip" \
-            "${NAME}.rar" \
-            "${NAME}.tar.gz"
-
-      - name: Create GitHub Release
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag }}
-          name: ${{ github.event.inputs.tag }}
+          generate_release_notes: true
           files: |
-            zapret-discord-youtube-${{ github.event.inputs.tag }}.zip
-            zapret-discord-youtube-${{ github.event.inputs.tag }}.rar
-            zapret-discord-youtube-${{ github.event.inputs.tag }}.tar.gz
+            cs2-faceit-eu.bat
+            general.bat
+            service.bat
+            lists/*
+            bin/*
+            utils/*
+            LICENSE.txt
+            README.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,97 @@
+name: Update IPSet
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-ipset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch latest ipset from upstream
+        run:
+          curl -sL "https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/ipset-service.txt" -o ipset-upstream.txt
+          if [ -s ipset-upstream.txt ]; then
+            echo "=== Upstream ipset fetched ==="
+            wc -l ipset-upstream.txt
+          else
+            echo "Failed to fetch upstream ipset"
+            exit 1
+          fi
+
+      - name: Merge ipsets
+        run:
+          echo "# Gaming EU - Valve/Faceit" > lists/ipset-all-new.txt
+          echo "# Updated: $(date -u +%Y-%m-%d)" >> lists/ipset-all-new.txt
+          echo "" >> lists/ipset-all-new.txt
+
+          echo "# Valve/Steam EU Server Ranges" >> lists/ipset-all-new.txt
+          cat >> lists/ipset-all-new.txt << 'EOF'
+155.133.0.0/17
+185.25.180.0/22
+185.25.181.0/24
+185.25.182.0/24
+185.25.183.0/24
+162.254.192.0/21
+162.254.196.0/22
+208.64.200.0/22
+205.196.6.0/24
+205.196.7.0/24
+192.69.96.0/22
+EOF
+
+          echo "" >> lists/ipset-all-new.txt
+          echo "# Faceit EU CDN/Platform" >> lists/ipset-all-new.txt
+          cat >> lists/ipset-all-new.txt << 'EOF'
+104.18.0.0/16
+104.19.0.0/16
+172.64.0.0/13
+173.245.48.0/20
+103.21.244.0/22
+103.22.200.0/22
+103.31.4.0/22
+141.101.64.0/18
+108.162.192.0/18
+190.93.240.0/20
+188.114.96.0/20
+197.234.240.0/22
+198.41.128.0/17
+EOF
+
+          echo "" >> lists/ipset-all-new.txt
+          echo "# Valve Game Servers (EU)" >> lists/ipset-all-new.txt
+          cat >> lists/ipset-all-new.txt << 'EOF'
+146.66.152.0/21
+146.66.156.0/22
+146.66.158.0/24
+153.254.86.0/24
+153.254.87.0/24
+153.254.88.0/24
+153.254.89.0/24
+153.254.90.0/24
+155.133.224.0/20
+155.133.240.0/21
+EOF
+
+          echo "" >> lists/ipset-all-new.txt
+          echo "# Upstream (Flowseal)" >> lists/ipset-all-new.txt
+          grep -v "^#" ipset-upstream.txt | grep -v "^$" >> lists/ipset-all-new.txt
+
+          mv lists/ipset-all-new.txt lists/ipset-all.txt
+          rm -f ipset-upstream.txt
+          echo "=== Merged ipset ==="
+          wc -l lists/ipset-all.txt
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: update ipset from upstream"
+          title: "Auto-update ipset $(date -u +%Y-%m-%d)"
+          body: |
+            Automated ipset update from Flowseal upstream.
+            Gaming EU ranges preserved.
+          branch: auto-update-ipset
+          delete-branch: true
