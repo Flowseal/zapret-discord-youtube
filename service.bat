@@ -681,8 +681,17 @@ if "!CHOICE!"=="" set "CHOICE=Y"
 if "!CHOICE!"=="y" set "CHOICE=Y"
 
 if /i "!CHOICE!"=="Y" (
-    call :clear_discord_cache "Discord.exe" "Discord" "%APPDATA%\discord"
-    call :clear_discord_cache "DiscordPTB.exe" "Discord PTB" "%APPDATA%\discordptb"
+    set "discordFound=0"
+    if exist "%APPDATA%\discord\" (
+        set "discordFound=1"
+        call :clear_discord_cache "Discord.exe" "Discord" "%APPDATA%\discord"
+    )
+    if exist "%APPDATA%\discordptb\" (
+        set "discordFound=1"
+        call :clear_discord_cache "DiscordPTB.exe" "Discord PTB" "%APPDATA%\discordptb"
+    )
+    if !discordFound! equ 0 call :PrintRed "Discord and Discord PTB were not found"
+    set "discordFound="
 )
 echo:
 
@@ -1021,6 +1030,8 @@ if exist "!discordCacheDir!\" (
             ) else (
                 call :PrintGreen "Successfully deleted !dirPath!"
             )
+        ) else (
+            call :PrintRed "!dirPath! does not exist"
         )
     )
 )
