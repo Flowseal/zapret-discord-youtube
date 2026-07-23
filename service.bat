@@ -384,6 +384,10 @@ if !errorlevel!==0 (
 
     call :wait_service_deleted "%SRVCNAME%"
     if !errorlevel! neq 0 exit /b 1
+) else if !errorlevel!==1072 (
+    rem Service is marked for deletion; wait before attempting to recreate it
+    call :wait_service_deleted "%SRVCNAME%"
+    if !errorlevel! neq 0 exit /b 1
 )
 
 sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto
