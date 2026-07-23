@@ -629,17 +629,17 @@ try {
         Start-Sleep -Milliseconds 100
     }
     $cleanupSw.Stop()
-
+    
     # Start config
     Write-Host "  > Starting config..." -ForegroundColor Cyan
     $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($file.FullName)`"" -WorkingDirectory $targetDir -PassThru -WindowStyle Minimized
     
     # Wait init
     $timeout = 10
-    $startSw = [System.Diagnostics.Stopwatch]::StartNew()
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $ready = $false
 
-    while ($startSw.Elapsed.TotalSeconds -lt $timeout) {
+    while ($sw.Elapsed.TotalSeconds -lt $timeout) {
         if (Get-Process -Name "winws" -ErrorAction Ignore) {
             $ready = $true
             Start-Sleep -Milliseconds 500
@@ -647,7 +647,7 @@ try {
         }
         Start-Sleep -Milliseconds 100
     }
-    $startSw.Stop()
+    $sw.Stop()
 
     if (-not $ready) {
         Write-Host "  > Failed to start configuration, skipping" -ForegroundColor Red
