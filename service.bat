@@ -1,5 +1,5 @@
 @echo off
-set "LOCAL_VERSION=1.9.9c"
+set "LOCAL_VERSION=1.10.0"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -79,21 +79,22 @@ echo   :: SETTINGS
 echo      4. Game Filter         [!GameFilterStatus!]
 echo      5. IPSet Filter        [!IPsetStatus!]
 echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
+echo      7. Replace active fakes
 echo.
 echo   :: UPDATES
-echo      7. Update IPSet List
-echo      8. Update Hosts File
-echo      9. Check for Updates
+echo      8. Update IPSet List
+echo      9. Update Hosts File
+echo      10. Check for Updates
 echo.
 echo   :: TOOLS
-echo      10. Run Diagnostics
-echo      11. Run Tests
+echo      11. Run Diagnostics
+echo      12. Run Tests
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-11): 
+set /p menu_choice=   Select option (0-12): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -101,11 +102,12 @@ if "%menu_choice%"=="3" goto service_status
 if "%menu_choice%"=="4" goto game_switch
 if "%menu_choice%"=="5" goto ipset_switch
 if "%menu_choice%"=="6" goto check_updates_switch
-if "%menu_choice%"=="7" goto ipset_update
-if "%menu_choice%"=="8" goto hosts_update
-if "%menu_choice%"=="9" goto service_check_updates
-if "%menu_choice%"=="10" goto service_diagnostics
-if "%menu_choice%"=="11" goto run_tests
+if "%menu_choice%"=="7" goto replace_active_fakes
+if "%menu_choice%"=="8" goto ipset_update
+if "%menu_choice%"=="9" goto hosts_update
+if "%menu_choice%"=="10" goto service_check_updates
+if "%menu_choice%"=="11" goto service_diagnostics
+if "%menu_choice%"=="12" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -676,37 +678,22 @@ if !found_any_conflict!==1 (
 
 :: Discord cache clearing
 set "CHOICE="
-set /p "CHOICE=Do you want to clear the Discord cache? (Y/N) (default: Y)  "
+set /p "CHOICE=Do you want to clear the Discord and Discord PTB cache? (Y/N) (default: Y) "
 if "!CHOICE!"=="" set "CHOICE=Y"
 if "!CHOICE!"=="y" set "CHOICE=Y"
 
 if /i "!CHOICE!"=="Y" (
-    tasklist /FI "IMAGENAME eq Discord.exe" | findstr /I "Discord.exe" > nul
-    if !errorlevel!==0 (
-        echo Discord is running, closing...
-        taskkill /IM Discord.exe /F > nul
-        if !errorlevel! == 0 (
-            call :PrintGreen "Discord was successfully closed"
-        ) else (
-            call :PrintRed "Unable to close Discord"
-        )
+    set "discordFound=0"
+    if exist "%APPDATA%\discord\" (
+        set "discordFound=1"
+        call :clear_discord_cache "Discord.exe" "Discord" "%APPDATA%\discord"
     )
-
-    set "discordCacheDir=%appdata%\discord"
-
-    for %%d in ("Cache" "Code Cache" "GPUCache") do (
-        set "dirPath=!discordCacheDir!\%%~d"
-        if exist "!dirPath!" (
-            rd /s /q "!dirPath!"
-            if !errorlevel!==0 (
-                call :PrintGreen "Successfully deleted !dirPath!"
-            ) else (
-                call :PrintRed "Failed to delete !dirPath!"
-            )
-        ) else (
-            call :PrintRed "!dirPath! does not exist"
-        )
+    if exist "%APPDATA%\discordptb\" (
+        set "discordFound=1"
+        call :clear_discord_cache "DiscordPTB.exe" "Discord PTB" "%APPDATA%\discordptb"
     )
+    if !discordFound! equ 0 call :PrintRed "Discord and Discord PTB were not found"
+    set "discordFound="
 )
 echo:
 
@@ -819,6 +806,119 @@ pause
 goto menu
 
 
+:: REPLACE ACTIVE FAKES =================
+:replace_active_fakes
+chcp 437 > nul
+cls
+
+set "BIN_PATH=%~dp0bin\"
+set "fake_count=0"
+set "fake_type="
+set "fake_number="
+set "discord_hash="
+set "game_hash="
+set "current_discord_fake=(not found)"
+set "current_game_fake=(not found)"
+
+if not exist "%BIN_PATH%" (
+    echo Error: bin folder not found.
+    pause
+    goto menu
+)
+
+pushd "%BIN_PATH%"
+for /f "tokens=1,2,3 delims=|" %%A in ('powershell -NoProfile -Command "foreach ($item in @(@{Name='ACTIVE_DISCORD_UDP.bin'; Label='ACTIVE_DISCORD'},@{Name='ACTIVE_GAME_UDP.bin'; Label='ACTIVE_GAME'})) { if (Test-Path -LiteralPath $item.Name) { Write-Output ($item.Label + [char]124 + $item.Label + [char]124 + (Get-FileHash -LiteralPath $item.Name -Algorithm SHA256).Hash) } }; $files = @(Get-ChildItem -LiteralPath . -File -Filter '*.bin'); foreach ($file in $files) { if ($file.BaseName -notlike 'ACTIVE_*') { Write-Output ('FAKE' + [char]124 + $file.BaseName + [char]124 + (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) } }"') do (
+    if "%%A"=="ACTIVE_DISCORD" (
+        set "discord_hash=%%C"
+    ) else if "%%A"=="ACTIVE_GAME" (
+        set "game_hash=%%C"
+    ) else if "%%A"=="FAKE" (
+        set /a fake_count+=1
+        set "fake_file!fake_count!=%BIN_PATH%%%B.bin"
+        set "fake_name!fake_count!=%%B"
+        set "fake_hash!fake_count!=%%C"
+    )
+)
+popd
+
+if !fake_count! EQU 0 (
+    echo No .bin files were found in the bin folder.
+    pause
+    goto menu
+)
+
+for /l %%N in (1,1,!fake_count!) do (
+    if defined discord_hash if /i "!fake_hash%%N!"=="!discord_hash!" set "current_discord_fake=!fake_name%%N!"
+    if defined game_hash if /i "!fake_hash%%N!"=="!game_hash!" set "current_game_fake=!fake_name%%N!"
+)
+
+:replace_active_fakes_prompt
+echo.
+echo Enter the fake type number and the fake file number to replace it with.
+echo Example: 1 4 (replaces Discord UDP with fake file under number 4)
+echo          2 1 (replaces GameFilter UDP with fake file under number 1)
+echo.
+echo Press ENTER or 0 to return.
+echo.
+echo   ----------------------------------------
+echo.
+echo Fake types:
+echo   1. Discord UDP     (current: !current_discord_fake!)
+echo   2. GameFilter UDP  (current: !current_game_fake!)
+echo.
+echo Fake files:
+for /l %%N in (1,1,!fake_count!) do echo   %%N. !fake_name%%N!
+echo.
+
+set "replace_choice="
+set /p "replace_choice=Enter choice: "
+if not defined replace_choice goto menu
+if "!replace_choice!"=="0" goto menu
+
+set "active_file="
+set "fake_type="
+set "fake_number="
+for /f "tokens=1,2" %%A in ("!replace_choice!") do (
+    set "fake_type=%%A"
+    set "fake_number=%%B"
+)
+
+if "!fake_type!"=="1" (
+    set "active_file=%BIN_PATH%ACTIVE_DISCORD_UDP.bin"
+) else if "!fake_type!"=="2" (
+    set "active_file=%BIN_PATH%ACTIVE_GAME_UDP.bin"
+) else (
+    echo Invalid fake type.
+    pause
+    cls
+    goto replace_active_fakes_prompt
+)
+
+set "source_file="
+for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" set "source_file=!fake_file%%N!"
+if not defined source_file (
+    echo Invalid fake file number.
+    pause
+    cls
+    goto replace_active_fakes_prompt
+)
+
+del /f /q "!active_file!" >nul 2>&1
+copy /y "!source_file!" "!active_file!" >nul
+if errorlevel 1 (
+    echo Failed to replace the active fake file.
+) else (
+    echo Active fake file replaced successfully.
+    for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" (
+        if "!fake_type!"=="1" set "current_discord_fake=!fake_name%%N!"
+        if "!fake_type!"=="2" set "current_game_fake=!fake_name%%N!"
+    )
+)
+pause
+cls
+goto replace_active_fakes_prompt
+
+
 :: IPSET SWITCH =======================
 :ipset_switch_status
 chcp 437 > nul
@@ -928,18 +1028,20 @@ set "hostsUrl=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/
 set "tempFile=%TEMP%\zapret_hosts.txt"
 set "needsUpdate=0"
 
+set "cacheBuster=%RANDOM%%RANDOM%%RANDOM%"
+set "requestUrl=%hostsUrl%?t=%cacheBuster%"
+
 echo Checking hosts file...
 
 if exist "%SystemRoot%\System32\curl.exe" (
-    curl -L -s -o "%tempFile%" "%hostsUrl%"
+    curl -L -s -o "%tempFile%" "%requestUrl%"
 ) else (
     powershell -NoProfile -Command ^
-        "$url = '%hostsUrl%';" ^
+        "$url = '%requestUrl%';" ^
         "$out = '%tempFile%';" ^
         "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
         "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
 )
-
 if not exist "%tempFile%" (
     call :PrintRed "Failed to download hosts file from repository"
     call :PrintYellow "Copy hosts file manually from %hostsUrl%"
@@ -1015,6 +1117,42 @@ exit /b
 
 
 :: Utility functions
+
+:clear_discord_cache
+setlocal EnableDelayedExpansion
+set "discordProcess=%~1"
+set "discordName=%~2"
+set "discordCacheDir=%~3"
+
+tasklist /FI "IMAGENAME eq !discordProcess!" 2>nul | findstr /I /C:"!discordProcess!" >nul
+if !errorlevel! equ 0 (
+    echo !discordName! is running, closing...
+    taskkill /IM "!discordProcess!" /F >nul 2>&1
+    if !errorlevel! equ 0 (
+        call :PrintGreen "!discordName! was successfully closed"
+    ) else (
+        call :PrintRed "Unable to close !discordName!"
+    )
+)
+
+if exist "!discordCacheDir!\" (
+    for %%d in ("Cache" "Code Cache" "GPUCache") do (
+        set "dirPath=!discordCacheDir!\%%~d"
+        if exist "!dirPath!\" (
+            rd /s /q "!dirPath!" >nul 2>&1
+            if exist "!dirPath!\" (
+                call :PrintRed "Failed to delete !dirPath!"
+            ) else (
+                call :PrintGreen "Successfully deleted !dirPath!"
+            )
+        ) else (
+            call :PrintRed "!dirPath! does not exist"
+        )
+    )
+)
+
+endlocal
+exit /b
 
 :PrintGreen
 powershell -NoProfile -Command "Write-Host \"%~1\" -ForegroundColor Green"

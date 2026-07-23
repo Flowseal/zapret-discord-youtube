@@ -41,14 +41,6 @@ jobs:
           cp -r utils "$NAME/"
           cp *.bat "$NAME/"
 
-          cp README.md "$NAME/"
-          cp LICENSE.txt "$NAME/"
-
-          (
-            cd "$NAME"
-            find . -type f -exec sha256sum {} \;
-          ) > "$NAME/SHA256SUMS.txt"
-
       - name: Create archives
         run: |
           NAME="zapret-discord-youtube-${{ github.event.inputs.tag }}"

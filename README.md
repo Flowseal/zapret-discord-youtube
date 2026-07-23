@@ -34,7 +34,7 @@
 ## ⚙️Использование
 
 1. Включите Secure DNS
-    * В Chrome - "Использовать безопасный DNS", и выбрать поставщика услуг DNS (выбрать вариант, отличный от поставщика по умолчанию)
+    * В Chrome - "Использовать безопасный DNS", и выбрать поставщика услуг DNS (выбрать вариант, отличный от варианта "Поставщик по умолчанию")
     * В Firefox - "Включить DNS через HTTPS, используя: Максимальную защиту", затем "Выбрать поставщика" и вписать URL поставщика вручную, например можно использовать `https://dns.google/dns-query` (т.к. поставщик Cloudflare может быть заблокирован)
     * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://remontka.pro/dns-over-https-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
     * Если у вас роутер Keenetic, включите в настройках роутера опцию "Транзит запросов". Отключение этой опции может привести к проблемам при настройке и использовании Secure DNS на компьютере
@@ -67,6 +67,7 @@
     - `loaded` - айпи проверяется на вхождение в список
     - `any` - любой айпи попадает под фильтр  
   - **`Auto-Update Check`** - Вкл/Выкл автоматическую проверку на обновления
+  - **`Replace active fakes`** - Заменить указанный используемый фейк на другой из папки `bin`
   - **`Update IPSet List`** - обновление списка `ipset-all.txt` актуальным из репозитория
   - **`Update Hosts File`** - обновление файла hosts <ins>**для починки веб версии телеграма и подключения к голосовому чату Discord**</ins>
   - **`Check for Updates`** - проверка на обновления
@@ -158,9 +159,12 @@ sc delete название_из_первого_шага
 
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
 
+- Убедитесь что вы настроили Secure DNS.
 - Желательно сначала узнать, на какой стратегии открывается сайт YouTube. Запустите эту стратегию.
+- Запустите `service.bat` -> `Run Diagnostics` и выполните там очистку кэша Discord.
+- Проверьте приложение Discord. Помогла ли очистка кэша?
 - Проверьте Discord в браузере: https://discord.com/app. В браузере работает? Если работает, то можете пользоваться в нём.
-- Если Discord и в браузере не работает, убедитесь что вы настроили Secure DNS, и после этого ещё раз пробуйте все стратегии. Бывает такое, что на одной стратегии YouTube работает, а Discord нет.
+- Если Discord и в браузере не работает, то пробуйте ещё раз все стратегии. Бывает такое, что на одной стратегии YouTube работает, а Discord нет.
 - См. также [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
 
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968804.png" height=18 /> Telegram
@@ -198,14 +202,6 @@ sc delete название_из_первого_шага
 Вы можете поддержать проект, поставив :star: этому репозиторию (сверху справа этой страницы)
 
 Также вы можете материально поддержать оригинального разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
-
-<a href="https://star-history.com/#Flowseal/zapret-discord-youtube&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Flowseal/zapret-discord-youtube&type=Date" />
- </picture>
-</a>
 
 ## ⚖️Лицензирование
 
