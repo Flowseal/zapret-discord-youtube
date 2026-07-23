@@ -229,11 +229,7 @@ goto menu
 :service_install
 cls
 chcp 437 > nul
-
-:: Main
 cd /d "%~dp0"
-set "BIN_PATH=%~dp0bin\"
-set "LISTS_PATH=%~dp0lists\"
 
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
@@ -265,6 +261,24 @@ if not defined selectedFile (
     pause
     goto menu
 )
+
+call :service_install_selected "!selectedFile!"
+pause
+goto menu
+
+
+:service_install_selected
+set "selectedFile=%~1"
+if not exist "!selectedFile!" (
+    call :PrintRed "[X] Strategy file \"!selectedFile!\" was not found."
+    exit /b 1
+)
+
+:: Main
+cd /d "%~dp0"
+set "BIN_PATH=%~dp0bin\"
+set "LISTS_PATH=%~dp0lists\"
+call :game_switch_status
 
 :: Args that should be followed by value
 set "args_with_value=sni host altorder"
@@ -358,18 +372,57 @@ call set "ARGS=%%ARGS:EXCL_MARK=^!%%"
 echo Final args: !ARGS!
 set SRVCNAME=zapret
 
-net stop %SRVCNAME% >nul 2>&1
-sc delete %SRVCNAME% >nul 2>&1
+sc query "%SRVCNAME%" >nul 2>&1
+if !errorlevel!==0 (
+    net stop %SRVCNAME% >nul 2>&1
+    sc delete %SRVCNAME% >nul 2>&1
+    set "ServiceDeleteError=!errorlevel!"
+    if !ServiceDeleteError! neq 0 if !ServiceDeleteError! neq 1072 (
+        call :PrintRed "[X] Failed to delete the existing zapret service."
+        exit /b 1
+    )
+
+    call :wait_service_deleted "%SRVCNAME%"
+    if !errorlevel! neq 0 exit /b 1
+)
+
 sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto
+if !errorlevel! neq 0 (
+    call :PrintRed "[X] Failed to create the zapret service."
+    exit /b 1
+)
+
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
-for %%F in ("!file%choice%!") do (
+if !errorlevel! neq 0 (
+    call :PrintRed "[X] Failed to start the zapret service."
+    exit /b 1
+)
+
+for %%F in ("!selectedFile!") do (
     set "filename=%%~nF"
 )
 reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
 
-pause
-goto menu
+exit /b 0
+
+
+:wait_service_deleted
+set "WaitServiceName=%~1"
+set /a "ServiceDeleteWait=0"
+
+:wait_service_deleted_loop
+sc query "!WaitServiceName!" >nul 2>&1
+if !errorlevel! neq 0 exit /b 0
+
+set /a "ServiceDeleteWait+=1"
+if !ServiceDeleteWait! GEQ 3 (
+    call :PrintRed "[X] The zapret service is still marked for deletion. Close Service Manager and try again."
+    exit /b 1
+)
+
+timeout /t 1 /nobreak >nul
+goto wait_service_deleted_loop
 
 
 :: CHECK UPDATES =======================
@@ -708,6 +761,7 @@ chcp 437 > nul
 set "gameFlagFile=%~dp0utils\game_filter.enabled"
 
 if not exist "%gameFlagFile%" (
+    set "GameFilterMode=disabled"
     set "GameFilterStatus=disabled"
     set "GameFilter=12"
     set "GameFilterTCP=12"
@@ -742,6 +796,8 @@ exit /b
 :game_switch
 chcp 437 > nul
 cls
+call :game_switch_status
+set "PreviousGameFilterMode=!GameFilterMode!"
 
 echo Select game filter mode:
 echo   0. Disable
@@ -771,8 +827,43 @@ if "%GameFilterChoice%"=="0" (
     goto menu
 )
 
-call :PrintYellow "Restart the zapret to apply the changes"
-pause
+call :game_switch_status
+if /i "!PreviousGameFilterMode!"=="!GameFilterMode!" goto menu
+
+sc query "zapret" >nul 2>&1
+if !errorlevel! neq 0 (
+    call :PrintYellow "Game Filter changed. The new setting will be applied the next time the service is installed."
+    pause
+    goto menu
+)
+
+set "InstalledStrategy="
+for /f "tokens=2,*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "InstalledStrategy=%%B"
+if not defined InstalledStrategy (
+    call :PrintYellow "Game Filter changed, but the active strategy could not be read. Reinstall the service manually to apply it."
+    pause
+    goto menu
+)
+
+set "InstalledStrategyFile=%~dp0!InstalledStrategy!.bat"
+if not exist "!InstalledStrategyFile!" (
+    call :PrintYellow "Game Filter changed, but the active strategy file \"!InstalledStrategy!.bat\" was not found. Reinstall the service manually to apply it."
+    pause
+    goto menu
+)
+
+call :PrintGreen "Game Filter changed."
+set "ReinstallChoice="
+set /p "ReinstallChoice=Reinstall zapret using the current strategy \"!InstalledStrategy!\" now? (Y/N, default: Y) "
+if "!ReinstallChoice!"=="" set "ReinstallChoice=Y"
+if /i "!ReinstallChoice!"=="Y" (
+    call :service_install_selected "!InstalledStrategyFile!"
+    pause
+) else (
+    call :PrintYellow "Game Filter saved. It will be applied after the service is reinstalled."
+    pause
+)
+
 goto menu
 
 
