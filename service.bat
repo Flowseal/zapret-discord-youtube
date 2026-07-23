@@ -524,6 +524,36 @@ if !errorlevel!==0 (
 )
 echo:
 
+:: cFosSpeed
+sc query | findstr /I "cFos" > nul
+if !errorlevel!==0 (
+    call :PrintRed "[X] cFosSpeed services found. cFosSpeed conflicts with zapret"
+    call :PrintRed "Try to uninstall or disable cFosSpeed through services.msc"
+) else (
+    call :PrintGreen "cFosSpeed check passed"
+)
+echo:
+
+:: ASUS GameFirst
+sc query | findstr /I "GameFirst" > nul
+if !errorlevel!==0 (
+    call :PrintRed "[X] ASUS GameFirst services found. GameFirst conflicts with zapret"
+    call :PrintRed "Try to uninstall or disable GameFirst through services.msc"
+) else (
+    call :PrintGreen "ASUS GameFirst check passed"
+)
+echo:
+
+:: Nahimic
+sc query | findstr /I "Nahimic" > nul
+if !errorlevel!==0 (
+    call :PrintYellow "[?] Nahimic services found. Nahimic may cause network conflicts with zapret"
+    call :PrintYellow "If you experience issues, try to disable Nahimic through services.msc"
+) else (
+    call :PrintGreen "Nahimic check passed"
+)
+echo:
+
 :: WinDivert64.sys file
 set "BIN_PATH=%~dp0bin\"
 if not exist "%BIN_PATH%\*.sys" (
