@@ -1010,7 +1010,6 @@ pause
 goto extra_menu
 
 
-
 :get_hfs_status
 :: %1: env_var_name
 :: %2: default_host
@@ -1027,6 +1026,7 @@ if exist "%FAKE_SETTINGS_DIR%%~1.enabled" (
 
 endlocal & set "%~1=%hfs_val%"
 exit /b
+
 
 :load_all_fakes
 call :get_fake_status "DiscordFake" "quic_initial_steamcommunity_com.bin"
@@ -1052,6 +1052,7 @@ call :get_fake_status "GeneralTCPAlt2" "tls_clienthello_max_ru.bin"
 call :get_hfs_status "hsfalt3" "ya.ru"
 call :get_hfs_status "hsfalt9" "ozon.ru"
 exit /b
+
 
 :hfs_switch
 :: %1: title
@@ -1097,7 +1098,6 @@ pause
 goto extra_menu
 
 
-
 :factory_reset
 chcp 437 > nul
 cls
@@ -1111,7 +1111,6 @@ call :PrintYellow "System settings (Game Filter, Auto-Update, etc.) were NOT mod
 call :PrintYellow "Please restart the zapret service to apply the changes."
 pause
 goto extra_menu
-
 
 
 
