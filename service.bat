@@ -26,9 +26,12 @@ if "%~1"=="load_game_filter" (
     call :game_switch_status
     exit /b
 )
-
 if "%~1"=="load_user_lists" (
     call :load_user_lists
+    exit /b
+)
+if "%~1"=="load_fakes" (
+    call :load_all_fakes
     exit /b
 )
 
@@ -79,7 +82,7 @@ echo   :: SETTINGS
 echo      4. Game Filter         [!GameFilterStatus!]
 echo      5. IPSet Filter        [!IPsetStatus!]
 echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
-echo      7. Replace active fakes
+echo      7. Extra Settings
 echo.
 echo   :: UPDATES
 echo      8. Update IPSet List
@@ -102,7 +105,7 @@ if "%menu_choice%"=="3" goto service_status
 if "%menu_choice%"=="4" goto game_switch
 if "%menu_choice%"=="5" goto ipset_switch
 if "%menu_choice%"=="6" goto check_updates_switch
-if "%menu_choice%"=="7" goto replace_active_fakes
+if "%menu_choice%"=="7" goto extra_menu
 if "%menu_choice%"=="8" goto ipset_update
 if "%menu_choice%"=="9" goto hosts_update
 if "%menu_choice%"=="10" goto service_check_updates
@@ -275,9 +278,15 @@ set "capture=0"
 set "mergeargs=0"
 set QUOTE="
 
+call :load_all_fakes
+set "BIN=%%BIN%%"
+set "LISTS=%%LISTS%%"
+
 for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
     set "line=%%a"
     call set "line=%%line:^!=EXCL_MARK%%"
+
+    call set "line=!line!"
 
     echo !line! | findstr /i "%BIN%winws.exe" >nul
     if not errorlevel 1 (
@@ -293,7 +302,7 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
         for %%i in (!line!) do (
             set "arg=%%i"
 
-            if not "!arg!"=="^" (
+            if not "!arg!"=="^" if not "!arg!"=="^^" (
                 if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
                     set "mergeargs=0"
                 )
@@ -310,6 +319,8 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                         set "arg=\!QUOTE!!BIN_PATH!!arg:~5!\!QUOTE!"
                     ) else if "!arg:~0,7!"=="%%LISTS%%" (
                         set "arg=\!QUOTE!!LISTS_PATH!!arg:~7!\!QUOTE!"
+                    ) else if "!arg:~-4!"==".bin" (
+                        set "arg=\!QUOTE!!BIN_PATH!!arg!\!QUOTE!"
                     ) else (
                         set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
                     )
@@ -806,117 +817,302 @@ pause
 goto menu
 
 
-:: REPLACE ACTIVE FAKES =================
-:replace_active_fakes
+:: EXTRA MENU ==========================
+:extra_menu
 chcp 437 > nul
 cls
+call :load_all_fakes
+set "FAKE_SETTINGS_DIR=%~dp0utils\custom fakes\"
+if not exist "%FAKE_SETTINGS_DIR%" mkdir "%FAKE_SETTINGS_DIR%"
+set "extra_choice="
 
-set "BIN_PATH=%~dp0bin\"
-set "fake_count=0"
-set "fake_type="
-set "fake_number="
-set "discord_hash="
-set "game_hash="
-set "current_discord_fake=(not found)"
-set "current_game_fake=(not found)"
 
-if not exist "%BIN_PATH%" (
-    echo Error: bin folder not found.
-    pause
-    goto menu
-)
-
-pushd "%BIN_PATH%"
-for /f "tokens=1,2,3 delims=|" %%A in ('powershell -NoProfile -Command "foreach ($item in @(@{Name='ACTIVE_DISCORD_UDP.bin'; Label='ACTIVE_DISCORD'},@{Name='ACTIVE_GAME_UDP.bin'; Label='ACTIVE_GAME'})) { if (Test-Path -LiteralPath $item.Name) { Write-Output ($item.Label + [char]124 + $item.Label + [char]124 + (Get-FileHash -LiteralPath $item.Name -Algorithm SHA256).Hash) } }; $files = @(Get-ChildItem -LiteralPath . -File -Filter '*.bin'); foreach ($file in $files) { if ($file.BaseName -notlike 'ACTIVE_*') { Write-Output ('FAKE' + [char]124 + $file.BaseName + [char]124 + (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) } }"') do (
-    if "%%A"=="ACTIVE_DISCORD" (
-        set "discord_hash=%%C"
-    ) else if "%%A"=="ACTIVE_GAME" (
-        set "game_hash=%%C"
-    ) else if "%%A"=="FAKE" (
-        set /a fake_count+=1
-        set "fake_file!fake_count!=%BIN_PATH%%%B.bin"
-        set "fake_name!fake_count!=%%B"
-        set "fake_hash!fake_count!=%%C"
-    )
-)
-popd
-
-if !fake_count! EQU 0 (
-    echo No .bin files were found in the bin folder.
-    pause
-    goto menu
-)
-
-for /l %%N in (1,1,!fake_count!) do (
-    if defined discord_hash if /i "!fake_hash%%N!"=="!discord_hash!" set "current_discord_fake=!fake_name%%N!"
-    if defined game_hash if /i "!fake_hash%%N!"=="!game_hash!" set "current_game_fake=!fake_name%%N!"
-)
-
-:replace_active_fakes_prompt
 echo.
-echo Enter the fake type number and the fake file number to replace it with.
-echo Example: 1 4 (replaces Discord UDP with fake file under number 4)
-echo          2 1 (replaces GameFilter UDP with fake file under number 1)
+echo   EXTRA SETTINGS
+echo   ----------------------------------------
 echo.
-echo Press ENTER or 0 to return.
+echo   [^^!] WARNING: This section is for advanced users and specialized setups only.
+echo   [^^!] Regular users without technical knowledge may break their internet connection.
+echo   [^^!] Default values are always safe to use.
+echo.
+echo   Groups: ST(general,ALT10,SIMPLE,TLS AUTO) ^| Alt(ALT1-4,6-8,SIMPLE ALT,TLS AUTO ALT)
+echo           Alt2(ALT11-12,SIMPLE ALT2,TLS AUTO ALT2-3) ^| HS(ALT3,ALT9)
 echo.
 echo   ----------------------------------------
 echo.
-echo Fake types:
-echo   1. Discord UDP     (current: !current_discord_fake!)
-echo   2. GameFilter UDP  (current: !current_game_fake!)
+echo   :: STUN ^& DISCORD ^& OTHER
+echo   1. Discord Fake            [!DiscordFakeStatus!]
+echo   2. Discord TCP Fake        [!DiscordFakeTCPStatus!]
+echo   3. Google TCP Fake         [!GoogleFakeTCPStatus!]
+echo   4. Game Fake UDP           [!GameFakeUDPStatus!]
+echo   5. IPSet Fake UDP          [!IpsetFakeUDPStatus!]
+echo   6. IPSet Fake UDP Alt      [!IpsetFakeUDPAltStatus!]
+echo   7. General UDP             [!GeneralUDPStatus!]
+echo   8. Stun Fake               [!StunFakeStatus!]
+echo   9. IPSet Fake TCP Alt3     [!IpsetFakeTCPAlt3Status!]
 echo.
-echo Fake files:
-for /l %%N in (1,1,!fake_count!) do echo   %%N. !fake_name%%N!
+echo   :: ST
+echo   10. Game Fake TCP          [!GameFakeTCPStatus!]
+echo   11. IPSet Fake TCP         [!IpsetFakeTCPStatus!]
+echo   12. General TCP            [!GeneralTCPStatus!]
+echo.
+echo   :: ALT
+echo   13. Game Fake TCP Alt      [!GameFakeTCPAltStatus!]
+echo   14. IPSet Fake TCP Alt     [!IpsetFakeTCPAltStatus!]
+echo   15. General TCP Alt        [!GeneralTCPAltStatus!]
+echo.
+echo   :: ALT2
+echo   16. Game Fake TCP Alt2     [!GameFakeTCPAlt2Status!]
+echo   17. IPSet Fake TCP Alt2    [!IpsetFakeTCPAlt2Status!]
+echo   18. General TCP Alt2       [!GeneralTCPAlt2Status!]
+echo.
+echo   :: HOST FAKE SPLIT (HS)
+echo   19. HostFakeSplit (ALT9)   [!hsfalt9!]
+echo   20. HostFakeSplit (ALT3)   [!hsfalt3!]
+echo.
+echo   :: EXP
+echo   21. Game Fake UDP Alt      [!GameFakeUDPAltStatus!]
+echo   22. Stun Fake 2            [!StunFake2Status!]
+echo.
+echo   23. Factory Reset
+echo.
+echo   ----------------------------------------
+echo   0. Back
 echo.
 
-set "replace_choice="
-set /p "replace_choice=Enter choice: "
-if not defined replace_choice goto menu
-if "!replace_choice!"=="0" goto menu
+set /p extra_choice=   Select option (0-23): 
 
-set "active_file="
-set "fake_type="
-set "fake_number="
-for /f "tokens=1,2" %%A in ("!replace_choice!") do (
-    set "fake_type=%%A"
-    set "fake_number=%%B"
+if "%extra_choice%"=="1" call :fake_switch "Discord Fake" "DiscordFake" "quic_initial_steamcommunity_com.bin"
+if "%extra_choice%"=="2" call :fake_switch "Discord TCP Fake" "DiscordFakeTCP" "tls_clienthello_www_google_com.bin"
+if "%extra_choice%"=="3" call :fake_switch "Google TCP Fake" "GoogleFakeTCP" "tls_clienthello_www_google_com.bin"
+if "%extra_choice%"=="4" call :fake_switch "Game Fake UDP" "GameFakeUDP" "quic_initial_4pda_to.bin"
+if "%extra_choice%"=="5" call :fake_switch "IPSet Fake UDP" "IpsetFakeUDP" "quic_initial_www_google_com.bin"
+if "%extra_choice%"=="6" call :fake_switch "IPSet Fake UDP Alt" "IpsetFakeUDPAlt" "quic_initial_4pda_to.bin"
+if "%extra_choice%"=="7" call :fake_switch "General UDP" "GeneralUDP" "quic_initial_www_google_com.bin"
+if "%extra_choice%"=="8" call :fake_switch "Stun Fake" "StunFake" "stun.bin"
+if "%extra_choice%"=="9" call :fake_switch "IPSet Fake TCP Alt3" "IpsetFakeTCPAlt3" "tls_clienthello_4pda_to.bin"
+if "%extra_choice%"=="10" call :fake_switch "Game Fake TCP"  "GameFakeTCP" "tls_clienthello_4pda_to.bin"
+if "%extra_choice%"=="11" call :fake_switch "IPSet Fake TCP" "IpsetFakeTCP" "tls_clienthello_max_ru.bin"
+if "%extra_choice%"=="12" call :fake_switch "General TCP" "GeneralTCP" "tls_clienthello_4pda_to.bin"
+if "%extra_choice%"=="13" call :fake_switch "Game Fake TCP Alt" "GameFakeTCPAlt" "tls_clienthello_www_google_com.bin"
+if "%extra_choice%"=="14" call :fake_switch "IPSet Fake TCP Alt" "IpsetFakeTCPAlt" "tls_clienthello_www_google_com.bin"
+if "%extra_choice%"=="15" call :fake_switch "General TCP Alt" "GeneralTCPAlt" "tls_clienthello_www_google_com.bin"
+if "%extra_choice%"=="16" call :fake_switch "Game Fake TCP Alt2" "GameFakeTCPAlt2" "tls_clienthello_max_ru.bin"
+if "%extra_choice%"=="17" call :fake_switch "IPSet Fake TCP Alt2" "IpsetFakeTCPAlt2" "tls_clienthello_max_ru.bin"
+if "%extra_choice%"=="18" call :fake_switch "General TCP Alt2" "GeneralTCPAlt2" "tls_clienthello_max_ru.bin"
+if "%extra_choice%"=="19" call :hfs_switch  "HostFakeSplit (ALT9)" "hsfalt9" "ozon.ru"
+if "%extra_choice%"=="20" call :hfs_switch  "HostFakeSplit (ALT3)" "hsfalt3" "ya.ru"
+if "%extra_choice%"=="21" call :fake_switch "Game Fake UDP Alt" "GameFakeUDPAlt" "quic_initial_4pda_to.bin"
+if "%extra_choice%"=="22" call :fake_switch "Stun Fake 2" "StunFake2" "stun2.bin"
+if "%extra_choice%"=="23" call :factory_reset
+if "%extra_choice%"=="0"  goto menu
+goto extra_menu
+
+:: HELPERS FOR EXTRA SETTINGS =========
+
+:get_clean_name
+set "tmp_name=%~1"
+set "tmp_name=%tmp_name:tls_clienthello_=%"
+set "tmp_name=%tmp_name:quic_initial_=%"
+set "tmp_name=%tmp_name:.bin=%"
+set "tmp_name=%tmp_name:_=.%"
+set "%~2=%tmp_name%"
+exit /b
+
+
+:get_fake_status
+:: %1: env_var_name
+:: %2: default_file
+chcp 437 > nul
+set "flagFile=%FAKE_SETTINGS_DIR%%~1.enabled"
+
+if not exist "%flagFile%" (
+    set "%~1=%~2"
+    call :get_clean_name "%~2" "%~1Status"
+    exit /b
 )
 
-if "!fake_type!"=="1" (
-    set "active_file=%BIN_PATH%ACTIVE_DISCORD_UDP.bin"
-) else if "!fake_type!"=="2" (
-    set "active_file=%BIN_PATH%ACTIVE_GAME_UDP.bin"
+set "localMode="
+for /f "usebackq delims=" %%A in ("%flagFile%") do (
+    if not defined localMode set "localMode=%%A"
+)
+
+if "%localMode:~-4%"==".bin" (
+    set "%~1=%localMode%"
 ) else (
-    echo Invalid fake type.
-    pause
-    cls
-    goto replace_active_fakes_prompt
+    set "%~1=%~2"
 )
 
-set "source_file="
-for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" set "source_file=!fake_file%%N!"
-if not defined source_file (
-    echo Invalid fake file number.
-    pause
-    cls
-    goto replace_active_fakes_prompt
-)
+setlocal EnableDelayedExpansion
+set "resolved_val=!%~1!"
+endlocal & call :get_clean_name "%resolved_val%" "%~1Status"
+exit /b
 
-del /f /q "!active_file!" >nul 2>&1
-copy /y "!source_file!" "!active_file!" >nul
-if errorlevel 1 (
-    echo Failed to replace the active fake file.
-) else (
-    echo Active fake file replaced successfully.
-    for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" (
-        if "!fake_type!"=="1" set "current_discord_fake=!fake_name%%N!"
-        if "!fake_type!"=="2" set "current_game_fake=!fake_name%%N!"
+
+:fake_switch
+:: %1: title
+:: %2: var_file_name
+:: %3: default_file
+chcp 437 > nul
+cls
+set "BIN_PATH=%~dp0bin\"
+
+echo Select %~1 payload:
+echo.
+
+set "count=0"
+
+set "file0=%~3"
+call :get_clean_name "%~3" "cleanName"
+echo   0. !cleanName! (%~3) - default
+set /a count=1
+
+:: Detect prefix for dynamic scan
+set "prefix="
+echo %~3 | findstr /i "quic_initial"    > nul && set "prefix=quic_initial_"
+echo %~3 | findstr /i "tls_clienthello" > nul && set "prefix=tls_clienthello_"
+echo %~3 | findstr /i "stun"            > nul && set "prefix=stun"
+
+:: Scan bin\ for additional files
+if defined prefix (
+    for %%F in ("%BIN_PATH%!prefix!*.bin") do (
+        set "nxF=%%~nxF"
+        if /i not "!nxF!"=="%~3" (
+            set "file!count!=!nxF!"
+            call :get_clean_name "!nxF!" "cleanName"
+            echo   !count!. !cleanName! (!nxF!)
+            set /a count+=1
+        )
     )
 )
+echo.
+
+set /a max_choice=count-1
+set "choice=0"
+set /p "choice=Select option (0-!max_choice!, default: 0): "
+if "!choice!"=="" set "choice=0"
+
+set "selectedFile=!file%choice%!"
+set "flagFile=%FAKE_SETTINGS_DIR%%~2.enabled"
+
+if "!choice!"=="0" (
+    if exist "!flagFile!" del /f /q "!flagFile!"
+) else if defined selectedFile (
+    echo !selectedFile!>"!flagFile!"
+) else (
+    echo Invalid choice, exiting...
+    pause
+    goto extra_menu
+)
+
+call :PrintYellow "Restart the zapret to apply the changes"
 pause
+goto extra_menu
+
+
+
+:get_hfs_status
+:: %1: env_var_name
+:: %2: default_host
+setlocal EnableDelayedExpansion
+set "hfs_val=%~2"
+
+if exist "%FAKE_SETTINGS_DIR%%~1.enabled" (
+    set "custom_hfs="
+    for /f "usebackq delims=" %%A in ("%FAKE_SETTINGS_DIR%%~1.enabled") do (
+        if not defined custom_hfs set "custom_hfs=%%A"
+    )
+    if defined custom_hfs set "hfs_val=!custom_hfs!"
+)
+
+endlocal & set "%~1=%hfs_val%"
+exit /b
+
+:load_all_fakes
+call :get_fake_status "DiscordFake" "quic_initial_steamcommunity_com.bin"
+call :get_fake_status "GameFakeUDP" "quic_initial_4pda_to.bin"
+call :get_fake_status "GameFakeUDPAlt" "quic_initial_4pda_to.bin"
+call :get_fake_status "IpsetFakeUDP" "quic_initial_www_google_com.bin"
+call :get_fake_status "IpsetFakeUDPAlt" "quic_initial_4pda_to.bin"
+call :get_fake_status "GeneralUDP" "quic_initial_www_google_com.bin"
+call :get_fake_status "StunFake" "stun.bin"
+call :get_fake_status "StunFake2" "stun2.bin"
+call :get_fake_status "GameFakeTCP" "tls_clienthello_4pda_to.bin"
+call :get_fake_status "IpsetFakeTCP" "tls_clienthello_max_ru.bin"
+call :get_fake_status "GeneralTCP" "tls_clienthello_4pda_to.bin"
+call :get_fake_status "GameFakeTCPAlt" "tls_clienthello_www_google_com.bin"
+call :get_fake_status "IpsetFakeTCPAlt" "tls_clienthello_www_google_com.bin"
+call :get_fake_status "GeneralTCPAlt" "tls_clienthello_www_google_com.bin"
+call :get_fake_status "DiscordFakeTCP" "tls_clienthello_www_google_com.bin"
+call :get_fake_status "GoogleFakeTCP" "tls_clienthello_www_google_com.bin"
+call :get_fake_status "GameFakeTCPAlt2" "tls_clienthello_max_ru.bin"
+call :get_fake_status "IpsetFakeTCPAlt2" "tls_clienthello_max_ru.bin"
+call :get_fake_status "IpsetFakeTCPAlt3" "tls_clienthello_4pda_to.bin"
+call :get_fake_status "GeneralTCPAlt2" "tls_clienthello_max_ru.bin"
+call :get_hfs_status "hsfalt3" "ya.ru"
+call :get_hfs_status "hsfalt9" "ozon.ru"
+exit /b
+
+:hfs_switch
+:: %1: title
+:: %2: env_var_name
+:: %3: default_host
+chcp 437 > nul
 cls
-goto replace_active_fakes_prompt
+
+set "current_val=!%~2!"
+echo Select %~1 mode:
+echo   1. Keep current (!current_val!)
+echo   2. Set custom host
+echo   3. Restore default (%~3)
+echo.
+
+set "choice="
+set /p "choice=Select option (1-3): "
+if "%choice%"=="1" goto extra_menu
+if "%choice%"=="" goto extra_menu
+if not "%choice%"=="2" if not "%choice%"=="3" (
+    echo Invalid choice, exiting...
+    pause
+    goto extra_menu
+)
+
+set "flagFile=%FAKE_SETTINGS_DIR%%~2.enabled"
+if "%choice%"=="3" (
+    if exist "%flagFile%" del /f /q "%flagFile%"
+    call :PrintYellow "Default host (%~3) restored"
+    pause
+    goto extra_menu
+)
+if "%choice%"=="2" (
+    echo.
+    set "hfsInput="
+    set /p "hfsInput=Enter custom host (e.g. google.com): "
+    if not "!hfsInput!"=="" (
+        echo !hfsInput!>"%flagFile%"
+    )
+)
+call :PrintYellow "Restart the zapret to apply the changes"
+pause
+goto extra_menu
+
+
+
+:factory_reset
+chcp 437 > nul
+cls
+echo Resetting fake configurations...
+echo.
+if exist "%FAKE_SETTINGS_DIR%*.enabled" (
+    del /f /q "%FAKE_SETTINGS_DIR%*.enabled"
+)
+call :PrintYellow "Extra settings have been successfully reset to defaults."
+call :PrintYellow "System settings (Game Filter, Auto-Update, etc.) were NOT modified."
+call :PrintYellow "Please restart the zapret service to apply the changes."
+pause
+goto extra_menu
+
+
 
 
 :: IPSET SWITCH =======================
