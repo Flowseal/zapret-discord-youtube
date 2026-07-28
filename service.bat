@@ -52,8 +52,7 @@ if "%1"=="admin" (
 
 
 :: MENU ================================
-setlocal EnableDelayedExpansion
-title ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
+title ZAPRET SERVICE MANAGER v%LOCAL_VERSION%
 :menu
 
 cls
@@ -66,8 +65,8 @@ call :get_strategy_name
 set "menu_choice=null"
 
 echo.
-echo   ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
-echo.  !CurrentStrategy!
+echo   ZAPRET SERVICE MANAGER v%LOCAL_VERSION%
+echo.  %CurrentStrategy%
 echo   ----------------------------------------
 echo.
 echo   :: SERVICE
@@ -76,9 +75,9 @@ echo      2. Remove Services
 echo      3. Check Status
 echo.
 echo   :: SETTINGS
-echo      4. Game Filter         [!GameFilterStatus!]
-echo      5. IPSet Filter        [!IPsetStatus!]
-echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
+echo      4. Game Filter         [%GameFilterStatus%]
+echo      5. IPSet Filter        [%IPsetStatus%]
+echo      6. Auto-Update Check   [%CheckUpdatesStatus%]
 echo      7. Replace active fakes
 echo.
 echo   :: UPDATES
@@ -143,7 +142,7 @@ cls
 chcp 437 > nul
 
 sc query "zapret" >nul 2>&1
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do echo Service strategy installed from "%%B"
 )
 
@@ -157,7 +156,7 @@ if not exist "%BIN_PATH%\*.sys" (
 echo:
 
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     call :PrintGreen "Bypass (winws.exe) is RUNNING."
 ) else (
     call :PrintRed "Bypass (winws.exe) is NOT running."
@@ -182,7 +181,7 @@ if "%ServiceStatus%"=="RUNNING" (
         echo "%ServiceName%" service is RUNNING.
     )
 ) else if "%ServiceStatus%"=="STOP_PENDING" (
-    call :PrintYellow "!ServiceName! is STOP_PENDING, that may be caused by a conflict with another bypass. Run Diagnostics to try to fix conflicts"
+    call :PrintYellow "%ServiceName% is STOP_PENDING, that may be caused by a conflict with another bypass. Run Diagnostics to try to fix conflicts"
 ) else if not "%~2"=="soft" (
     echo "%ServiceName%" service is NOT running.
 )
@@ -196,8 +195,8 @@ cls
 chcp 65001 > nul
 
 set SRVCNAME=zapret
-sc query "!SRVCNAME!" >nul 2>&1
-if !errorlevel!==0 (
+sc query "%SRVCNAME%" >nul 2>&1
+if %errorlevel%==0 (
     net stop %SRVCNAME%
     sc delete %SRVCNAME%
 ) else (
@@ -205,18 +204,17 @@ if !errorlevel!==0 (
 )
 
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     taskkill /IM winws.exe /F > nul
 )
 
 sc query "WinDivert" >nul 2>&1
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     net stop "WinDivert"
-
-    sc query "WinDivert" >nul 2>&1
-    if !errorlevel!==0 (
-        sc delete "WinDivert"
-    )
+)
+sc query "WinDivert" >nul 2>&1
+if %errorlevel%==0 (
+	sc delete "WinDivert"
 )
 net stop "WinDivert14" >nul 2>&1
 sc delete "WinDivert14" >nul 2>&1
@@ -239,10 +237,16 @@ set "LISTS_PATH=%~dp0lists\"
 echo Pick one of the options:
 set "count=0"
 for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -LiteralPath '.' -Filter '*.bat' | Where-Object { $_.Name -notlike 'service*' } | Sort-Object { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) } | ForEach-Object { $_.Name }"') do (
-    set /a count+=1
-    echo   !count!. %%F
-    set "file!count!=%%F"
+    call :service_install_add_file_to_list "%%F"
 )
+goto :service_install_add_file_to_list_finished
+
+:service_install_add_file_to_list
+set /a count+=1
+echo   %count%. %~1
+set "file%count%=%~1"
+exit /b 0
+:service_install_add_file_to_list_finished
 
 echo   0. Exit
 
@@ -250,123 +254,68 @@ echo.
 
 :: Choosing file
 set "choice="
-set /p "choice=Input option (0-!count!, default: 0): "
-if "!choice!"=="" (
+set /p "choice=Input option (0-%count%, default: 0): "
+if "%choice%"=="" (
     set "choice=0"
 )
 
-if "!choice!"=="0" (
+if "%choice%"=="0" (
     goto menu
 )
 
-set "selectedFile=!file%choice%!"
+call set "selectedFile=%%file%choice%%%"
 if not defined selectedFile (
     echo Invalid choice, exiting...
     pause
     goto menu
 )
 
-:: Args that should be followed by value
-set "args_with_value=sni host altorder"
-
-:: Parsing args (mergeargs: 2=start param|3=arg with value|1=params args|0=default)
-set "args="
 set "capture=0"
-set "mergeargs=0"
-set QUOTE="
 
-for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
-    set "line=%%a"
-    call set "line=%%line:^!=EXCL_MARK%%"
-
-    echo !line! | findstr /i "%BIN%winws.exe" >nul
-    if not errorlevel 1 (
-        set "capture=1"
-    )
-
-    if !capture!==1 (
-        if not defined args (
-            set "line=!line:*%BIN%winws.exe"=!"
-        )
-
-        set "temp_args="
-        for %%i in (!line!) do (
-            set "arg=%%i"
-
-            if not "!arg!"=="^" (
-                if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
-                    set "mergeargs=0"
-                )
-
-                if "!arg:~0,1!" EQU "!QUOTE!" (
-                    set "arg=!arg:~1,-1!"
-
-                    echo !arg! | findstr ":" >nul
-                    if !errorlevel!==0 (
-                        set "arg=\!QUOTE!!arg!\!QUOTE!"
-                    ) else if "!arg:~0,1!"=="@" (
-                        set "arg=\!QUOTE!@%~dp0!arg:~1!\!QUOTE!"
-                    ) else if "!arg:~0,5!"=="%%BIN%%" (
-                        set "arg=\!QUOTE!!BIN_PATH!!arg:~5!\!QUOTE!"
-                    ) else if "!arg:~0,7!"=="%%LISTS%%" (
-                        set "arg=\!QUOTE!!LISTS_PATH!!arg:~7!\!QUOTE!"
-                    ) else (
-                        set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
-                    )
-                ) else if "!arg:~0,12!" EQU "%%GameFilter%%" (
-                    set "arg=%GameFilter%"
-                ) else if "!arg:~0,15!" EQU "%%GameFilterTCP%%" (
-                    set "arg=%GameFilterTCP%"
-                ) else if "!arg:~0,15!" EQU "%%GameFilterUDP%%" (
-                    set "arg=%GameFilterUDP%"
-                )
-
-                if !mergeargs!==1 (
-                    set "temp_args=!temp_args!,!arg!"
-                ) else if !mergeargs!==3 (
-                    set "temp_args=!temp_args!=!arg!"
-                    set "mergeargs=1"
-                ) else (
-                    set "temp_args=!temp_args! !arg!"
-                )
-
-                if "!arg:~0,2!" EQU "--" (
-                    set "mergeargs=2"
-                ) else if !mergeargs! GEQ 1 (
-                    if !mergeargs!==2 set "mergeargs=1"
-
-                    for %%x in (!args_with_value!) do (
-                        if /i "%%x"=="!arg!" (
-                            set "mergeargs=3"
-                        )
-                    )
-                )
-            )
-        )
-
-        if not "!temp_args!"=="" (
-            set "args=!args! !temp_args!"
-        )
-    )
+set "BIN=%BIN_PATH%"
+set "LISTS=%LISTS_PATH%"
+for /f "tokens=*" %%a in ('type "%selectedFile%"') do (
+    call :service_install_parse_line %%a
 )
+goto :service_install_parse_line_finished
+
+:service_install_parse_line
+	(set "line=%*") 1>nul 2>nul
+	(set "line=%line:^=%") 1>nul 2>nul
+
+	if %capture% == 1 (
+		set "ARGS=%ARGS% %line%"
+		exit /b 0
+	)
+
+	echo %line% | findstr /i "winws.exe" 1>nul 2>nul
+	if not errorlevel 1 (
+		set "ARGS=%line:*--wf=--wf%"
+		set "capture=1"
+	)
+	exit /b 0
+:service_install_parse_line_finished
 
 :: Creating service with parsed args
 call :tcp_enable
 
-set ARGS=%args%
-call set "ARGS=%%ARGS:EXCL_MARK=^!%%"
-echo Final args: !ARGS!
+set "BIN="
+set "LISTS="
+set "ARGS=%ARGS:"=\"%"
+set "ARGS=%ARGS:  = %"
+echo Final args: %ARGS%
 set SRVCNAME=zapret
 
 net stop %SRVCNAME% >nul 2>&1
 sc delete %SRVCNAME% >nul 2>&1
-sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto
+sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" %ARGS%" DisplayName= "zapret" start= auto
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
-for %%F in ("!file%choice%!") do (
+call set "current_choice_file=%%file%choice%%%"
+for %%F in ("%current_choice_file%") do (
     set "filename=%%~nF"
 )
-reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
+reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "%filename%" /f
 
 pause
 goto menu
@@ -422,7 +371,7 @@ cls
 
 :: Base Filtering Engine
 sc query BFE | findstr /I "RUNNING" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     call :PrintGreen "Base Filtering Engine check passed"
 ) else (
     call :PrintRed "[X] Base Filtering Engine is not running. This service is required for zapret to work"
@@ -437,36 +386,37 @@ for /f "tokens=2*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVe
     if "%%B"=="0x1" set "proxyEnabled=1"
 )
 
-if !proxyEnabled!==1 (
-    for /f "tokens=2*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul ^| findstr /i "ProxyServer"') do (
-        set "proxyServer=%%B"
-    )
-    
-    call :PrintYellow "[?] System proxy is enabled: !proxyServer!"
-    call :PrintYellow "Make sure it's valid or disable it if you don't use a proxy"
-) else (
+if %proxyEnabled%==0 (
     call :PrintGreen "Proxy check passed"
+	goto :service_diagnostics_proxy_check_finished
 )
+for /f "tokens=2*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul ^| findstr /i "ProxyServer"') do (
+	set "proxyServer=%%B"
+)
+call :PrintYellow "[?] System proxy is enabled: %proxyServer%"
+call :PrintYellow "Make sure it's valid or disable it if you don't use a proxy"
+:service_diagnostics_proxy_check_finished
 echo:
 
 :: TCP timestamps check
 netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     call :PrintGreen "TCP timestamps check passed"
-) else (
-    call :PrintYellow "[?] TCP timestamps are disabled. Enabling timestamps..."
-    netsh interface tcp set global timestamps=enabled > nul 2>&1
-    if !errorlevel!==0 (
-        call :PrintGreen "TCP timestamps successfully enabled"
-    ) else (
-        call :PrintRed "[X] Failed to enable TCP timestamps"
-    )
+	goto :service_diagnostics_skip_tcp_timestamps
 )
+call :PrintYellow "[?] TCP timestamps are disabled. Enabling timestamps..."
+netsh interface tcp set global timestamps=enabled > nul 2>&1
+if %errorlevel%==0 (
+	call :PrintGreen "TCP timestamps successfully enabled"
+) else (
+	call :PrintRed "[X] Failed to enable TCP timestamps"
+)
+:service_diagnostics_skip_tcp_timestamps
 echo:
 
 :: AdguardSvc.exe
 tasklist /FI "IMAGENAME eq AdguardSvc.exe" | find /I "AdguardSvc.exe" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     call :PrintRed "[X] Adguard process found. Adguard may cause problems with Discord"
     call :PrintRed "https://github.com/Flowseal/zapret-discord-youtube/issues/417"
 ) else (
@@ -476,7 +426,7 @@ echo:
 
 :: Killer
 sc query | findstr /I "Killer" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     call :PrintRed "[X] Killer services found. Killer conflicts with zapret"
     call :PrintRed "https://github.com/Flowseal/zapret-discord-youtube/issues/2512#issuecomment-2821119513"
 ) else (
@@ -486,7 +436,7 @@ echo:
 
 :: Intel Connectivity Network Service
 sc query | findstr /I "Intel" | findstr /I "Connectivity" | findstr /I "Network" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     call :PrintRed "[X] Intel Connectivity Network Service found. It conflicts with zapret"
     call :PrintRed "https://github.com/ValdikSS/GoodbyeDPI/issues/541#issuecomment-2661670982"
 ) else (
@@ -497,16 +447,16 @@ echo:
 :: Check Point
 set "checkpointFound=0"
 sc query | findstr /I "TracSrvWrapper" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     set "checkpointFound=1"
 )
 
 sc query | findstr /I "EPWD" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     set "checkpointFound=1"
 )
 
-if !checkpointFound!==1 (
+if %checkpointFound%==1 (
     call :PrintRed "[X] Check Point services found. Check Point conflicts with zapret"
     call :PrintRed "Try to uninstall Check Point"
 ) else (
@@ -516,7 +466,7 @@ echo:
 
 :: SmartByte
 sc query | findstr /I "SmartByte" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     call :PrintRed "[X] SmartByte services found. SmartByte conflicts with zapret"
     call :PrintRed "Try to uninstall or disable SmartByte through services.msc"
 ) else (
@@ -534,19 +484,27 @@ if not exist "%BIN_PATH%\*.sys" (
 :: VPN
 set "VPN_SERVICES="
 sc query | findstr /I "VPN" > nul
-if !errorlevel!==0 (
+if %errorlevel%==0 (
     for /f "tokens=2 delims=:" %%A in ('sc query ^| findstr /I "VPN"') do (
-        if not defined VPN_SERVICES (
-            set "VPN_SERVICES=!VPN_SERVICES!%%A"
-        ) else (
-            set "VPN_SERVICES=!VPN_SERVICES!,%%A"
-        )
+        call :service_diagnostics_vpn_append "%%A"
     )
-    call :PrintYellow "[?] VPN services found:!VPN_SERVICES!. Some VPNs can conflict with zapret"
-    call :PrintYellow "Make sure that all VPNs are disabled"
+    call :service_diagnostics_vpn_found
 ) else (
     call :PrintGreen "VPN check passed"
 )
+goto :service_diagnostics_vpn_finished
+:service_diagnostics_vpn_append
+	if not defined VPN_SERVICES (
+		set "VPN_SERVICES=%VPN_SERVICES%%~1"
+	) else (
+		set "VPN_SERVICES=%VPN_SERVICES%,%~1"
+	)
+	exit /b 0
+:service_diagnostics_vpn_found
+	call :PrintYellow "[?] VPN services found:%VPN_SERVICES%. Some VPNs can conflict with zapret"
+    call :PrintYellow "Make sure that all VPNs are disabled"
+	exit /b 0
+:service_diagnostics_vpn_finished
 echo:
 
 :: DNS
@@ -556,7 +514,7 @@ for /f "delims=" %%a in ('powershell -NoProfile -Command "Get-ChildItem -Recurse
         set "dohfound=1"
     )
 )
-if !dohfound!==0 (
+if %dohfound%==0 (
     call :PrintYellow "[?] Make sure you have configured secure DNS in a browser with some non-default DNS service provider,"
     call :PrintYellow "If you use Windows 11 you can configure encrypted DNS in the Settings to hide this warning"
 ) else (
@@ -566,135 +524,155 @@ echo:
 
 :: Hosts file check
 set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
-if exist "%hostsFile%" (
-    set "yt_found=0"
-    >nul 2>&1 findstr /I "youtube.com" "%hostsFile%" && set "yt_found=1"
-    >nul 2>&1 findstr /I "youtu.be" "%hostsFile%" && set "yt_found=1"
-    if !yt_found!==1 (
-        call :PrintYellow "[?] Your hosts file contains entries for youtube.com or youtu.be. This may cause problems with YouTube access"
-    )
+set "yt_found=0"
+if not exist "%hostsFile%" (
+	goto :service_diagnostics_skip_check_hostfile
 )
+>nul 2>&1 findstr /I "youtube.com" "%hostsFile%" && set "yt_found=1"
+>nul 2>&1 findstr /I "youtu.be" "%hostsFile%" && set "yt_found=1"
+if %yt_found%==1 (
+	call :PrintYellow "[?] Your hosts file contains entries for youtube.com or youtu.be. This may cause problems with YouTube access"
+)
+:service_diagnostics_skip_check_hostfile
 
 :: WinDivert conflict
 tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
-set "winws_running=!errorlevel!"
+set "winws_running=%errorlevel%"
 
 sc query "WinDivert" | findstr /I "RUNNING STOP_PENDING" > nul
-set "windivert_running=!errorlevel!"
+set "windivert_running=%errorlevel%"
 
-if !winws_running! neq 0 if !windivert_running!==0 (
+if %winws_running% neq 0 if %windivert_running%==0 (
     call :PrintYellow "[?] winws.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
     
     net stop "WinDivert" >nul 2>&1
     sc delete "WinDivert" >nul 2>&1
-    sc query "WinDivert" >nul 2>&1
-    if !errorlevel!==0 (
-        call :PrintRed "[X] Failed to delete WinDivert. Checking for conflicting services..."
-        
-        set "conflicting_services=GoodbyeDPI"
-        set "found_conflict=0"
-        
-        for %%s in (!conflicting_services!) do (
-            sc query "%%s" >nul 2>&1
-            if !errorlevel!==0 (
-                call :PrintYellow "[?] Found conflicting service: %%s. Stopping and removing..."
-                net stop "%%s" >nul 2>&1
-                sc delete "%%s" >nul 2>&1
-                if !errorlevel!==0 (
-                    call :PrintGreen "Successfully removed service: %%s"
-                ) else (
-                    call :PrintRed "[X] Failed to remove service: %%s"
-                )
-                set "found_conflict=1"
-            )
-        )
-        
-        if !found_conflict!==0 (
-            call :PrintRed "[X] No conflicting services found. Check manually if any other bypass is using WinDivert."
-        ) else (
-            call :PrintYellow "[?] Attempting to delete WinDivert again..."
-
-            net stop "WinDivert" >nul 2>&1
-            sc delete "WinDivert" >nul 2>&1
-            sc query "WinDivert" >nul 2>&1
-            if !errorlevel! neq 0 (
-                call :PrintGreen "WinDivert successfully deleted after removing conflicting services"
-            ) else (
-                call :PrintRed "[X] WinDivert still cannot be deleted. Check manually if any other bypass is using WinDivert."
-            )
-        )
-    ) else (
-        call :PrintGreen "WinDivert successfully removed"
-    )
-    
-    echo:
 )
+sc query "WinDivert" >nul 2>&1
+if %winws_running% neq 0 if %windivert_running%==0 (
+    if %errorlevel%==0 (
+        call :PrintRed "[X] Failed to delete WinDivert. Checking for conflicting services..."
+	)
+) else (
+	call :PrintGreen "WinDivert successfully removed"
+	goto :service_diagnostics_WinDivert_conflict_finished
+)
+set "conflicting_services=GoodbyeDPI"
+set "found_conflict=0"
+for %%s in (%conflicting_services%) do (
+	call :service_diagnostics_WinDivert_conflicting_stopping "%%s"
+)
+
+goto :service_diagnostics_WinDivert_conflicting_stopping_finished
+:service_diagnostics_WinDivert_conflicting_stopping
+	sc query "%~1" >nul 2>&1
+	if not %errorlevel%==0 (
+		exit /b 0
+	)
+	call :PrintYellow "[?] Found conflicting service: %~1. Stopping and removing..."
+	net stop "%~1" >nul 2>&1
+	sc delete "%~1" >nul 2>&1
+	if %errorlevel%==0 (
+		call :PrintGreen "Successfully removed service: %~1"
+	) else (
+		call :PrintRed "[X] Failed to remove service: %~1"
+	)
+	set "found_conflict=1"
+	exit /b 0
+:service_diagnostics_WinDivert_conflicting_stopping_finished
+
+if %found_conflict%==0 (
+	call :PrintRed "[X] No conflicting services found. Check manually if any other bypass is using WinDivert."
+	goto :service_diagnostics_WinDivert_conflict_finished
+)
+
+call :PrintYellow "[?] Attempting to delete WinDivert again..."
+net stop "WinDivert" >nul 2>&1
+sc delete "WinDivert" >nul 2>&1
+sc query "WinDivert" >nul 2>&1
+if %errorlevel% neq 0 (
+	call :PrintGreen "WinDivert successfully deleted after removing conflicting services"
+) else (
+	call :PrintRed "[X] WinDivert still cannot be deleted. Check manually if any other bypass is using WinDivert."
+)
+:service_diagnostics_WinDivert_conflict_finished
+echo:
 
 :: Conflicting bypasses
 set "conflicting_services=GoodbyeDPI discordfix_zapret winws1 winws2"
 set "found_any_conflict=0"
 set "found_conflicts="
 
-for %%s in (!conflicting_services!) do (
-    sc query "%%s" >nul 2>&1
-    if !errorlevel!==0 (
-        if "!found_conflicts!"=="" (
-            set "found_conflicts=%%s"
-        ) else (
-            set "found_conflicts=!found_conflicts! %%s"
-        )
+for %%s in (%conflicting_services%) do (
+	call :service_diagnostics_conflicting_bypasses_append_conflict "%%s"
+)
+goto :service_diagnostics_conflicting_bypasses_append_conflict_finished
+:service_diagnostics_conflicting_bypasses_append_conflict
+    sc query "%~1" >nul 2>&1
+    if %errorlevel%==0 (
+        if "%found_conflicts%"=="" (
+			set "found_conflicts=%~1"
+		) else (
+			set "found_conflicts=%found_conflicts% %~1"
+		)
         set "found_any_conflict=1"
     )
+	exit /b 0
+:service_diagnostics_conflicting_bypasses_append_conflict_finished
+    
+if not "%found_any_conflict%"=="1" (
+	goto :service_diagnostics_conflicting_bypasses_stopping_finished
 )
+call :PrintRed "[X] Conflicting bypass services found: %found_conflicts%"
+set "CHOICE="
+set /p "CHOICE=Do you want to remove these conflicting services? (Y/N) (default: N) "
 
-if !found_any_conflict!==1 (
-    call :PrintRed "[X] Conflicting bypass services found: !found_conflicts!"
-    
-    set "CHOICE="
-    set /p "CHOICE=Do you want to remove these conflicting services? (Y/N) (default: N) "
-    if "!CHOICE!"=="" set "CHOICE=N"
-    if "!CHOICE!"=="y" set "CHOICE=Y"
-    
-    if /i "!CHOICE!"=="Y" (
-        for %%s in (!found_conflicts!) do (
-            call :PrintYellow "Stopping and removing service: %%s"
-            net stop "%%s" >nul 2>&1
-            sc delete "%%s" >nul 2>&1
-            if !errorlevel!==0 (
-                call :PrintGreen "Successfully removed service: %%s"
-            ) else (
-                call :PrintRed "[X] Failed to remove service: %%s"
-            )
-        )
+if "%CHOICE%"=="" set "CHOICE=N"
+if /i "%CHOICE%"=="Y" (
+	for %%s in (%found_conflicts%) do (
+		call :PrintYellow "Stopping and removing service: %%s"
+		call :service_diagnostics_conflicting_bypasses_stopping "%%s"
+	)
 
-        net stop "WinDivert" >nul 2>&1
-        sc delete "WinDivert" >nul 2>&1
-        net stop "WinDivert14" >nul 2>&1
-        sc delete "WinDivert14" >nul 2>&1
-    )
-    
-    echo:
+	net stop "WinDivert" >nul 2>&1
+	sc delete "WinDivert" >nul 2>&1
+	net stop "WinDivert14" >nul 2>&1
+	sc delete "WinDivert14" >nul 2>&1
 )
+goto :service_diagnostics_conflicting_bypasses_stopping_finished
+:service_diagnostics_conflicting_bypasses_stopping
+	net stop "%~1" >nul 2>&1
+	sc delete "%~1" >nul 2>&1
+	if %errorlevel%==0 (
+		call :PrintGreen "Successfully removed service: %~1"
+	) else (
+		call :PrintRed "[X] Failed to remove service: %~1"
+	)
+	exit /b 0
+:service_diagnostics_conflicting_bypasses_stopping_finished
+echo:
 
 :: Discord cache clearing
+set "discordFound=0"
 set "CHOICE="
 set /p "CHOICE=Do you want to clear the Discord and Discord PTB cache? (Y/N) (default: Y) "
-if "!CHOICE!"=="" set "CHOICE=Y"
-if "!CHOICE!"=="y" set "CHOICE=Y"
+if "%CHOICE%"=="" set "CHOICE=Y"
+if "%CHOICE%"=="y" set "CHOICE=Y"
 
-if /i "!CHOICE!"=="Y" (
-    set "discordFound=0"
-    if exist "%APPDATA%\discord\" (
-        set "discordFound=1"
-        call :clear_discord_cache "Discord.exe" "Discord" "%APPDATA%\discord"
-    )
-    if exist "%APPDATA%\discordptb\" (
-        set "discordFound=1"
-        call :clear_discord_cache "DiscordPTB.exe" "Discord PTB" "%APPDATA%\discordptb"
-    )
-    if !discordFound! equ 0 call :PrintRed "Discord and Discord PTB were not found"
-    set "discordFound="
+if /i not "%CHOICE%"=="Y" (
+	goto :service_diagnostics_discord_cache_clearing_finished
 )
+if exist "%APPDATA%\discord\" (
+	set "discordFound=1"
+	call :clear_discord_cache "Discord.exe" "Discord" "%APPDATA%\discord"
+)
+if exist "%APPDATA%\discordptb\" (
+	set "discordFound=1"
+	call :clear_discord_cache "DiscordPTB.exe" "Discord PTB" "%APPDATA%\discordptb"
+)
+if %discordFound% equ 0 call :PrintRed "Discord and Discord PTB were not found"
+:service_diagnostics_discord_cache_clearing_finished
+set "discordFound="
 echo:
 
 pause
@@ -828,29 +806,48 @@ if not exist "%BIN_PATH%" (
 
 pushd "%BIN_PATH%"
 for /f "tokens=1,2,3 delims=|" %%A in ('powershell -NoProfile -Command "foreach ($item in @(@{Name='ACTIVE_DISCORD_UDP.bin'; Label='ACTIVE_DISCORD'},@{Name='ACTIVE_GAME_UDP.bin'; Label='ACTIVE_GAME'})) { if (Test-Path -LiteralPath $item.Name) { Write-Output ($item.Label + [char]124 + $item.Label + [char]124 + (Get-FileHash -LiteralPath $item.Name -Algorithm SHA256).Hash) } }; $files = @(Get-ChildItem -LiteralPath . -File -Filter '*.bin'); foreach ($file in $files) { if ($file.BaseName -notlike 'ACTIVE_*') { Write-Output ('FAKE' + [char]124 + $file.BaseName + [char]124 + (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash) } }"') do (
-    if "%%A"=="ACTIVE_DISCORD" (
-        set "discord_hash=%%C"
-    ) else if "%%A"=="ACTIVE_GAME" (
-        set "game_hash=%%C"
-    ) else if "%%A"=="FAKE" (
-        set /a fake_count+=1
-        set "fake_file!fake_count!=%BIN_PATH%%%B.bin"
-        set "fake_name!fake_count!=%%B"
-        set "fake_hash!fake_count!=%%C"
-    )
+    call :replace_active_fakes_process_fake_info "%%A" "%%B" "%%C"
 )
 popd
+goto :replace_active_fakes_process_bin_finished
 
-if !fake_count! EQU 0 (
+:replace_active_fakes_process_fake_info
+	if "%~1"=="ACTIVE_DISCORD" (
+		set "discord_hash=%~3"
+	) else if "%~1"=="ACTIVE_GAME" (
+		set "game_hash=%~3"
+	) else if "%~1"=="FAKE" (
+		call :replace_active_fakes_process_fake_info_add_to_array "%%~1" "%%~2" "%%~3"
+	)
+	exit /b 0
+
+:replace_active_fakes_process_fake_info_add_to_array
+    set /a fake_count+=1
+    call set "fake_file%fake_count%=%BIN_PATH%%~2.bin"
+    call set "fake_name%fake_count%=%~2"
+    call set "fake_hash%fake_count%=%~3"
+	exit /b 0
+:replace_active_fakes_process_bin_finished
+
+if %fake_count% EQU 0 (
     echo No .bin files were found in the bin folder.
     pause
     goto menu
 )
 
-for /l %%N in (1,1,!fake_count!) do (
-    if defined discord_hash if /i "!fake_hash%%N!"=="!discord_hash!" set "current_discord_fake=!fake_name%%N!"
-    if defined game_hash if /i "!fake_hash%%N!"=="!game_hash!" set "current_game_fake=!fake_name%%N!"
+for /l %%N in (1,1,%fake_count%) do (
+    call :replace_active_fakes_match_fakes %%N
 )
+goto :replace_active_fakes_match_fakes_finished
+
+:replace_active_fakes_match_fakes
+	set "cur_h="
+	call set "cur_h=%%fake_hash%1%%"
+	call set "cur_n=%%fake_name%1%%"
+	if defined discord_hash if /i "%cur_h%"=="%discord_hash%" set "current_discord_fake=%cur_n%"
+	if defined game_hash if /i "%cur_h%"=="%game_hash%" set "current_game_fake=%cur_n%"
+	exit /b 0
+:replace_active_fakes_match_fakes_finished
 
 :replace_active_fakes_prompt
 echo.
@@ -863,29 +860,31 @@ echo.
 echo   ----------------------------------------
 echo.
 echo Fake types:
-echo   1. Discord UDP     (current: !current_discord_fake!)
-echo   2. GameFilter UDP  (current: !current_game_fake!)
+echo   1. Discord UDP     (current: %current_discord_fake%)
+echo   2. GameFilter UDP  (current: %current_game_fake%)
 echo.
 echo Fake files:
-for /l %%N in (1,1,!fake_count!) do echo   %%N. !fake_name%%N!
+for /l %%N in (1,1,%fake_count%) do (
+    call echo   %%N. %%fake_name%%N%%
+)
 echo.
 
 set "replace_choice="
 set /p "replace_choice=Enter choice: "
 if not defined replace_choice goto menu
-if "!replace_choice!"=="0" goto menu
+if "%replace_choice%"=="0" goto menu
 
 set "active_file="
 set "fake_type="
 set "fake_number="
-for /f "tokens=1,2" %%A in ("!replace_choice!") do (
+for /f "tokens=1,2" %%A in ("%replace_choice%") do (
     set "fake_type=%%A"
     set "fake_number=%%B"
 )
 
-if "!fake_type!"=="1" (
+if "%fake_type%"=="1" (
     set "active_file=%BIN_PATH%ACTIVE_DISCORD_UDP.bin"
-) else if "!fake_type!"=="2" (
+) else if "%fake_type%"=="2" (
     set "active_file=%BIN_PATH%ACTIVE_GAME_UDP.bin"
 ) else (
     echo Invalid fake type.
@@ -894,25 +893,23 @@ if "!fake_type!"=="1" (
     goto replace_active_fakes_prompt
 )
 
-set "source_file="
-for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" set "source_file=!fake_file%%N!"
-if not defined source_file (
+call set "new_fake_path=%%fake_file%fake_number%%%"
+call set "new_fake_name=%%fake_name%fake_number%%%"
+if not defined new_fake_path (
     echo Invalid fake file number.
     pause
     cls
     goto replace_active_fakes_prompt
 )
 
-del /f /q "!active_file!" >nul 2>&1
-copy /y "!source_file!" "!active_file!" >nul
+del /f /q "%active_file%" >nul 2>&1
+copy /y "%new_fake_path%" "%active_file%" >nul
 if errorlevel 1 (
     echo Failed to replace the active fake file.
 ) else (
     echo Active fake file replaced successfully.
-    for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" (
-        if "!fake_type!"=="1" set "current_discord_fake=!fake_name%%N!"
-        if "!fake_type!"=="2" set "current_game_fake=!fake_name%%N!"
-    )
+    if "%fake_type%"=="1" set "current_discord_fake=%new_fake_name%"
+    if "%fake_type%"=="2" set "current_game_fake=%new_fake_name%"
 )
 pause
 cls
@@ -924,17 +921,19 @@ goto replace_active_fakes_prompt
 chcp 437 > nul
 
 set "listFile=%~dp0lists\ipset-all.txt"
+set "lineCount=0"
 for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
 
-if !lineCount!==0 (
+if %lineCount%==0 (
     set "IPsetStatus=any"
+	exit /b 0
+)
+
+findstr /C:"203.0.113.113/32" "%listFile%" >nul
+if %errorlevel%==0 (
+	set "IPsetStatus=none"
 ) else (
-    findstr /C:"203.0.113.113/32" "%listFile%" >nul
-    if !errorlevel!==0 (
-        set "IPsetStatus=none"
-    ) else (
-        set "IPsetStatus=loaded"
-    )
+	set "IPsetStatus=loaded"
 )
 exit /b
 
@@ -995,14 +994,7 @@ set "url=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/
 
 echo Updating ipset-all...
 
-if exist "%SystemRoot%\System32\curl.exe" (
-    curl --version | find "libcurl/7"
-    if !errorlevel!==0 (
-        curl --ssl-no-revoke -L -o "%listFile%" "%url%"
-    ) else (
-        curl --ssl-revoke-best-effort -L -o "%listFile%" "%url%"
-    )
-) else (
+if not exist "%SystemRoot%\System32\curl.exe" (
     powershell -NoProfile -Command ^
         "$url = '%url%';" ^
         "$out = '%listFile%';" ^
@@ -1010,8 +1002,16 @@ if exist "%SystemRoot%\System32\curl.exe" (
         "if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null };" ^
         "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
         "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
+		goto :ipset_update_finished
 )
 
+curl --version | find "libcurl/7"
+if %errorlevel%==0 (
+	curl --ssl-no-revoke -L -o "%listFile%" "%url%"
+) else (
+	curl --ssl-revoke-best-effort -L -o "%listFile%" "%url%"
+)
+:ipset_update_finished
 echo Finished
 
 pause
@@ -1058,14 +1058,14 @@ for /f "usebackq delims=" %%a in ("%tempFile%") do (
     set "lastLine=%%a"
 )
 
-findstr /C:"!firstLine!" "%hostsFile%" >nul 2>&1
-if !errorlevel! neq 0 (
+findstr /C:"%firstLine%" "%hostsFile%" >nul 2>&1
+if %errorlevel% neq 0 (
     echo First line from repository not found in hosts file
     set "needsUpdate=1"
 )
 
-findstr /C:"!lastLine!" "%hostsFile%" >nul 2>&1
-if !errorlevel! neq 0 (
+findstr /C:"%lastLine%" "%hostsFile%" >nul 2>&1
+if %errorlevel% neq 0 (
     echo Last line from repository not found in hosts file
     set "needsUpdate=1"
 )
@@ -1119,39 +1119,44 @@ exit /b
 :: Utility functions
 
 :clear_discord_cache
-setlocal EnableDelayedExpansion
 set "discordProcess=%~1"
 set "discordName=%~2"
 set "discordCacheDir=%~3"
 
-tasklist /FI "IMAGENAME eq !discordProcess!" 2>nul | findstr /I /C:"!discordProcess!" >nul
-if !errorlevel! equ 0 (
-    echo !discordName! is running, closing...
-    taskkill /IM "!discordProcess!" /F >nul 2>&1
-    if !errorlevel! equ 0 (
-        call :PrintGreen "!discordName! was successfully closed"
-    ) else (
-        call :PrintRed "Unable to close !discordName!"
-    )
+tasklist /FI "IMAGENAME eq %discordProcess%" 2>nul | findstr /I /C:"%discordProcess%" >nul
+if not %errorlevel% equ 0 (
+	goto :clear_discord_cache_app_closed
 )
+echo %discordName% is running, closing...
+taskkill /IM "%discordProcess%" /F >nul 2>&1
+if %errorlevel% equ 0 (
+	call :PrintGreen "%discordName% was successfully closed"
+) else (
+	call :PrintRed "Unable to close %discordName%"
+)
+:clear_discord_cache_app_closed
 
-if exist "!discordCacheDir!\" (
+if exist "%discordCacheDir%\" (
     for %%d in ("Cache" "Code Cache" "GPUCache") do (
-        set "dirPath=!discordCacheDir!\%%~d"
-        if exist "!dirPath!\" (
-            rd /s /q "!dirPath!" >nul 2>&1
-            if exist "!dirPath!\" (
-                call :PrintRed "Failed to delete !dirPath!"
-            ) else (
-                call :PrintGreen "Successfully deleted !dirPath!"
-            )
-        ) else (
-            call :PrintRed "!dirPath! does not exist"
-        )
+		call :clear_discord_cache_delete_path "%%~d"
     )
 )
 
-endlocal
+goto :clear_discord_cache_delete_path_finished
+:clear_discord_cache_delete_path
+	set "dirPath=%discordCacheDir%\%~1"
+	if exist "%dirPath%\" (
+		rd /s /q "%dirPath%" >nul 2>&1
+		if exist "%dirPath%\" (
+			call :PrintRed "Failed to delete %dirPath%"
+		) else (
+			call :PrintGreen "Successfully deleted %dirPath%"
+		)
+	) else (
+		call :PrintRed "%dirPath% does not exist"
+	)
+	exit /b 0
+:clear_discord_cache_delete_path_finished
 exit /b
 
 :PrintGreen
