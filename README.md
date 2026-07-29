@@ -171,7 +171,7 @@ sc delete название_из_первого_шага
 
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
 
-- Убедитесь что вы настроили Secure DNS.
+- Убедитесь что вы настроили [Secure DNS](https://hackware.ru/?p=13707).
 - Отключите блокировщик рекламы, известно что YouTube начал с ними бороться.
 - Пробуйте все другие стратегии (если раньше работало, но перестало).
 - См. также [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
