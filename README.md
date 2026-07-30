@@ -150,13 +150,17 @@ sc delete WinDivert
 > [!TIP]
 > ### 💸 Материальная поддержка
 >
+> [basil@reqrypt](https://reqrypt.org/donate.html) (автор WinDivert)
+> 
 > [bol-van](https://github.com/bol-van/zapret#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0) (автор zapret)
 > 
-> [Flowseal](https://github.com/Flowseal/tg-ws-proxy#-%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D0%BC%D0%B5%D0%BD%D1%8F) (автор этой сборки) 
+> [Flowseal](https://github.com/Flowseal/tg-ws-proxy#-%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D0%BC%D0%B5%D0%BD%D1%8F) (автор этой сборки)
 
 ## ⚖️ Лицензирование
 
-[zapret имеет лицензию MIT](https://github.com/bol-van/zapret/blob/master/docs/LICENSE.txt), как и эта сборка (см. [LICENSE.txt](./LICENSE.txt)).
+[WinDivert](https://reqrypt.org/windivert.html) - [GNU GPL 3](https://github.com/basil00/WinDivert/blob/master/LICENSE) /
+[zapret](https://github.com/bol-van/zapret) - [MIT](https://github.com/bol-van/zapret/blob/master/docs/LICENSE.txt) /
+[сборка](https://github.com/Flowseal/zapret-discord-youtube) - [MIT](./LICENSE.txt)
 
 ## ❤️ Благодарность участникам проекта
 
