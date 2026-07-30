@@ -33,11 +33,11 @@
 
 ## ⚙️Использование
 
-1. Включите [Secure DNS](https://hackware.ru/?p=13707)
+1. Включите Secure DNS
     * В Chrome - "Использовать безопасный DNS", и выбрать поставщика услуг DNS (выбрать вариант, отличный от варианта "Поставщик по умолчанию")
     * В Firefox - "Включить DNS через HTTPS, используя: Максимальную защиту", затем "Выбрать поставщика" и вписать URL поставщика вручную, например можно использовать `https://dns.google/dns-query` (т.к. поставщик Cloudflare может быть заблокирован)
-    * В Windows 11 поддерживается включение [Secure DNS](https://hackware.ru/?p=13707) прямо в настройках ОС - [инструкция тут](https://remontka.pro/dns-over-https-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
-    * Если у вас роутер Keenetic, включите в настройках роутера опцию "Транзит запросов". Отключение этой опции может привести к проблемам при настройке и использовании [Secure DNS](https://hackware.ru/?p=13707) на компьютере
+    * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://remontka.pro/dns-over-https-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
+    * Если у вас роутер Keenetic, включите в настройках роутера опцию "Транзит запросов". Отключение этой опции может привести к проблемам при настройке и использовании Secure DNS на компьютере
 
 2. Скачайте архив (zip/rar) со [страницы последнего релиза](https://github.com/Flowseal/zapret-discord-youtube/releases/latest)
 
@@ -81,8 +81,8 @@
 ## ☑️Распространенные вопросы и проблемы
 
 > [!IMPORTANT]
-> ### Не используйте Yandex Browser
-> Yandex Browser НЕ является лучшим браузером для использования в паре с zapret. В нем может корректно НЕ работать [Secure DNS](https://hackware.ru/?p=13707), требуемый для работы zapret
+> ### Не используйте непопулярные / непроверенные браузеры
+> В них может корректно НЕ работать [Secure DNS](https://github.com/Flowseal/zapret-discord-youtube#%EF%B8%8F%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5), требуемый для работы zapret
 
 ### После запуска скрипта `general*` ничего не происходит
 
@@ -171,14 +171,14 @@ sc delete название_из_первого_шага
 
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
 
-- Убедитесь что вы настроили [Secure DNS](https://hackware.ru/?p=13707).
+- Убедитесь что вы настроили [Secure DNS](https://github.com/Flowseal/zapret-discord-youtube#%EF%B8%8F%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5).
 - Отключите блокировщик рекламы, известно что YouTube начал с ними бороться.
 - Пробуйте все другие стратегии (если раньше работало, но перестало).
 - См. также [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
 
 ### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
 
-- Убедитесь что вы настроили [Secure DNS](https://hackware.ru/?p=13707).
+- Убедитесь что вы настроили [Secure DNS](https://github.com/Flowseal/zapret-discord-youtube#%EF%B8%8F%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5).
 - Желательно сначала узнать, на какой стратегии открывается сайт YouTube. Запустите эту стратегию.
 - Запустите `service.bat` -> `Run Diagnostics` и выполните там очистку кэша Discord.
 - Проверьте приложение Discord. Помогла ли очистка кэша?
