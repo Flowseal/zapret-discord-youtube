@@ -37,7 +37,7 @@
 <details>
    <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/aa8319e1-2f51-4920-ba85-5becd850551b" /> Google Chrome</b></summary>
 
-1. `chrome://settings/`
+1. `chrome://settings/security`
 2. `Конфиденциальность и безопасность` > `Безопасность` > `Дополнительные настройки`
 3. Включите `Использовать безопасный DNS-сервер`
 4. Выберите поставщика услуг, отличающегося от поставщика по умолчанию
@@ -48,7 +48,7 @@
 <details>
    <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/fb141815-493f-4abd-bf3f-b20fd7be00ce" /> Firefox</b></summary>
 
-1. `about:preferences`
+1. `about:preferences#dnsOverHttps`
 2. `Приватность и защита` > `DNS через HTTPS` > `Дополнительные настройки`
 3. Включите `Персональный`
 4. Выберите оператора по умолчанию или введите другой URL оператора
