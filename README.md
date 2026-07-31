@@ -67,6 +67,51 @@ https://doh.opendns.com/dns-query
 <img width="567" height="516" alt="image" src="https://github.com/user-attachments/assets/90768222-cb40-45af-ba70-7dfcb4fbe592" />
 </details>
 
+<details>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/ba5c525e-cf13-41ae-b2bd-f00571ae898b" /> Microsoft Edge</b></summary>
+
+1. `edge://settings/privacy/security`
+2. `Конфиденциальность, поиск и службы` > `Безопасность`
+3. Включите `Использовать безопасную систему DNS`
+4. Выберите поставщика услуг или введите другой URL оператора
+5. Выберите оператора по умолчанию или введите другой URL оператора
+6. Cписок DNS over HTTPS
+```
+https://cloudflare-dns.com/dns-query
+https://dns.google/dns-query
+https://dns.quad9.net/dns-query
+https://common.dot.dns.yandex.net/dns-query
+https://dns.adguard.com/dns-query
+https://dns.comss.one/dns-query
+https://dns.nextdns.io
+https://doh.opendns.com/dns-query
+```
+
+<img width="793" height="243" alt="image" src="https://github.com/user-attachments/assets/89a51d3a-d048-42a1-8818-5220d5b00723" />
+</details>
+
+<details>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/cf7874b2-221e-4553-9cdb-f609b3b5c99a" /> Яндекс.Браузер</b></summary>
+
+1. `browser://protect/`
+2. `Безопасность `
+3. Включите `Использовать безопасный dns`
+3. Выберите поставщика услуг или введите другой URL оператора
+4. Cписок DNS over HTTPS
+```
+https://cloudflare-dns.com/dns-query
+https://dns.google/dns-query
+https://dns.quad9.net/dns-query
+https://common.dot.dns.yandex.net/dns-query
+https://dns.adguard.com/dns-query
+https://dns.comss.one/dns-query
+https://dns.nextdns.io
+https://doh.opendns.com/dns-query
+```
+
+<img width="2544" height="1600" alt="image" src="https://github.com/user-attachments/assets/6ff1e669-9924-4ea5-8494-8798c9be2037" />
+</details>
+
    * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://remontka.pro/dns-over-https-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
    * Если у вас роутер Keenetic, включите в настройках роутера опцию "Транзит запросов". Отключение этой опции может привести к проблемам при настройке и использовании Secure DNS на компьютере
 
