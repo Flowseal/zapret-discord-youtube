@@ -34,38 +34,38 @@
 ## ⚙️Использование
 
 1. Включите Secure DNS
-
-   <details>
+<details>
    <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/aa8319e1-2f51-4920-ba85-5becd850551b" /> Google Chrome</b></summary>
-   <br>
 
-   <ol type="1">
-     <li><code>chrome://settings/</code></li>
-     <li><code>Конфиденциальность и безопасность</code> > <code>Безопасность</code> > <code>Дополнительные настройки</code></li>
-     <li>Включите <code>Использовать безопасный DNS-сервер</code></li>
-     <li>Выберите поставщика услуг, отличающегося от поставщика по умолчанию</li>
-   </ol>
+1. `chrome://settings/`
+2. `Конфиденциальность и безопасность` > `Безопасность` > `Дополнительные настройки`
+3. Включите `Использовать безопасный DNS-сервер`
+4. Выберите поставщика услуг, отличающегося от поставщика по умолчанию
 
-   <br>
-   <img width="675" height="388" alt="image" src="https://github.com/user-attachments/assets/03860af3-0afb-4f40-a6e3-593dc9c68bc6" />
+<img width="675" height="388" alt="image" src="https://github.com/user-attachments/assets/03860af3-0afb-4f40-a6e3-593dc9c68bc6" />
+</details>
 
-   </details>
-   
-   <details>
+<details>
    <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/fb141815-493f-4abd-bf3f-b20fd7be00ce" /> Firefox</b></summary>
-   <br>
 
-   <ol type="1">
-     <li><code>about:preferences</code></li>
-     <li><code>Приватность и защита</code> > <code>DNS через HTTPS</code> > <code>Дополнительные настройки</code></li>
-     <li>Выберите <code>Персональный</code></li>
-     <li>Выберите оператора по умолчанию или введите другой URL оператора</li>
-   </ol>
+1. `about:preferences`
+2. `Приватность и защита` > `DNS через HTTPS` > `Дополнительные настройки`
+3. Включите `Персональный`
+4. Выберите оператора по умолчанию или введите другой URL оператора
+5. Cписок DNS over HTTPS
+```
+https://cloudflare-dns.com/dns-query
+https://dns.google/dns-query
+https://dns.quad9.net/dns-query
+https://common.dot.dns.yandex.net/dns-query
+https://dns.adguard.com/dns-query
+https://dns.comss.one/dns-query
+https://dns.nextdns.io
+https://doh.opendns.com/dns-query
+```
 
-   <br>
-   <img width="567" height="516" alt="image" src="https://github.com/user-attachments/assets/90768222-cb40-45af-ba70-7dfcb4fbe592" />
-
-   </details>
+<img width="567" height="516" alt="image" src="https://github.com/user-attachments/assets/90768222-cb40-45af-ba70-7dfcb4fbe592" />
+</details>
 
    * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://remontka.pro/dns-over-https-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
    * Если у вас роутер Keenetic, включите в настройках роутера опцию "Транзит запросов". Отключение этой опции может привести к проблемам при настройке и использовании Secure DNS на компьютере
