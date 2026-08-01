@@ -46,13 +46,13 @@
   - `Remove Services` - удаление служб
   - `Check Status` - проверка статуса служб
   - `Game Filter` - фильтр на порты 1023-65535 (UDP и TCP)
-  - `IPSet Filter` - фильтр на адреса из `ipset-all.txt`:
+  - `IPSet Filter` - фильтр на адреса из `lists/ipset-all.txt`:
        - `none` - фильтр отключен
-       - `loaded` - фильтр только на адреса в `ipset-all.txt`
+       - `loaded` - фильтр только на адреса в `lists/ipset-all.txt`
        - `any` - фильтр на любой IP (не рекомендуется)
   - `Auto-Update Check` - автоматическая проверка на обновления
   - `Replace active fakes` - заменить указанный для fake бинарный файл на другой в директории `bin`
-  - `Update IPSet List` - обновление списка `ipset-all.txt` актуальным из репозитория
+  - `Update IPSet List` - обновление списка `lists/ipset-all.txt` актуальным из репозитория
   - `Update Hosts File` - обновление файла hosts 
   - `Check for Updates` - проверка на обновления
   - `Run Diagnostics` - диагностика распространённых проблем, также можно очистить кэш <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/discord.svg" height=14 /> Discord
@@ -65,7 +65,7 @@
 > [!IMPORTANT]
 > Файлы `*-user.txt` создаются автоматически при первом запуске `winws` или `service.bat`
 
-Список адресов для фильтров можно расширить, добавляя их в:
+Список адресов для фильтров можно расширить, добавляя их в файлы из директории `lists`:
 
 - `list-general-user.txt` - домены (поддомены автоматически учитываются)
 - `list-exclude-user.txt` - исключенные домены
@@ -121,7 +121,7 @@ Eсли ваш hosts будет неактуальным, то Вам будет
 > Система подписи драйверов была изменена со времен Windows 7
 >
 
-Замените файлы WinDivert (`WinDivert.dll` и `WinDivert64.sys`) в папке [`bin`](./bin) на одноименные из [zapret-win-bundle/win7](https://github.com/bol-van/zapret-win-bundle/tree/master/win7)
+Замените файлы WinDivert (`WinDivert.dll` и `WinDivert64.sys`) в директории [`bin`](./bin) на одноименные из [zapret-win-bundle/win7](https://github.com/bol-van/zapret-win-bundle/tree/master/win7)
 
 ### Античиты ругаются на WinDivert
 
