@@ -16,12 +16,13 @@
 >
 
 > [!IMPORTANT]
+><div align="center">
+> <h2><img src="https://reqrypt.org/images/windivert.png" height=22 /> WinDivert</h2>
+></div>
 >
-> ### WinDivert
+> [Windows Packet Divert (WinDivert)](https://reqrypt.org/windivert.html) - это своеобразная замена [NetFilter](https://ru.wikipedia.org/wiki/Netfilter), необходимая для работы с zapret на Windows.
 > 
-> [WinDivert](https://reqrypt.org/windivert.html) - это замена [NetFilter](https://ru.wikipedia.org/wiki/Netfilter), необходимая для работы с zapret в Windows.
-> 
-> Антивирус может ругаться на WinDivert со сигнатурами по типу `Not-a-virus:RiskTool.Multi.WinDivert`. Добавляйте исключения / отключайте реакции на PUP/PUA / полностью отключайте антивирус.
+> Антивирус может ругаться на WinDivert (т.к. он может использоваться вредоносами) со сигнатурами по типу `Not-a-virus:RiskTool.Multi.WinDivert`. Добавляйте исключения / отключайте реакции на PUP/PUA / полностью отключайте антивирус.
 >
 
 > [!WARNING]
