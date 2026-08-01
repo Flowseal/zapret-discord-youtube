@@ -150,9 +150,7 @@ Eсли ваш hosts будет неактуальным, то Вам будет
 
 ## ⚖️ Лицензирование
 
-[WinDivert](https://reqrypt.org/windivert.html) - [GNU GPL 3](https://github.com/basil00/WinDivert/blob/master/LICENSE) /
-[zapret](https://github.com/bol-van/zapret) - [MIT](https://github.com/bol-van/zapret/blob/master/docs/LICENSE.txt) /
-[сборка](https://github.com/Flowseal/zapret-discord-youtube) - [MIT](./LICENSE.txt)
+см. [LICENSE.txt](./LICENSE.txt)
 
 ## ❤️ Благодарность участникам проекта
 
