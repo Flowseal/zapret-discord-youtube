@@ -34,82 +34,128 @@
 ## ⚙️Использование
 
 1. Включите Secure DNS
+
+<!-- Google Chrome -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/aa8319e1-2f51-4920-ba85-5becd850551b" /> Google Chrome</b></summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/aa8319e1-2f51-4920-ba85-5becd850551b" /> Google Chrome:</b> Нажмите, чтобы узнать больше</summary>
 
-1. `chrome://settings/security`
-2. `Конфиденциальность и безопасность` > `Безопасность` > `Дополнительные настройки`
-3. Включите `Использовать безопасный DNS-сервер`
-4. Выберите поставщика услуг, отличающегося от поставщика по умолчанию
+1. Нажмите кнопку меню (`три точки`) в правом верхнем углу и выберите `Настройки`
+2. В меню левой панели выберите `Конфиденциальность и безопасность`.
+3. Выберите `Безопасность`.
+4. Включите опцию `Использовать безопасный DNS-сервер`.
+5. В выпадающем списке `Выбрать поставщика услуг DNS` выберите встроенного поставщика DNS, отличающегося от поставщика по умолчанию, или выберите `Добавить своего поставщика услуг DNS`, чтобы ввести адрес стороннего поставщика.
 
-<img width="675" height="388" alt="image" src="https://github.com/user-attachments/assets/03860af3-0afb-4f40-a6e3-593dc9c68bc6" />
+<img width="2559" height="1031" alt="Снимок экрана 2026-08-01 105001" src="https://github.com/user-attachments/assets/7185faf8-5362-4d40-917f-194032eb0791" />
+<img width="2559" height="1030" alt="Снимок экрана 2026-08-01 105257" src="https://github.com/user-attachments/assets/1f807e6f-e75e-4461-9a01-c1a8591ab915" />
 </details>
 
+<!-- Firefox -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/fb141815-493f-4abd-bf3f-b20fd7be00ce" /> Firefox</b></summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/fb141815-493f-4abd-bf3f-b20fd7be00ce" /> Firefox:</b> Нажмите, чтобы узнать больше</summary>
 
-1. `about:preferences#dnsOverHttps`
-2. `Приватность и защита` > `DNS через HTTPS` > `Дополнительные настройки`
-3. Включите `Персональный`
-4. Выберите оператора по умолчанию или введите другой URL оператора
-5. Cписок DNS over HTTPS
+1. Нажмите кнопку меню (`три полоски`) в правом верхнем углу и выберите `Настройки`.
+2. В меню левой панели выберите `Приватность и защита`.
+3. Прокрутите страницу в низ до блока `DNS через HTTPS`, выберите `Дополнительные настройки`.
+4. Выберите уровень защиты `Персональный`
+5. В выпадающем списке `Выбрать провайдера` выберите встроенного поставщика DNS или `Другой URL`, чтобы ввести адрес стороннего поставщика.
+
+<img width="2559" height="1030" alt="Снимок экрана 2026-08-01 101758" src="https://github.com/user-attachments/assets/a93b088d-f840-4a51-ba97-41b3930a6b6a" />
+<img width="2559" height="942" alt="Снимок экрана 2026-08-01 102041" src="https://github.com/user-attachments/assets/02ec1f97-2ec4-4935-a22d-160a48e1b42b" />
+</details>
+
+<!-- Microsoft Edge -->
+<details>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/ba5c525e-cf13-41ae-b2bd-f00571ae898b" /> Microsoft Edge:</b> Нажмите, чтобы узнать больше</summary>
+
+1. Нажмите кнопку меню (`три точки`) в правом верхнем углу и выберите `Параметры`.
+2. В меню левой панели выберите `Конфиденциальность, поиск и службы`.
+3. Выберите `Безопасность`.
+4. Включите опцию `Использовать безопасную систему DNS`.
+5. Выберите вариант `Выбрать поставщика услуг`.
+6. В выпадающем списке `Введите настраиваемый поставщик` выберите встроенного поставщика DNS или введите адрес стороннего поставщика.
+
+<img width="1425" height="771" alt="image" src="https://github.com/user-attachments/assets/00b5346b-7ff9-4bbe-951f-dc94a65506b5" />
+<img width="1425" height="771" alt="image" src="https://github.com/user-attachments/assets/5caf3e68-ac55-45e5-a611-42b30b310a6c" />
+</details>
+
+<!-- Yandex Browser -->
+<details>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/cf7874b2-221e-4553-9cdb-f609b3b5c99a" /> Яндекс.Браузер:</b> Нажмите, чтобы узнать больше</summary>
+
+1. Нажмите кнопку меню (`три полоски`) в правом верхнем углу и выберите `Настройки`.
+2. В верхней части страницы выберите `Безопасность`.
+3. В блоке `Защита соединения` включите опцию `Использовать безопасный DNS-сервер`.
+4. Выберите вариант `Использовать`.
+5. В выпадающем списке `Выбрать провайдера` выберите встроенного поставщика DNS или выберите `другой адрес`, чтобы ввести адрес стороннего поставщика.
+
+<img width="1422" height="771" alt="image" src="https://github.com/user-attachments/assets/508c6ce4-8ead-42c2-8eac-227d3d56db77" />
+</details>
+
+<!-- Opera GX -->
+<details>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/6ae7e56d-56d6-457f-87a0-279024c3bc84" /> Opera GX:</b> Нажмите, чтобы узнать больше</summary>
+
+1. Нажмите кнопку меню (`значок Opera`) в левом верхнем углу и выберите `Настройки`
+2. В меню левой панели выберите `Система`.
+3. Включите опцию `Использовать DNS поверх HTTPS вместо системных настроек DNS`.
+4. Выберите провайдера DNS или введите адрес стороннего поставщика в строке ниже.
+
+<img width="1440" height="780" alt="image" src="https://github.com/user-attachments/assets/25770b51-ebae-446f-8844-7e4ec8120023" />
+</details>
+
+<!-- Brave -->
+<details>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/7b36a7f6-71ce-40a2-b0bf-471792ce68a5" /> Brave:</b> Нажмите, чтобы узнать больше</summary>
+
+1. Нажмите кнопку меню (`три полоски`) в правом верхнем углу и выберите `Настройки`.
+2. В меню левой панели перейдите в раздел `Конфиденциальность и безопасность`.
+3. Выберите `Безопасность`.
+4. Включите опцию `Использовать безопасный DNS-сервер`.
+5. В выпадающем списке `Выбрать поставщика услуг DNS` выберите встроенного поставщика DNS, отличающегося от поставщика по умолчанию, или выберите `Добавить своего поставщика услуг DNS`, чтобы ввести адрес стороннего поставщика.
+
+<img width="1425" height="773" alt="image" src="https://github.com/user-attachments/assets/926f6712-883e-4057-81a4-5f2d339a7451" />
+<img width="1425" height="772" alt="image" src="https://github.com/user-attachments/assets/12c373fe-1ede-4acc-b88c-9df5ef0c0b6e" />
+</details>
+
+<!-- Vivaldi -->
+<details>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/d1747324-7ebf-4c90-8dbc-4988e3d34d8a"" /> Vivaldi:</b> Нажмите, чтобы узнать больше</summary>
+
+1. Нажмите кнопку меню (`значок Vivaldi`) в левом верхнем углу и выберите `Настройки`.
+2. В меню левой панели открывшегося окна выберите `Сеть`.
+3. Включите опцию `Включить поиск DNS через HTTPS`.
+4. Выберите поставщика услуг, отличающегося от поставщика по умолчанию.
+
+<img width="1424" height="771" alt="image" src="https://github.com/user-attachments/assets/3897cd41-c164-4ace-9d0f-8f5ba8f3b048" />
+</details>
+
+<!-- Maxthon -->
+<details>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/79ef7706-05a3-40d6-8e84-2fbf87b8c390" /> Maxthon:</b> Нажмите, чтобы узнать больше</summary>
+
+1. Нажмите кнопку меню (`три точки`) в правом верхнем углу и выберите `Настройки`.
+2. В меню левой панели выберите `Конфиденциальность и безопасность`.
+3. Прокрутите страницу до блока `Безопасный DNS`, включите опцию `Включить безопасный DNS`.
+4. Выберите вариант `Выбрать`.
+5. В выпадающем списке выберите встроенного поставщика DNS или введите адрес стороннего поставщика в строке ниже.
+
+<img width="1425" height="771" alt="image" src="https://github.com/user-attachments/assets/64b9be3c-b40a-425c-a86d-54c12c1c4384" />
+</details>
+
+<!-- DoH list -->
+<details>
+   <summary><b>Cписок DNS через HTTPS:</b> Нажмите, чтобы узнать больше</summary>
+
 ```
 https://cloudflare-dns.com/dns-query
 https://dns.google/dns-query
 https://dns.quad9.net/dns-query
-https://common.dot.dns.yandex.net/dns-query
-https://dns.adguard.com/dns-query
 https://dns.comss.one/dns-query
 https://dns.nextdns.io
 https://doh.opendns.com/dns-query
-```
-
-<img width="567" height="516" alt="image" src="https://github.com/user-attachments/assets/90768222-cb40-45af-ba70-7dfcb4fbe592" />
-</details>
-
-<details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/ba5c525e-cf13-41ae-b2bd-f00571ae898b" /> Microsoft Edge</b></summary>
-
-1. `edge://settings/privacy/security`
-2. `Конфиденциальность, поиск и службы` > `Безопасность`
-3. Включите `Использовать безопасную систему DNS`
-4. Выберите поставщика услуг или введите другой URL оператора
-5. Выберите оператора по умолчанию или введите другой URL оператора
-6. Cписок DNS over HTTPS
-```
-https://cloudflare-dns.com/dns-query
-https://dns.google/dns-query
-https://dns.quad9.net/dns-query
 https://common.dot.dns.yandex.net/dns-query
 https://dns.adguard.com/dns-query
-https://dns.comss.one/dns-query
-https://dns.nextdns.io
-https://doh.opendns.com/dns-query
 ```
-
-<img width="793" height="243" alt="image" src="https://github.com/user-attachments/assets/89a51d3a-d048-42a1-8818-5220d5b00723" />
-</details>
-
-<details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/cf7874b2-221e-4553-9cdb-f609b3b5c99a" /> Яндекс.Браузер</b></summary>
-
-1. `browser://protect/`
-2. `Безопасность `
-3. Включите `Использовать безопасный dns`
-3. Выберите поставщика услуг или введите другой URL оператора
-4. Cписок DNS over HTTPS
-```
-https://cloudflare-dns.com/dns-query
-https://dns.google/dns-query
-https://dns.quad9.net/dns-query
-https://common.dot.dns.yandex.net/dns-query
-https://dns.adguard.com/dns-query
-https://dns.comss.one/dns-query
-https://dns.nextdns.io
-https://doh.opendns.com/dns-query
-```
-
-<img width="2544" height="1600" alt="image" src="https://github.com/user-attachments/assets/6ff1e669-9924-4ea5-8494-8798c9be2037" />
 </details>
 
    * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://remontka.pro/dns-over-https-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
