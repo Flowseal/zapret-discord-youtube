@@ -1,6 +1,10 @@
 <div align="center">
 
-# <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/discord.svg" height=28 /> <a href="https://github.com/Flowseal/">Flowseal</a><a href="https://github.com/Flowseal/zapret-discord-youtube">/zapret-discord-youtube</a> <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/youtube.svg" height=28 />
+<img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/discord.svg" height=128 />&nbsp;&nbsp;&nbsp;&nbsp;<img alt="image" src="https://github.com/user-attachments/assets/a2c03d55-314a-4b1d-83a5-9b36790a6868" height=128 />&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/youtube.svg" height=128 />
+
+
+
+#  zapret-discord-youtube
 
 Альтернатива [оффициальной сборке zapret для Windows](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws)
 </div>
