@@ -35,9 +35,12 @@
 
 1. Включите Secure DNS
 
+<details>
+   <summary><b>Как включить Secure DNS  в веб-браузерах:</b> нажмите, чтобы узнать больше</summary>
+
 <!-- Google Chrome -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/aa8319e1-2f51-4920-ba85-5becd850551b" /> Google Chrome:</b> Нажмите, чтобы узнать больше</summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/aa8319e1-2f51-4920-ba85-5becd850551b" /> Google Chrome:</b> нажмите, чтобы узнать больше</summary>
 
 1. Нажмите кнопку меню (`три точки`) в правом верхнем углу и выберите `Настройки`
 2. В меню левой панели выберите `Конфиденциальность и безопасность`.
@@ -51,7 +54,7 @@
 
 <!-- Firefox -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/fb141815-493f-4abd-bf3f-b20fd7be00ce" /> Firefox:</b> Нажмите, чтобы узнать больше</summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/fb141815-493f-4abd-bf3f-b20fd7be00ce" /> Firefox:</b> нажмите, чтобы узнать больше</summary>
 
 1. Нажмите кнопку меню (`три полоски`) в правом верхнем углу и выберите `Настройки`.
 2. В меню левой панели выберите `Приватность и защита`.
@@ -65,7 +68,7 @@
 
 <!-- Microsoft Edge -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/ba5c525e-cf13-41ae-b2bd-f00571ae898b" /> Microsoft Edge:</b> Нажмите, чтобы узнать больше</summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/ba5c525e-cf13-41ae-b2bd-f00571ae898b" /> Microsoft Edge:</b> нажмите, чтобы узнать больше</summary>
 
 1. Нажмите кнопку меню (`три точки`) в правом верхнем углу и выберите `Параметры`.
 2. В меню левой панели выберите `Конфиденциальность, поиск и службы`.
@@ -80,7 +83,7 @@
 
 <!-- Yandex Browser -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/cf7874b2-221e-4553-9cdb-f609b3b5c99a" /> Яндекс.Браузер:</b> Нажмите, чтобы узнать больше</summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/cf7874b2-221e-4553-9cdb-f609b3b5c99a" /> Яндекс.Браузер:</b> нажмите, чтобы узнать больше</summary>
 
 1. Нажмите кнопку меню (`три полоски`) в правом верхнем углу и выберите `Настройки`.
 2. В верхней части страницы выберите `Безопасность`.
@@ -93,7 +96,7 @@
 
 <!-- Opera GX -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/6ae7e56d-56d6-457f-87a0-279024c3bc84" /> Opera GX:</b> Нажмите, чтобы узнать больше</summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/6ae7e56d-56d6-457f-87a0-279024c3bc84" /> Opera GX:</b> нажмите, чтобы узнать больше</summary>
 
 1. Нажмите кнопку меню (`значок Opera`) в левом верхнем углу и выберите `Настройки`
 2. В меню левой панели выберите `Система`.
@@ -105,7 +108,7 @@
 
 <!-- Brave -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/7b36a7f6-71ce-40a2-b0bf-471792ce68a5" /> Brave:</b> Нажмите, чтобы узнать больше</summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/7b36a7f6-71ce-40a2-b0bf-471792ce68a5" /> Brave:</b> нажмите, чтобы узнать больше</summary>
 
 1. Нажмите кнопку меню (`три полоски`) в правом верхнем углу и выберите `Настройки`.
 2. В меню левой панели перейдите в раздел `Конфиденциальность и безопасность`.
@@ -119,7 +122,7 @@
 
 <!-- Vivaldi -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/d1747324-7ebf-4c90-8dbc-4988e3d34d8a"" /> Vivaldi:</b> Нажмите, чтобы узнать больше</summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/d1747324-7ebf-4c90-8dbc-4988e3d34d8a"" /> Vivaldi:</b> нажмите, чтобы узнать больше</summary>
 
 1. Нажмите кнопку меню (`значок Vivaldi`) в левом верхнем углу и выберите `Настройки`.
 2. В меню левой панели открывшегося окна выберите `Сеть`.
@@ -131,7 +134,7 @@
 
 <!-- Maxthon -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/79ef7706-05a3-40d6-8e84-2fbf87b8c390" /> Maxthon:</b> Нажмите, чтобы узнать больше</summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/79ef7706-05a3-40d6-8e84-2fbf87b8c390" /> Maxthon:</b> нажмите, чтобы узнать больше</summary>
 
 1. Нажмите кнопку меню (`три точки`) в правом верхнем углу и выберите `Настройки`.
 2. В меню левой панели выберите `Конфиденциальность и безопасность`.
@@ -144,7 +147,7 @@
 
 <!-- DoH list -->
 <details>
-   <summary><b>Cписок DNS через HTTPS:</b> Нажмите, чтобы узнать больше</summary>
+   <summary><b>Cписок DNS через HTTPS:</b> нажмите, чтобы узнать больше</summary>
 
 ```
 https://cloudflare-dns.com/dns-query
@@ -156,6 +159,7 @@ https://doh.opendns.com/dns-query
 https://common.dot.dns.yandex.net/dns-query
 https://dns.adguard.com/dns-query
 ```
+</details>
 </details>
 
    * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://remontka.pro/dns-over-https-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
