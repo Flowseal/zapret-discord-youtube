@@ -33,10 +33,12 @@
 
 ## ⚙️Использование
 
-1. Включите Secure DNS
+1. Включите Безопасный DNS (Secure DNS)
+   * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://remontka.pro/dns-over-https-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
+   * Если у вас роутер Keenetic, включите в настройках роутера опцию "Транзит запросов". Отключение этой опции может привести к проблемам при настройке и использовании Secure DNS на компьютере
 
 <details>
-   <summary><b>Как включить Secure DNS  в веб-браузерах:</b> нажмите, чтобы узнать больше</summary>
+   <summary><b>Как включить Безопасный DNS (Secure DNS) в веб-браузерах:</b> нажмите, чтобы узнать больше</summary>
 
 <!-- Google Chrome -->
 <details>
@@ -62,7 +64,7 @@
 4. Выберите уровень защиты `Персональный`
 5. В выпадающем списке `Выбрать провайдера` выберите встроенного поставщика DNS или `Другой URL`, чтобы ввести адрес стороннего поставщика.
 
-<img width="2559" height="1030" alt="Снимок экрана 2026-08-01 101758" src="https://github.com/user-attachments/assets/a93b088d-f840-4a51-ba97-41b3930a6b6a" />
+<img width="2558" height="1030" alt="Снимок экрана 2026-08-02 083731" src="https://github.com/user-attachments/assets/78eadd80-3b7a-479f-96ce-7fcb513da60d" />
 <img width="2559" height="942" alt="Снимок экрана 2026-08-01 102041" src="https://github.com/user-attachments/assets/02ec1f97-2ec4-4935-a22d-160a48e1b42b" />
 </details>
 
@@ -122,7 +124,7 @@
 
 <!-- Vivaldi -->
 <details>
-   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/d1747324-7ebf-4c90-8dbc-4988e3d34d8a"" /> Vivaldi:</b> нажмите, чтобы узнать больше</summary>
+   <summary><b> <img width="16" height="16" alt="image" src="https://github.com/user-attachments/assets/d1747324-7ebf-4c90-8dbc-4988e3d34d8a" /> Vivaldi:</b> нажмите, чтобы узнать больше</summary>
 
 1. Нажмите кнопку меню (`значок Vivaldi`) в левом верхнем углу и выберите `Настройки`.
 2. В меню левой панели открывшегося окна выберите `Сеть`.
@@ -161,9 +163,6 @@ https://dns.adguard.com/dns-query
 ```
 </details>
 </details>
-
-   * В Windows 11 поддерживается включение Secure DNS прямо в настройках ОС - [инструкция тут](https://remontka.pro/dns-over-https-windows-11/). Рекомендуется, если вы пользуетесь Windows 11
-   * Если у вас роутер Keenetic, включите в настройках роутера опцию "Транзит запросов". Отключение этой опции может привести к проблемам при настройке и использовании Secure DNS на компьютере
 
 2. Скачайте архив (zip/rar) со [страницы последнего релиза](https://github.com/Flowseal/zapret-discord-youtube/releases/latest)
 
