@@ -64,8 +64,8 @@
 4. Выберите уровень защиты `Персональный`
 5. В выпадающем списке `Выбрать провайдера` выберите встроенного поставщика DNS или `Другой URL`, чтобы ввести адрес стороннего поставщика.
 
-<img width="2558" height="1030" alt="Снимок экрана 2026-08-02 083731" src="https://github.com/user-attachments/assets/78eadd80-3b7a-479f-96ce-7fcb513da60d" />
-<img width="2559" height="942" alt="Снимок экрана 2026-08-01 102041" src="https://github.com/user-attachments/assets/02ec1f97-2ec4-4935-a22d-160a48e1b42b" />
+<img width="1920" height="760" alt="Снимок экрана 2026-08-02 083731" src="https://github.com/user-attachments/assets/78eadd80-3b7a-479f-96ce-7fcb513da60d" />
+<img width="1920" height="760" alt="Снимок экрана 2026-08-01 102041" src="https://github.com/user-attachments/assets/02ec1f97-2ec4-4935-a22d-160a48e1b42b" />
 </details>
 
 <!-- Microsoft Edge -->
