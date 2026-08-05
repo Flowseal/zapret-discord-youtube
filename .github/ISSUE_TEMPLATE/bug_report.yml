@@ -23,7 +23,16 @@ body:
       placeholder: Описание проблемы
     validations:
       required: true
-
+  
+  - type: textarea
+    id: providerandregion
+    attributes:
+      label: Укажите своего провайдера и регион
+      description: Провайдер и регион на котором вы словили проблему
+      placeholder: Провайдер и регион
+    validations:
+      required: true
+  
   - type: textarea
     id: version
     attributes:
