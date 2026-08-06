@@ -40,6 +40,7 @@ discordpartygames.com
 discordsays.com
 discordsez.com
 discordstatus.com
+zendesk.com
 frankerfacez.com
 ffzap.com
 betterttv.net
@@ -48,3 +49,5 @@ betterttv.net
 localizeapi.com
 klipy.com
 live-video.net
+notepad-plus-plus.org
+cdn01.foxitsoftware.com
