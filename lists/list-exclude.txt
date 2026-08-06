@@ -6,8 +6,11 @@ msi.com
 marketplace.visualstudio.com
 gallery.vsassets.io
 gallerycdn.vsassets.io
+7-zip.org
 libreoffice.org
 documentfoundation.org
+freecad.org
+handbrake.fr
 mail.ru
 citilink.ru
 yandex.com
