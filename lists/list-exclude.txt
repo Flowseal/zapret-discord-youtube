@@ -1,5 +1,12 @@
 pusher.com
 twitch.tv
+steamcommunity.com
+nvidia.com
+msi.com
+marketplace.visualstudio.com
+gallery.vsassets.io
+gallerycdn.vsassets.io
+libreoffice.org
 mail.ru
 citilink.ru
 yandex.com
@@ -24,7 +31,6 @@ rostaxi.org
 turbopages.org
 webvisor.com
 webvisor.org
-nvidia.com
 donationalerts.com
 vk.com
 yandex.kz
@@ -40,7 +46,6 @@ sharepoint.com
 minecraft.net
 xboxlive.com
 akamaitechnologies.com
-msi.com
 2ip.ru
 boosty.to
 tanki.su
@@ -55,9 +60,6 @@ riotgames.com
 riotcdn.net
 leagueoflegends.com
 playvalorant.com
-marketplace.visualstudio.com
-gallery.vsassets.io
-gallerycdn.vsassets.io
 gosuslugi.ru
 gov.ru
 nalog.ru
@@ -109,4 +111,3 @@ t-bank-app.ru
 tochka-tech.com
 tochka.com
 vtb.ru
-steamcommunity.com
