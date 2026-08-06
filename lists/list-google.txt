@@ -15,7 +15,6 @@ youtubei.googleapis.com
 youtu.be
 yt-video-upload.l.google.com
 ytimg.com
-i.ytimg.com
 ytimg.l.google.com
 play.google.com
 google.ru
