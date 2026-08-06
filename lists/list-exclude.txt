@@ -1,5 +1,6 @@
 pusher.com
 twitch.tv
+^obsproject.com
 steamcommunity.com
 nvidia.com
 msi.com
