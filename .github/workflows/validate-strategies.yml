@@ -1,0 +1,34 @@
+name: Validate strategies
+
+on:
+  push:
+    paths:
+      - "*.bat"
+      - "bin/**"
+      - "lists/**"
+      - ".github/scripts/validate-strategies.ps1"
+      - ".github/workflows/validate-strategies.yml"
+  pull_request:
+    paths:
+      - "*.bat"
+      - "bin/**"
+      - "lists/**"
+      - ".github/scripts/validate-strategies.ps1"
+      - ".github/workflows/validate-strategies.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Check batch strategies
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate strategy structure and references
+        shell: pwsh
+        run: ./.github/scripts/validate-strategies.ps1
