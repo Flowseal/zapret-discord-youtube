@@ -26,10 +26,10 @@ function Set-IpsetMode {
             Copy-Item $listFile $backupFile -Force
         } else {
             # If none, create empty backup
-            "" | Out-File $backupFile -Encoding UTF8
+            New-Item -ItemType File -Path $backupFile -Force | Out-Null
         }
         # Make file empty
-        "" | Out-File $listFile -Encoding UTF8
+        New-Item -ItemType File -Path $listFile -Force | Out-Null
     } elseif ($mode -eq "restore") {
         if (Test-Path $backupFile) {
             Move-Item $backupFile $listFile -Force

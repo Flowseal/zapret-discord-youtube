@@ -132,15 +132,15 @@ exit /b
 
 :: TCP ENABLE ==========================
 :tcp_enable
-chcp 437 > nul
-netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul || netsh interface tcp set global timestamps=enabled > nul 2>&1
+for /f "delims=" %%A in ('chcp 437 ^>nul ^& netsh interface tcp show global ^| findstr /i "timestamps" ^| findstr /i "enabled" 2^>nul') do set "_ts=1"
+if not defined _ts netsh interface tcp set global timestamps=enabled > nul 2>&1
+set "_ts="
 exit /b
 
 
 :: STATUS ==============================
 :service_status
 cls
-chcp 437 > nul
 
 sc query "zapret" >nul 2>&1
 if !errorlevel!==0 (
@@ -170,7 +170,7 @@ goto menu
 set "ServiceName=%~1"
 set "ServiceStatus="
 
-for /f "tokens=3 delims=: " %%A in ('sc query "%ServiceName%" ^| findstr /i "STATE"') do set "ServiceStatus=%%A"
+for /f "tokens=3 delims=: " %%A in ('chcp 437 ^>nul ^& sc query "%ServiceName%" ^| findstr /i "STATE"') do set "ServiceStatus=%%A"
 set "ServiceStatus=%ServiceStatus: =%"
 
 if "%ServiceStatus%"=="RUNNING" (
@@ -228,7 +228,6 @@ goto menu
 :: INSTALL =============================
 :service_install
 cls
-chcp 437 > nul
 
 :: Main
 cd /d "%~dp0"
@@ -374,7 +373,6 @@ goto menu
 
 :: CHECK UPDATES =======================
 :service_check_updates
-chcp 437 > nul
 cls
 
 :: Set current version and URLs
@@ -697,13 +695,13 @@ if /i "!CHOICE!"=="Y" (
 )
 echo:
 
+chcp 65001 > nul
 pause
 goto menu
 
 
 :: GAME SWITCH ========================
 :game_switch_status
-chcp 437 > nul
 
 set "gameFlagFile=%~dp0utils\game_filter.enabled"
 
@@ -740,7 +738,6 @@ exit /b
 
 
 :game_switch
-chcp 437 > nul
 cls
 
 echo Select game filter mode:
@@ -778,7 +775,6 @@ goto menu
 
 :: CHECK UPDATES SWITCH =================
 :check_updates_switch_status
-chcp 437 > nul
 
 set "checkUpdatesFlag=%~dp0utils\check_updates.enabled"
 
@@ -791,7 +787,6 @@ exit /b
 
 
 :check_updates_switch
-chcp 437 > nul
 cls
 
 if not exist "%checkUpdatesFlag%" (
@@ -808,7 +803,6 @@ goto menu
 
 :: REPLACE ACTIVE FAKES =================
 :replace_active_fakes
-chcp 437 > nul
 cls
 
 set "BIN_PATH=%~dp0bin\"
@@ -921,10 +915,9 @@ goto replace_active_fakes_prompt
 
 :: IPSET SWITCH =======================
 :ipset_switch_status
-chcp 437 > nul
 
 set "listFile=%~dp0lists\ipset-all.txt"
-for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
+for /f %%i in ('chcp 437 ^>nul ^& type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
 
 if !lineCount!==0 (
     set "IPsetStatus=any"
@@ -940,7 +933,6 @@ exit /b
 
 
 :ipset_switch
-chcp 437 > nul
 cls
 
 set "listFile=%~dp0lists\ipset-all.txt"
@@ -987,7 +979,6 @@ goto menu
 
 :: IPSET UPDATE =======================
 :ipset_update
-chcp 437 > nul
 cls
 
 set "listFile=%~dp0lists\ipset-all.txt"
@@ -1020,7 +1011,6 @@ goto menu
 
 :: HOSTS UPDATE =======================
 :hosts_update
-chcp 437 > nul
 cls
 
 set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
@@ -1089,7 +1079,6 @@ goto menu
 
 :: RUN TESTS =============================
 :run_tests
-chcp 437 >nul
 cls
 
 :: Require PowerShell 3.0+
