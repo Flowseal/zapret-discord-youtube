@@ -7,11 +7,14 @@ msi.com
 marketplace.visualstudio.com
 gallery.vsassets.io
 gallerycdn.vsassets.io
-7-zip.org
 libreoffice.org
 documentfoundation.org
+7-zip.org
+calibre-ebook.com
+filezilla-project.org
 freecad.org
 handbrake.fr
+sumatrapdfreader.org
 mail.ru
 citilink.ru
 yandex.com
