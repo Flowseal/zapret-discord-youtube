@@ -678,7 +678,7 @@ if !found_any_conflict!==1 (
 
 :: Discord cache clearing
 set "CHOICE="
-set /p "CHOICE=Do you want to clear the Discord and Discord PTB cache? (Y/N) (default: Y) "
+set /p "CHOICE=Do you want to clear the Discord cache (Stable, PTB, Canary, Development)? (Y/N) (default: Y) "
 if "!CHOICE!"=="" set "CHOICE=Y"
 if "!CHOICE!"=="y" set "CHOICE=Y"
 
@@ -692,7 +692,15 @@ if /i "!CHOICE!"=="Y" (
         set "discordFound=1"
         call :clear_discord_cache "DiscordPTB.exe" "Discord PTB" "%APPDATA%\discordptb"
     )
-    if !discordFound! equ 0 call :PrintRed "Discord and Discord PTB were not found"
+    if exist "%APPDATA%\discordcanary\" (
+        set "discordFound=1"
+        call :clear_discord_cache "DiscordCanary.exe" "Discord Canary" "%APPDATA%\discordcanary"
+    )
+    if exist "%APPDATA%\discorddevelopment\" (
+        set "discordFound=1"
+        call :clear_discord_cache "DiscordDevelopment.exe" "Discord Development" "%APPDATA%\discorddevelopment"
+    )
+    if !discordFound! equ 0 call :PrintRed "Discord installations were not found"
     set "discordFound="
 )
 echo:
