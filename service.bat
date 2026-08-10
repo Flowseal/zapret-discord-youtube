@@ -517,6 +517,25 @@ if !errorlevel!==0 (
 )
 echo:
 
+:: EasyAntiCheat
+sc query | findstr /I "EasyAntiCheat" > nul
+if !errorlevel!==0 (
+    call :PrintRed "[X] EasyAntiCheat services found. EasyAntiCheat conflicts with zapret"
+    call :PrintRed "Try to close game with EasyAntiCheat"
+) else (
+    call :PrintGreen "EasyAntiCheat check passed"
+)
+echo:
+
+:: Cyrillic path
+powershell -NoProfile -Command "if ('%~dp0' -match '[\u0430-\u044F\u0410-\u042F\u0451\u0401]') { exit 0 } else { exit 1 }"
+if !errorlevel!==0 (
+    call :PrintRed "[X] Path where zapret is installed contains Cyrillic characters"
+    call :PrintRed "Try to install zapret to another directory"
+) else (
+    call :PrintGreen "Cyrillic check passed"
+)
+
 :: WinDivert64.sys file
 set "BIN_PATH=%~dp0bin\"
 if not exist "%BIN_PATH%\*.sys" (
