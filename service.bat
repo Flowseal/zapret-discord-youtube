@@ -415,6 +415,7 @@ cls
 
 :: Zapret path
 call :PrintGreen "Zapret installed in: '%~dp0'"
+echo:
 
 :: Base Filtering Engine
 sc query BFE | findstr /I "RUNNING" > nul
