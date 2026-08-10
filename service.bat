@@ -413,6 +413,9 @@ goto menu
 chcp 437 > nul
 cls
 
+:: Zapret path
+call :PrintGreen "Zapret installed in: '%~dp0'"
+
 :: Base Filtering Engine
 sc query BFE | findstr /I "RUNNING" > nul
 if !errorlevel!==0 (
@@ -520,8 +523,8 @@ echo:
 :: EasyAntiCheat
 sc query | findstr /I "EasyAntiCheat" > nul
 if !errorlevel!==0 (
-    call :PrintRed "[X] EasyAntiCheat services found. EasyAntiCheat conflicts with zapret"
-    call :PrintRed "Try to close game with EasyAntiCheat"
+    call :PrintYellow "[?] EasyAntiCheat services found. EasyAntiCheat conflicts with zapret"
+    call :PrintYellow "Try to close game with EasyAntiCheat"
 ) else (
     call :PrintGreen "EasyAntiCheat check passed"
 )
@@ -540,8 +543,8 @@ echo:
 :: OneDrive
 echo %~dp0\ | findstr /I /C:"%OneDrive%\\" > nul
 if !errorlevel!==0 (
-    call :PrintYellow "[?] Path where zapret is installed located in OneDrive"
-    call :PrintYellow "If bypass doesn't work, try to install zapret to another directory, for example in C:\zapret"
+    call :PrintRed "[X] Path where zapret is installed located in OneDrive"
+    call :PrintRed "If bypass doesn't work, try to install zapret to another directory, for example in C:\zapret"
 ) else (
     call :PrintGreen "OneDrive check passed"
 )
