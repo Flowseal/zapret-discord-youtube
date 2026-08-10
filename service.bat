@@ -530,8 +530,8 @@ echo:
 :: Cyrillic path
 powershell -NoProfile -Command "if ('%~dp0' -match '[\u0430-\u044F\u0410-\u042F\u0451\u0401]') { exit 0 } else { exit 1 }"
 if !errorlevel!==0 (
-    call :PrintRed "[X] Path where zapret is installed contains Cyrillic characters"
-    call :PrintRed "Try to install zapret to another directory"
+    call :PrintYellow "[?] Path where zapret is installed contains Cyrillic characters"
+    call :PrintRed "If bypass doesn't work, try to install zapret to another directory"
 ) else (
     call :PrintGreen "Cyrillic check passed"
 )
