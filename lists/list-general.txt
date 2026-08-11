@@ -48,3 +48,17 @@ betterttv.net
 localizeapi.com
 klipy.com
 live-video.net
+facebook.com
+fb.com
+fbcdn.net
+fbsbx.com
+instagram.com
+cdninstagram.com
+meta.com
+oculus.com
+oculuscdn.com
+whatsapp.com
+whatsapp.net
+graph.facebook.com
+api.facebook.com
+connect.facebook.net
