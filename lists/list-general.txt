@@ -48,3 +48,6 @@ betterttv.net
 localizeapi.com
 klipy.com
 live-video.net
+deviantart.com
+wixmp.com
+*.deviantart.net
