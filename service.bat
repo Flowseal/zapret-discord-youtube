@@ -521,16 +521,6 @@ if !errorlevel!==0 (
 )
 echo:
 
-:: EasyAntiCheat
-sc query | findstr /I "EasyAntiCheat" > nul
-if !errorlevel!==0 (
-    call :PrintYellow "[?] EasyAntiCheat services found. EasyAntiCheat conflicts with zapret"
-    call :PrintYellow "Try to close game with EasyAntiCheat"
-) else (
-    call :PrintGreen "EasyAntiCheat check passed"
-)
-echo:
-
 :: Cyrillic path
 powershell -NoProfile -Command "if ('%~dp0' -match '[\u0430-\u044F\u0410-\u042F\u0451\u0401]') { exit 0 } else { exit 1 }"
 if !errorlevel!==0 (
