@@ -48,3 +48,4 @@ betterttv.net
 localizeapi.com
 klipy.com
 live-video.net
+modrinth.com
