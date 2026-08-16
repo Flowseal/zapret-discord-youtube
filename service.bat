@@ -196,6 +196,16 @@ cls
 chcp 65001 > nul
 
 set SRVCNAME=zapret
+
+set "LAST_STRATEGY="
+for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v ZAPRET_LAST_STRATEGY 2^>nul ^| findstr /i "ZAPRET_LAST_STRATEGY"') do set "LAST_STRATEGY=%%B"
+if defined LAST_STRATEGY (
+    echo Last installed strategy: !LAST_STRATEGY!
+) else (
+    echo Last installed strategy: unknown
+)
+echo:
+
 sc query "!SRVCNAME!" >nul 2>&1
 if !errorlevel!==0 (
     net stop %SRVCNAME%
@@ -360,6 +370,7 @@ for %%F in ("!file%choice%!") do (
     set "filename=%%~nF"
 )
 reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
+reg add "HKCU\Environment" /v ZAPRET_LAST_STRATEGY /t REG_SZ /d "!filename!" /f >nul 2>&1
 
 pause
 goto menu
@@ -1114,6 +1125,9 @@ goto menu
 :get_strategy_name
 set "CurrentStrategy="
 for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "CurrentStrategy=Strategy: %%B"
+if not defined CurrentStrategy (
+    for /f "tokens=2*" %%A in ('reg query "HKCU\Environment" /v ZAPRET_LAST_STRATEGY 2^>nul ^| findstr /i "ZAPRET_LAST_STRATEGY"') do set "CurrentStrategy=Last strategy: %%B"
+)
 exit /b
 
 
