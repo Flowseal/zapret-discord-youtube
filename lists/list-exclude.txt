@@ -111,3 +111,4 @@ tochka.com
 vtb.ru
 api.steampowered.com
 steamcommunity.com
+figma.com
