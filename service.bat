@@ -238,14 +238,19 @@ set "LISTS_PATH=%~dp0lists\"
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
 set "count=0"
-for /f "delims=" %%F in ('powershell -NoProfile -Command ^
-    "Get-ChildItem -LiteralPath '.' -File -Filter 'general*.bat' |" ^
-    "Where-Object { $_.Name -match '^general( \([A-Z0-9 ]+\))?\.bat$' } |" ^
-    "Sort-Object { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) } |" ^
-    "ForEach-Object { $_.Name }"') do (
+for /f "tokens=1,* delims=|" %%A in ('powershell -NoProfile -Command ^
+    "Get-ChildItem -LiteralPath '.' -File -Filter '*.bat' |" ^
+    "Where-Object { $_.Name -notlike 'service*' } |" ^
+    "Sort-Object @{ Expression = { if ($_.Name -like 'general*.bat') { 0 } else { 1 } } }, @{ Expression = { [Regex]::Replace($_.Name, '(\d+)', { $args[0].Value.PadLeft(8, '0') }) } } |" ^
+    "ForEach-Object { if ($_.Name -like 'general*.bat') { 'standard|' + $_.Name } else { 'custom|' + $_.Name } }"') do (
     set /a count+=1
-    echo   !count!. %%F
-    set "file!count!=%%F"
+    if /i "%%A"=="custom" (
+        echo   !count!. %%B [custom]
+    ) else (
+        echo   !count!. %%B
+    )
+    set "file!count!=%%B"
+    set "file_type!count!=%%A"
 )
 
 echo   0. Exit
@@ -268,6 +273,15 @@ if not defined selectedFile (
     echo Invalid choice, exiting...
     pause
     goto menu
+)
+
+if /i "!file_type%choice%!"=="custom" (
+    call :PrintYellow "[?] You selected a custom strategy file: !selectedFile!"
+    call :PrintYellow "Make sure you trust this file before installing it as a service."
+    set "custom_choice="
+    set /p "custom_choice=Continue? (Y/N) (default: N): "
+    if "!custom_choice!"=="" set "custom_choice=N"
+    if /i not "!custom_choice!"=="Y" goto menu
 )
 
 :: Args that should be followed by value
