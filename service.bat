@@ -2,6 +2,13 @@
 set "LOCAL_VERSION=1.10.1"
 
 :: External commands
+if "%~1"=="autotune_apply" (
+    setlocal EnableDelayedExpansion
+    call :check_command powershell
+    call :check_extracted
+    goto run_autotune
+)
+
 if "%~1"=="status_zapret" (
     call :test_service zapret soft
     call :tcp_enable
@@ -61,6 +68,7 @@ cls
 call :ipset_switch_status
 call :game_switch_status
 call :check_updates_switch_status
+call :startup_health_check_switch_status
 call :get_strategy_name
 
 set "menu_choice=null"
@@ -70,44 +78,50 @@ echo   ZAPRET SERVICE MANAGER v!LOCAL_VERSION!
 echo.  !CurrentStrategy!
 echo   ----------------------------------------
 echo.
+echo   :: AUTOTUNE ^& HEALTH
+echo      1. Autotune - Find best strategy
+echo      2. Startup Health Check   [!HealthCheckStatus!]
+echo.
 echo   :: SERVICE
-echo      1. Install Service
-echo      2. Remove Services
 echo      3. Check Status
+echo      4. Install Service
+echo      5. Remove Services
 echo.
 echo   :: SETTINGS
-echo      4. Game Filter         [!GameFilterStatus!]
-echo      5. IPSet Filter        [!IPsetStatus!]
-echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
-echo      7. Replace active fakes
+echo      6. Game Filter         [!GameFilterStatus!]
+echo      7. IPSet Filter        [!IPsetStatus!]
+echo      8. Auto-Update Check   [!CheckUpdatesStatus!]
+echo      9. Replace active fakes
 echo.
 echo   :: UPDATES
-echo      8. Update IPSet List
-echo      9. Update Hosts File
-echo      10. Check for Updates
+echo      10. Update IPSet List
+echo      11. Update Hosts File
+echo      12. Check for Updates
 echo.
-echo   :: TOOLS
-echo      11. Run Diagnostics
-echo      12. Run Tests
+echo   :: DIAGNOSTICS
+echo      13. Run Diagnostics
+echo      14. Run Tests
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-12): 
+set /p menu_choice=   Select option (0-14): 
 
-if "%menu_choice%"=="1" goto service_install
-if "%menu_choice%"=="2" goto service_remove
+if "%menu_choice%"=="1" goto run_autotune
+if "%menu_choice%"=="2" goto startup_health_check_switch
 if "%menu_choice%"=="3" goto service_status
-if "%menu_choice%"=="4" goto game_switch
-if "%menu_choice%"=="5" goto ipset_switch
-if "%menu_choice%"=="6" goto check_updates_switch
-if "%menu_choice%"=="7" goto replace_active_fakes
-if "%menu_choice%"=="8" goto ipset_update
-if "%menu_choice%"=="9" goto hosts_update
-if "%menu_choice%"=="10" goto service_check_updates
-if "%menu_choice%"=="11" goto service_diagnostics
-if "%menu_choice%"=="12" goto run_tests
+if "%menu_choice%"=="4" goto service_install
+if "%menu_choice%"=="5" goto service_remove
+if "%menu_choice%"=="6" goto game_switch
+if "%menu_choice%"=="7" goto ipset_switch
+if "%menu_choice%"=="8" goto check_updates_switch
+if "%menu_choice%"=="9" goto replace_active_fakes
+if "%menu_choice%"=="10" goto ipset_update
+if "%menu_choice%"=="11" goto hosts_update
+if "%menu_choice%"=="12" goto service_check_updates
+if "%menu_choice%"=="13" goto service_diagnostics
+if "%menu_choice%"=="14" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -142,10 +156,28 @@ exit /b
 cls
 chcp 437 > nul
 
+echo.
+
+:: --- Strategy name from registry (service mode) ---
+set "StatusStrategy="
 sc query "zapret" >nul 2>&1
 if !errorlevel!==0 (
-    for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do echo Service strategy installed from "%%B"
+    for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "StatusStrategy=%%B"
 )
+
+:: --- Fallback: read command line of running winws.exe via wmic (standalone .bat mode) ---
+if not defined StatusStrategy (
+    for /f "skip=1 tokens=*" %%A in ('wmic process where "name='winws.exe'" get CommandLine 2^>nul') do (
+        if not defined StatusStrategy if not "%%A"=="" set "StatusStrategy=%%A"
+    )
+)
+
+if defined StatusStrategy (
+    call :PrintGreen "Active strategy: !StatusStrategy!"
+) else (
+    call :PrintYellow "Active strategy: not detected (service not installed / standalone mode)"
+)
+echo:
 
 call :test_service zapret
 call :test_service WinDivert
@@ -266,6 +298,7 @@ if not defined selectedFile (
     goto menu
 )
 
+:service_install_apply
 :: Args that should be followed by value
 set "args_with_value=sni host altorder"
 
@@ -1106,6 +1139,96 @@ if %errorLevel% neq 0 (
 echo Starting configuration tests in PowerShell window...
 echo.
 start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test zapret.ps1"
+pause
+goto menu
+
+
+:: AUTOTUNE ==============================
+:run_autotune
+chcp 437 >nul
+cls
+
+:: Require PowerShell 3.0+
+powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -ge 3) { exit 0 } else { exit 1 }" >nul 2>&1
+if %errorLevel% neq 0 (
+    echo PowerShell 3.0 or newer is required.
+    pause
+    goto menu
+)
+
+echo Starting Autotune in PowerShell window...
+echo.
+
+set "AUTOTUNE_RESULT_FILE=%TEMP%\zapret_autotune_result.txt"
+if exist "%AUTOTUNE_RESULT_FILE%" del /f /q "%AUTOTUNE_RESULT_FILE%"
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0bin\autotune\autotune.ps1" "%AUTOTUNE_RESULT_FILE%"
+
+if not exist "%AUTOTUNE_RESULT_FILE%" (
+    echo.
+    echo Autotune did not produce a result. No changes made.
+    pause
+    goto menu
+)
+
+set "autotune_choice="
+for /f "usebackq delims=" %%A in ("%AUTOTUNE_RESULT_FILE%") do (
+    if not defined autotune_choice set "autotune_choice=%%A"
+)
+del /f /q "%AUTOTUNE_RESULT_FILE%"
+
+if not defined autotune_choice (
+    echo.
+    echo Autotune result file was empty. No changes made.
+    pause
+    goto menu
+)
+if "!autotune_choice!"=="0" (
+    echo.
+    echo Autotune could not find a working strategy. No changes made.
+    pause
+    goto menu
+)
+
+:: autotune found a winner - set up paths and install it as a service
+cd /d "%~dp0"
+set "BIN_PATH=%~dp0bin\"
+set "LISTS_PATH=%~dp0lists\"
+set "selectedFile=!autotune_choice!"
+goto service_install_apply
+
+
+:: STARTUP HEALTH CHECK ==================
+:startup_health_check_switch_status
+chcp 437 > nul
+schtasks /query /tn "ZapretHealthCheck" >nul 2>&1
+if !errorlevel!==0 (
+    set "HealthCheckStatus=enabled"
+) else (
+    set "HealthCheckStatus=disabled"
+)
+exit /b
+
+:startup_health_check_switch
+cls
+if "!HealthCheckStatus!"=="enabled" (
+    echo Disabling Startup Health Check...
+    schtasks /delete /tn "ZapretHealthCheck" /f >nul 2>&1
+    if !errorlevel!==0 (
+        call :PrintGreen "Startup Health Check disabled."
+    ) else (
+        call :PrintRed "Failed to remove scheduled task."
+    )
+) else (
+    echo Enabling Startup Health Check...
+    set "HC_SCRIPT=%~dp0bin\autotune\startup_check.ps1"
+    schtasks /create /tn "ZapretHealthCheck" /tr "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"!HC_SCRIPT!\"" /sc onlogon /rl HIGHEST /f >nul 2>&1
+    if !errorlevel!==0 (
+        call :PrintGreen "Startup Health Check enabled. It will run silently at each login."
+    ) else (
+        call :PrintRed "Failed to create scheduled task. Make sure you run as Administrator."
+    )
+)
 pause
 goto menu
 
