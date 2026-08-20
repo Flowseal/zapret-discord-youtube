@@ -7,6 +7,9 @@
 9.9.9.9 dns.quad9.net
 2620:fe::fe dns.quad9.net
 
+223.5.5.5 dns.alidns.com
+2400:3200:baba::1 dns.alidns.com
+
 146.112.41.2 doh.opendns.com
 2620:119:fc::2 doh.opendns.com
 
