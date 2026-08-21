@@ -1,3 +1,32 @@
+1.1.1.1 one.one.one.one
+2606:4700:4700::1111 one.one.one.one
+
+8.8.4.4 dns.google
+2001:4860:4860::8844 dns.google
+
+9.9.9.9 dns.quad9.net
+2620:fe::fe dns.quad9.net
+
+223.5.5.5 dns.alidns.com
+2400:3200:baba::1 dns.alidns.com
+
+146.112.41.2 doh.opendns.com
+2620:119:fc::2 doh.opendns.com
+
+185.228.168.168 doh.cleanbrowsing.org
+
+104.16.249.249 cloudflare-dns.com
+2606:4700::6810:f9f9 cloudflare-dns.com
+
+185.71.138.138 wikimedia-dns.org
+2001:67c:930::1 wikimedia-dns.org
+
+76.76.2.11 freedns.controld.com
+2606:1a40::11 freedns.controld.com
+
+194.169.169.169 dns.surfsharkdns.com
+2a09:a707:169:: dns.surfsharkdns.com
+
 185.199.109.133 objects.githubusercontent.com
 185.199.109.133 raw.githubusercontent.com
 185.199.109.133 release-assets.githubusercontent.com
