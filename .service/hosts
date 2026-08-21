@@ -21,6 +21,12 @@
 185.71.138.138 wikimedia-dns.org
 2001:67c:930::1 wikimedia-dns.org
 
+76.76.2.11 freedns.controld.com
+2606:1a40::11 freedns.controld.com
+
+194.169.169.169 dns.surfsharkdns.com
+2a09:a707:169:: dns.surfsharkdns.com
+
 185.199.109.133 objects.githubusercontent.com
 185.199.109.133 raw.githubusercontent.com
 185.199.109.133 release-assets.githubusercontent.com
