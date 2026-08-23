@@ -414,7 +414,7 @@ chcp 437 > nul
 cls
 
 :: Zapret path
-call :PrintGreen "Zapret installed in: '%~dp0'"
+call :PrintGreen "Zapret is installed in: '%~dp0'"
 echo:
 
 :: Base Filtering Engine
@@ -524,8 +524,8 @@ echo:
 :: Cyrillic path
 powershell -NoProfile -Command "if ('%~dp0' -match '[\u0430-\u044F\u0410-\u042F\u0451\u0401]') { exit 0 } else { exit 1 }"
 if !errorlevel!==0 (
-    call :PrintYellow "[?] Path where zapret is installed contains Cyrillic characters"
-    call :PrintYellow "If bypass doesn't work, try to install zapret to another directory, for example in C:\zapret"
+    call :PrintYellow "[?] The path where Zapret is installed contains Cyrillic characters"
+    call :PrintYellow "If bypass doesn't work, try to move Zapret to another directory, for example in C:\zapret"
 ) else (
     call :PrintGreen "Cyrillic path check passed"
 )
@@ -534,8 +534,8 @@ echo:
 :: OneDrive
 echo %~dp0\ | findstr /I /C:"%OneDrive%\\" > nul
 if !errorlevel!==0 (
-    call :PrintRed "[X] Path where zapret is installed located in OneDrive"
-    call :PrintRed "If bypass doesn't work, try to install zapret to another directory, for example in C:\zapret"
+    call :PrintRed "[X] Zapret is installed in a OneDrive folder"
+    call :PrintRed "If bypass doesn't work, try to move Zapret to another directory, for example in C:\zapret"
 ) else (
     call :PrintGreen "OneDrive check passed"
 )
