@@ -20,7 +20,6 @@ set "FSTUN=%BIN%stun.bin"
 set "FDISCORD=%BIN%ACTIVE_DISCORD_UDP.bin"
 set "FGAME=%BIN%ACTIVE_GAME_UDP.bin"
 
-:: Добавляем autottl для улучшения обхода (можно закомментировать)
 set "AUTOTTL=--dpi-desync-autottl=3"
 
 :: Формируем списки портов с учётом GameFilter (пустые переменные не добавляем)
