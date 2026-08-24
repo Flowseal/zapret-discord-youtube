@@ -3,6 +3,7 @@ set "LOCAL_VERSION=1.10.2"
 
 :: External commands
 if "%~1"=="status_zapret" (
+    call :sysdm_check
     call :test_service zapret soft
     call :tcp_enable
     exit /b
@@ -134,6 +135,26 @@ exit /b
 :tcp_enable
 chcp 437 > nul
 netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul || netsh interface tcp set global timestamps=enabled > nul 2>&1
+exit /b
+
+
+:: SYSDM CHECK =========================
+:sysdm_check
+if not defined ComSpec (
+    echo Environment variable "ComSpec" is NOT DEFINED in the system. Restore it and try again
+    pause
+    exit
+)
+if not defined OneDrive (
+    echo Environment variable "OneDrive" is NOT DEFINED in the system. Restore it and try again
+    pause
+    exit
+)
+if not defined SystemRoot (
+    echo Environment variable "SystemRoot" is NOT DEFINED in the system. Restore it and try again
+    pause
+    exit
+)
 exit /b
 
 
@@ -345,6 +366,7 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
 
 :: Creating service with parsed args
 call :tcp_enable
+call :sysdm_check
 
 set ARGS=%args%
 call set "ARGS=%%ARGS:EXCL_MARK=^!%%"
