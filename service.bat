@@ -928,12 +928,14 @@ if not defined source_file (
     goto replace_active_fakes_prompt
 )
 
-del /f /q "!active_file!" >nul 2>&1
-copy /y "!source_file!" "!active_file!" >nul
+set "ZDY_SOURCE_FILE=!source_file!"
+set "ZDY_ACTIVE_FILE=!active_file!"
+set "ZDY_BACKUP_FILE=!active_file!.backup"
+powershell -NoProfile -Command "$src=$env:ZDY_SOURCE_FILE; $dst=$env:ZDY_ACTIVE_FILE; $bak=$env:ZDY_BACKUP_FILE; $tmp=$dst+'.new.'+[Guid]::NewGuid().ToString('N'); try { Copy-Item -LiteralPath $src -Destination $tmp -Force -ErrorAction Stop; if ((Get-Item -LiteralPath $tmp).Length -le 0) { throw 'Temporary file is empty' }; if ((Get-FileHash -LiteralPath $src -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $tmp -Algorithm SHA256).Hash) { throw 'Hash verification failed' }; if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $bak -Force -ErrorAction SilentlyContinue; [IO.File]::Replace($tmp,$dst,$bak,$true) } else { [IO.File]::Move($tmp,$dst) }; exit 0 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; exit 1 }"
 if errorlevel 1 (
     echo Failed to replace the active fake file.
 ) else (
-    echo Active fake file replaced successfully.
+    echo Active fake file replaced successfully. Previous file saved as "!active_file!.backup".
     for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" (
         if "!fake_type!"=="1" set "current_discord_fake=!fake_name%%N!"
         if "!fake_type!"=="2" set "current_game_fake=!fake_name%%N!"
