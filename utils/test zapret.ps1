@@ -129,7 +129,7 @@ function Build-DpiTargets {
     $targets = @()
 
     if ($CustomHost) {
-        $targets += @{ Id = "CUSTOM"; Provider = "Custom"; Country = "рџ’Ў"; Host = $CustomHost }
+        $targets += @{ Id = "CUSTOM"; Provider = "Custom"; Country = "💡"; Host = $CustomHost }
     } else {
         foreach ($entry in $suite) {
             $targets += @{ Id = $entry.Id; Country = $entry.Country; Provider = $entry.Provider; Host = $entry.Host }
@@ -144,7 +144,8 @@ function Invoke-DpiSuite {
         [array]$Targets,
         [int]$TimeoutSeconds,
         [int]$RangeBytes,
-        [int]$MaxParallel
+        [int]$MaxParallel,
+        [string[]]$CurlRevocationArgs = @()
     )
 
     $tests = @(
@@ -169,7 +170,7 @@ function Invoke-DpiSuite {
     [IO.File]::WriteAllBytes($payloadFile, $payload)
 
     $scriptBlock = {
-        param($payloadFile, $target, $tests, $rangeSpec, $TimeoutSeconds)
+        param($payloadFile, $target, $tests, $rangeSpec, $TimeoutSeconds, $curlRevocationArgs)
 
         $warned = $false
         $lines = @()
@@ -179,13 +180,13 @@ function Invoke-DpiSuite {
                 "--range", $rangeSpec,
                 "-m", $TimeoutSeconds,
                 "--connect-timeout", ([Math]::Min(3, $TimeoutSeconds)),
-                "--ssl-revoke-best-effort",
                 "-w", "%{http_code} %{size_upload} %{size_download} %{time_total}",
                 "-o", "NUL",
                 "-X", "POST",
                 "--data-binary", "@$payloadFile",
-                "-s"
-            ) + $test.Args + @("https://$($target.Host)")
+                "-s",
+                "--show-error"
+            ) + $curlRevocationArgs + $test.Args + @("https://$($target.Host)")
 
             $output = & curl.exe @curlArgs 2>&1
             $exit = $LASTEXITCODE
@@ -201,7 +202,7 @@ function Invoke-DpiSuite {
                 $upBytes = [int64]$matches['up']
                 $downBytes = [int64]$matches['down']
                 $time = [double]$matches['time']
-            } elseif ($text -match "not supported|does not support|protocol\s+'.+'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature") {
+            } elseif (($exit -in @(1, 4, 48)) -or ($text -match "not supported|does not support|protocol\s+'.+'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature")) {
                 $code = "UNSUP"
             } elseif ($text) {
                 $code = "ERR"
@@ -257,6 +258,7 @@ function Invoke-DpiSuite {
         [void]$powershell.AddArgument($tests)
         [void]$powershell.AddArgument($rangeSpec)
         [void]$powershell.AddArgument($TimeoutSeconds)
+        [void]$powershell.AddArgument($CurlRevocationArgs)
         $powershell.RunspacePool = $runspacePool
 
         $runspaces += [PSCustomObject]@{
@@ -344,13 +346,38 @@ if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Adm
     Write-Host "[OK] Administrator rights detected" -ForegroundColor Green
 }
 
-# Check curl
+# Check curl and detect Schannel-specific revocation workaround support
+$curlUsesSchannel = $false
+$curlSupportsRevokeBestEffort = $false
+$curlRevocationArgs = @()
+
 if (-not (Get-Command "curl.exe" -ErrorAction SilentlyContinue)) {
     Write-Host "[ERROR] curl.exe not found" -ForegroundColor Red
     Write-Host "Install curl or add it to PATH" -ForegroundColor Yellow
     $hasErrors = $true
 } else {
     Write-Host "[OK] curl.exe found" -ForegroundColor Green
+
+    try {
+        $curlVersionText = (& curl.exe --version 2>$null | Out-String)
+        $curlUsesSchannel = ($curlVersionText -match "(?i)\bSchannel\b")
+
+        if ($curlUsesSchannel) {
+            $curlHelpText = (& curl.exe --help all 2>$null | Out-String)
+            $curlSupportsRevokeBestEffort = ($curlHelpText -match "(?m)^\s*--ssl-revoke-best-effort\b")
+
+            if ($curlSupportsRevokeBestEffort) {
+                $curlRevocationArgs = @("--ssl-revoke-best-effort")
+                Write-Host "[OK] curl uses Schannel; offline CRL/OCSP failures will be treated as best-effort during diagnostics" -ForegroundColor Green
+            } else {
+                Write-Host "[WARN] curl uses Schannel but does not expose --ssl-revoke-best-effort; revocation outages may cause SSL/ERROR results" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "[INFO] curl TLS backend is not Schannel; Schannel-only revocation workaround will not be used" -ForegroundColor DarkGray
+        }
+    } catch {
+        Write-Host "[WARN] Unable to detect curl TLS backend/options; continuing without revocation workaround" -ForegroundColor Yellow
+    }
 }
 
 # Check for leftover ipset flag from previous interrupted run
@@ -668,7 +695,7 @@ try {
         $runspacePool.Open()
 
         $scriptBlock = {
-            param($t, $curlTimeoutSeconds)
+            param($t, $curlTimeoutSeconds, $curlRevocationArgs)
 
             $httpPieces = @()
 
@@ -679,7 +706,7 @@ try {
                     @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
                 )
 
-                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "--connect-timeout", ([Math]::Min(2, $curlTimeoutSeconds)), "--ssl-revoke-best-effort", "-o", "NUL", "-w", "%{http_code}", "--show-error")
+                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "--connect-timeout", ([Math]::Min(2, $curlTimeoutSeconds)), "-o", "NUL", "-w", "%{http_code}", "--show-error") + $curlRevocationArgs
                 foreach ($test in $tests) {
                     try {
                         $curlArgs = $baseArgs + $test.Args
@@ -693,13 +720,21 @@ try {
                         }
                         $httpCode = ($output | Out-String).Trim()
                         
-                        $dnsHijack = ($stderr -match "Could not resolve host|certificate|SSL certificate problem|self[- ]?signed|certificate verify failed|unable to get local issuer certificate")                        
-                        if ($dnsHijack) {
+                        $dnsError = ($stderr -match "Could not resolve host")
+                        if ($dnsError) {
+                            $httpPieces += "$($test.Label):DNS  "
+                            continue
+                        }
+
+                        $sslOrCertificateError = ($stderr -match "certificate|SSL certificate problem|self[- ]?signed|certificate verify failed|unable to get local issuer certificate|CRYPT_E_REVOCATION_OFFLINE|0x80092013|revocation")
+                        if ($sslOrCertificateError) {
                             $httpPieces += "$($test.Label):SSL  "
                             continue
                         }
-                        
-                        $unsupported = ($stderr -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature")
+
+                        # curl 35 is CURLE_SSL_CONNECT_ERROR (handshake/runtime error), not "unsupported".
+                        # Treat only true unsupported/not-built-in/unknown-option exit codes as UNSUP.
+                        $unsupported = (($LASTEXITCODE -in @(1, 4, 48)) -or ($stderr -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature"))
                         if ($unsupported) {
                             $httpPieces += "$($test.Label):UNSUP"
                             continue
@@ -718,6 +753,7 @@ try {
             }
 
             $pingResult = "n/a"
+            $pingStatus = "N/A"
             if ($t.PingTarget) {
                 $ping = $null
                 try {
@@ -725,11 +761,44 @@ try {
                     $reply = $ping.Send($t.PingTarget, 1000)
                     if ($reply.Status -eq [System.Net.NetworkInformation.IPStatus]::Success) {
                         $pingResult = "{0:N0} ms" -f $reply.RoundtripTime
+                        $pingStatus = "OK"
                     } else {
                         $pingResult = "Timeout"
+                        $pingStatus = "TIMEOUT"
                     }
                 } catch {
-                    $pingResult = "Timeout"
+                    # Ping.Send(hostname) can fail before ICMP is sent when DNS resolution fails.
+                    # Detect Windows/Winsock host-resolution errors without relying on localized error text.
+                    $dnsFailure = $false
+                    $ex = $_.Exception
+                    while ($ex) {
+                        if ($ex -is [System.Net.Sockets.SocketException]) {
+                            if ($ex.SocketErrorCode -in @(
+                                [System.Net.Sockets.SocketError]::HostNotFound,
+                                [System.Net.Sockets.SocketError]::TryAgain,
+                                [System.Net.Sockets.SocketError]::NoData
+                            )) {
+                                $dnsFailure = $true
+                                break
+                            }
+                        }
+
+                        if ($ex.PSObject.Properties['NativeErrorCode'] -and ([int]$ex.NativeErrorCode -in @(11001, 11002, 11004))) {
+                            $dnsFailure = $true
+                            break
+                        }
+
+                        $ex = $ex.InnerException
+                    }
+
+                    if ($dnsFailure) {
+                        $pingResult = "DNS_FAIL"
+                        $pingStatus = "DNS_FAIL"
+                    } else {
+                        # Preserve previous behavior for non-DNS Ping exceptions.
+                        $pingResult = "Timeout"
+                        $pingStatus = "TIMEOUT"
+                    }
                 } finally {
                     if ($ping) { $ping.Dispose() }
                 }
@@ -739,6 +808,7 @@ try {
                 Name       = $t.Name
                 HttpTokens = $httpPieces
                 PingResult = $pingResult
+                PingStatus = $pingStatus
                 IsUrl      = [bool]$t.Url
             })
         }
@@ -748,6 +818,7 @@ try {
             $ps = [powershell]::Create().AddScript($scriptBlock)
             [void]$ps.AddArgument($target)
             [void]$ps.AddArgument($curlTimeoutSeconds)
+            [void]$ps.AddArgument($curlRevocationArgs)
             $ps.RunspacePool = $runspacePool
 
             $runspaces += [PSCustomObject]@{
@@ -779,7 +850,7 @@ try {
                 $targetResults += $rs.Powershell.EndInvoke($rs.Handle)
             } catch {
                 Write-Host "[WARN] EndInvoke failed for a runspace; treating as failure." -ForegroundColor Yellow
-                $targetResults += [PSCustomObject]@{ Name = 'UNKNOWN'; HttpTokens = @('HTTP:ERROR'); PingResult = 'Timeout'; IsUrl = $true }
+                $targetResults += [PSCustomObject]@{ Name = 'UNKNOWN'; HttpTokens = @('HTTP:ERROR'); PingResult = 'Timeout'; PingStatus = 'TIMEOUT'; IsUrl = $true }
             }
             $rs.Powershell.Dispose()
         }
@@ -800,12 +871,15 @@ try {
                 foreach ($tok in $res.HttpTokens) {
                     $tokColor = "Green"
                     if ($tok -match "UNSUP") { $tokColor = "Yellow" }
+                    elseif ($tok -match "DNS") { $tokColor = "Red" }
                     elseif ($tok -match "SSL") { $tokColor = "Red" }
                     elseif ($tok -match "ERR") { $tokColor = "Red" }
                     Write-Host " $tok" -NoNewline -ForegroundColor $tokColor
                 }
                 Write-Host " | Ping: " -NoNewline -ForegroundColor DarkGray
-                if ($res.PingResult -eq "Timeout") {
+                if ($res.PingStatus -eq "DNS_FAIL") {
+                    $pingColor = "Red"
+                } elseif ($res.PingStatus -eq "TIMEOUT") {
                     $pingColor = "Yellow"
                 } else {
                     $pingColor = "Cyan"
@@ -815,7 +889,7 @@ try {
             } else {
                 # Ping-only target
                 Write-Host " Ping: " -NoNewline -ForegroundColor DarkGray
-                if ($res.PingResult -eq "Timeout") {
+                if ($res.PingStatus -in @("DNS_FAIL", "TIMEOUT")) {
                     $pingColor = "Red"
                 } else {
                     $pingColor = "Cyan"
@@ -828,7 +902,7 @@ try {
         $globalResults += @{ Config = $file.Name; Type = 'standard'; Results = $targetResults }
     } else {
         Write-Host "  > Running DPI checkers..." -ForegroundColor DarkGray
-        $dpiResults = Invoke-DpiSuite -Targets $dpiTargets -TimeoutSeconds $dpiTimeoutSeconds -RangeBytes $dpiRangeBytes -MaxParallel $dpiMaxParallel
+        $dpiResults = Invoke-DpiSuite -Targets $dpiTargets -TimeoutSeconds $dpiTimeoutSeconds -RangeBytes $dpiRangeBytes -MaxParallel $dpiMaxParallel -CurlRevocationArgs $curlRevocationArgs
         $globalResults += @{ Config = $file.Name; Type = 'dpi'; Results = $dpiResults }
     }
     
@@ -846,16 +920,24 @@ try {
         if ($res.Type -eq 'standard') {
             foreach ($targetRes in $res.Results) {
                 $config = $res.Config
-                if (-not $analytics.ContainsKey($config)) { $analytics[$config] = @{ OK = 0; ERROR = 0; UNSUP = 0; PingOK = 0; PingFail = 0 } }
+                if (-not $analytics.ContainsKey($config)) { $analytics[$config] = @{ OK = 0; ERROR = 0; UNSUP = 0; PingOK = 0; PingFail = 0; PingDNS = 0 } }
                 if ($targetRes.IsUrl) {
                     foreach ($tok in $targetRes.HttpTokens) {
                         if ($tok -match "OK") { $analytics[$config].OK++ }
+                        elseif ($tok -match "DNS") { $analytics[$config].ERROR++ }
                         elseif ($tok -match "SSL") { $analytics[$config].ERROR++ }
                         elseif ($tok -match "ERROR") { $analytics[$config].ERROR++ }
                         elseif ($tok -match "UNSUP") { $analytics[$config].UNSUP++ }
                     }
                 }
-                if ($targetRes.PingResult -ne "Timeout" -and $targetRes.PingResult -ne "n/a") { $analytics[$config].PingOK++ } else { $analytics[$config].PingFail++ }
+                if ($targetRes.PingStatus -eq "OK") {
+                    $analytics[$config].PingOK++
+                } elseif ($targetRes.PingStatus -eq "DNS_FAIL") {
+                    $analytics[$config].PingFail++
+                    $analytics[$config].PingDNS++
+                } elseif ($targetRes.PingStatus -eq "TIMEOUT") {
+                    $analytics[$config].PingFail++
+                }
             }
         } elseif ($res.Type -eq 'dpi') {
             foreach ($targetRes in $res.Results) {
@@ -878,8 +960,8 @@ try {
         $a = $analytics[$config]
         $configPadded = $config.PadRight($maxConfigLen)
         if ($a.ContainsKey('PingOK')) {
-            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}" -f `
-                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail
+            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}, DNS: {6,3}" -f `
+                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail, $a.PingDNS
         } else {
             $line = "{0} : OK: {1,3}, FAIL: {2,3}, UNSUP: {3,3}, BLOCKED: {4,3}" -f `
                 $configPadded, $a.OK, $a.FAIL, $a.UNSUPPORTED, $a.LIKELY_BLOCKED
@@ -887,30 +969,36 @@ try {
         Write-Host $line -ForegroundColor Yellow
     }
 
-    # Determine best strategy
-    $bestConfig = $null
-    $maxScore = 0
-    $maxPing = -1
-    foreach ($config in $analytics.Keys) {
+    # Determine best strategy by HTTP/DPI success score only.
+    # Ping is informational and should not decide between DPI strategies.
+    $bestConfigs = @()
+    $maxScore = -1
+    foreach ($config in ($analytics.Keys | Sort-Object)) {
         $a = $analytics[$config]
         $score = $a.OK
-        $pingScore = 0
-        if ($a.ContainsKey('PingOK')) {
-            $pingScore = $a.PingOK
-        }
+
         if ($score -gt $maxScore) {
             $maxScore = $score
-            $maxPing = $pingScore
-            $bestConfig = $config
+            $bestConfigs = @($config)
         } elseif ($score -eq $maxScore) {
-            if ($pingScore -gt $maxPing) {
-                $maxPing = $pingScore
-                $bestConfig = $config
-            }
+            $bestConfigs += $config
         }
     }
+
+    # Keep a deterministic primary value for the existing saved "Best strategy:" line.
+    $bestConfig = if ($bestConfigs.Count -gt 0) { $bestConfigs[0] } else { $null }
+
     Write-Host ""
-    Write-Host "Best config: $bestConfig" -ForegroundColor Green
+    if ($bestConfigs.Count -eq 1) {
+        Write-Host "Best config: $bestConfig" -ForegroundColor Green
+    } elseif ($bestConfigs.Count -gt 1) {
+        Write-Host "Best configs (tie, HTTP/DPI score: $maxScore):" -ForegroundColor Green
+        foreach ($config in $bestConfigs) {
+            Write-Host "  - $config" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "Best config: none" -ForegroundColor Yellow
+    }
     Write-Host ""
 
     # Save to file
@@ -960,8 +1048,8 @@ try {
         $a = $analytics[$config]
         $configPadded = $config.PadRight($maxConfigLen)
         if ($a.ContainsKey('PingOK')) {
-            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}" -f `
-                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail
+            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}, DNS: {6,3}" -f `
+                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail, $a.PingDNS
         } else {
             $line = "{0} : OK: {1,3}, FAIL: {2,3}, UNSUP: {3,3}, BLOCKED: {4,3}" -f `
                 $configPadded, $a.OK, $a.FAIL, $a.UNSUPPORTED, $a.LIKELY_BLOCKED
@@ -970,6 +1058,9 @@ try {
     }
 
     [void]$resultLines.Add("Best strategy: $bestConfig")
+    if ($bestConfigs.Count -gt 1) {
+        [void]$resultLines.Add("Tied best strategies: $($bestConfigs -join ', ')")
+    }
     $resultLines | Set-Content $resultFile -Encoding UTF8
 
     Write-Host "Results saved to $resultFile" -ForegroundColor Green
