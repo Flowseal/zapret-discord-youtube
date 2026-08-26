@@ -87,14 +87,15 @@ echo      9. Update Hosts File
 echo      10. Check for Updates
 echo.
 echo   :: TOOLS
-echo      11. Run Diagnostics
+echo      11. Run Diagnostics (read-only)
 echo      12. Run Tests
+echo      13. Repair Problems
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-12): 
+set /p menu_choice=   Select option (0-13):
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -108,6 +109,7 @@ if "%menu_choice%"=="9" goto hosts_update
 if "%menu_choice%"=="10" goto service_check_updates
 if "%menu_choice%"=="11" goto service_diagnostics
 if "%menu_choice%"=="12" goto run_tests
+if "%menu_choice%"=="13" goto service_repair
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -182,7 +184,7 @@ if "%ServiceStatus%"=="RUNNING" (
         echo "%ServiceName%" service is RUNNING.
     )
 ) else if "%ServiceStatus%"=="STOP_PENDING" (
-    call :PrintYellow "!ServiceName! is STOP_PENDING, that may be caused by a conflict with another bypass. Run Diagnostics to try to fix conflicts"
+    call :PrintYellow "!ServiceName! is STOP_PENDING, that may be caused by a conflict with another bypass. Run Diagnostics to inspect conflicts"
 ) else if not "%~2"=="soft" (
     echo "%ServiceName%" service is NOT running.
 )
@@ -451,13 +453,7 @@ netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled"
 if !errorlevel!==0 (
     call :PrintGreen "TCP timestamps check passed"
 ) else (
-    call :PrintYellow "[?] TCP timestamps are disabled. Enabling timestamps..."
-    netsh interface tcp set global timestamps=enabled > nul 2>&1
-    if !errorlevel!==0 (
-        call :PrintGreen "TCP timestamps successfully enabled"
-    ) else (
-        call :PrintRed "[X] Failed to enable TCP timestamps"
-    )
+    call :PrintYellow "[?] TCP timestamps are disabled. Use Repair Problems to enable them."
 )
 echo:
 
@@ -600,50 +596,8 @@ sc query "WinDivert" | findstr /I "RUNNING STOP_PENDING" > nul
 set "windivert_running=!errorlevel!"
 
 if !winws_running! neq 0 if !windivert_running!==0 (
-    call :PrintYellow "[?] winws.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
-    
-    net stop "WinDivert" >nul 2>&1
-    sc delete "WinDivert" >nul 2>&1
-    sc query "WinDivert" >nul 2>&1
-    if !errorlevel!==0 (
-        call :PrintRed "[X] Failed to delete WinDivert. Checking for conflicting services..."
-        
-        set "conflicting_services=GoodbyeDPI"
-        set "found_conflict=0"
-        
-        for %%s in (!conflicting_services!) do (
-            sc query "%%s" >nul 2>&1
-            if !errorlevel!==0 (
-                call :PrintYellow "[?] Found conflicting service: %%s. Stopping and removing..."
-                net stop "%%s" >nul 2>&1
-                sc delete "%%s" >nul 2>&1
-                if !errorlevel!==0 (
-                    call :PrintGreen "Successfully removed service: %%s"
-                ) else (
-                    call :PrintRed "[X] Failed to remove service: %%s"
-                )
-                set "found_conflict=1"
-            )
-        )
-        
-        if !found_conflict!==0 (
-            call :PrintRed "[X] No conflicting services found. Check manually if any other bypass is using WinDivert."
-        ) else (
-            call :PrintYellow "[?] Attempting to delete WinDivert again..."
-
-            net stop "WinDivert" >nul 2>&1
-            sc delete "WinDivert" >nul 2>&1
-            sc query "WinDivert" >nul 2>&1
-            if !errorlevel! neq 0 (
-                call :PrintGreen "WinDivert successfully deleted after removing conflicting services"
-            ) else (
-                call :PrintRed "[X] WinDivert still cannot be deleted. Check manually if any other bypass is using WinDivert."
-            )
-        )
-    ) else (
-        call :PrintGreen "WinDivert successfully removed"
-    )
-    
+    call :PrintYellow "[?] winws.exe is not running but WinDivert is active."
+    call :PrintYellow "Diagnostics did not change it. Remove it only after confirming which application owns it."
     echo:
 )
 
@@ -666,39 +620,57 @@ for %%s in (!conflicting_services!) do (
 
 if !found_any_conflict!==1 (
     call :PrintRed "[X] Conflicting bypass services found: !found_conflicts!"
-    
-    set "CHOICE="
-    set /p "CHOICE=Do you want to remove these conflicting services? (Y/N) (default: N) "
-    if "!CHOICE!"=="" set "CHOICE=N"
-    if "!CHOICE!"=="y" set "CHOICE=Y"
-    
-    if /i "!CHOICE!"=="Y" (
-        for %%s in (!found_conflicts!) do (
-            call :PrintYellow "Stopping and removing service: %%s"
-            net stop "%%s" >nul 2>&1
-            sc delete "%%s" >nul 2>&1
-            if !errorlevel!==0 (
-                call :PrintGreen "Successfully removed service: %%s"
-            ) else (
-                call :PrintRed "[X] Failed to remove service: %%s"
-            )
-        )
-
-        net stop "WinDivert" >nul 2>&1
-        sc delete "WinDivert" >nul 2>&1
-        net stop "WinDivert14" >nul 2>&1
-        sc delete "WinDivert14" >nul 2>&1
-    )
-    
+    call :PrintYellow "Diagnostics did not remove them. Use Repair Problems for confirmed cleanup."
     echo:
 )
 
-:: Discord cache clearing
-set "CHOICE="
-set /p "CHOICE=Do you want to clear the Discord cache (Stable, PTB, Canary, Development)? (Y/N) (default: Y) "
-if "!CHOICE!"=="" set "CHOICE=Y"
-if "!CHOICE!"=="y" set "CHOICE=Y"
+:: Discord cache check
+set "discordCacheFound=0"
+for %%D in ("%APPDATA%\discord\Cache" "%APPDATA%\discord\Code Cache" "%APPDATA%\discord\GPUCache" "%APPDATA%\discordptb\Cache" "%APPDATA%\discordcanary\Cache" "%APPDATA%\discorddevelopment\Cache") do if exist "%%~D\" set "discordCacheFound=1"
+if "!discordCacheFound!"=="1" (
+    call :PrintYellow "[?] Discord cache directories exist. They are not removed by Diagnostics."
+) else (
+    call :PrintGreen "Discord cache check passed"
+)
+echo:
 
+pause
+goto menu
+
+
+:: REPAIR ==============================
+:service_repair
+chcp 437 > nul
+cls
+
+call :PrintYellow "Repair mode can change system settings, stop applications, or remove services."
+call :PrintYellow "Every action defaults to No and requires confirmation."
+echo:
+
+netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul
+if !errorlevel! neq 0 (
+    set "CHOICE="
+    set /p "CHOICE=Enable TCP timestamps? (Y/N) (default: N) "
+    if not defined CHOICE set "CHOICE=N"
+    if /i "!CHOICE!"=="Y" (
+        netsh interface tcp set global timestamps=enabled >nul 2>&1
+        if !errorlevel!==0 (
+            call :PrintGreen "TCP timestamps successfully enabled."
+        ) else (
+            call :PrintRed "[X] Failed to enable TCP timestamps."
+        )
+    )
+) else (
+    call :PrintGreen "TCP timestamps are already enabled."
+)
+echo:
+
+for %%S in (GoodbyeDPI discordfix_zapret winws1 winws2) do call :repair_conflicting_service "%%S"
+echo:
+
+set "CHOICE="
+set /p "CHOICE=Clear Discord caches and close running Discord clients? (Y/N) (default: N) "
+if not defined CHOICE set "CHOICE=N"
 if /i "!CHOICE!"=="Y" (
     set "discordFound=0"
     if exist "%APPDATA%\discord\" (
@@ -717,11 +689,11 @@ if /i "!CHOICE!"=="Y" (
         set "discordFound=1"
         call :clear_discord_cache "DiscordDevelopment.exe" "Discord Development" "%APPDATA%\discorddevelopment"
     )
-    if !discordFound! equ 0 call :PrintRed "Discord installations were not found"
-    set "discordFound="
+    if !discordFound! equ 0 call :PrintYellow "Discord installations were not found."
 )
-echo:
 
+echo:
+call :PrintGreen "Repair mode finished."
 pause
 goto menu
 
@@ -1142,6 +1114,24 @@ exit /b
 
 
 :: Utility functions
+
+:repair_conflicting_service
+set "repairService=%~1"
+sc query "%repairService%" >nul 2>&1
+if errorlevel 1 exit /b 0
+call :PrintYellow "[?] Conflicting service found: %repairService%"
+set "REPAIR_CHOICE="
+set /p "REPAIR_CHOICE=Stop and delete %repairService%? (Y/N) (default: N) "
+if not defined REPAIR_CHOICE set "REPAIR_CHOICE=N"
+if /i not "%REPAIR_CHOICE%"=="Y" exit /b 0
+sc stop "%repairService%" >nul 2>&1
+sc delete "%repairService%" >nul 2>&1
+if errorlevel 1 (
+    call :PrintRed "[X] Failed to remove service %repairService%."
+    exit /b 1
+)
+call :PrintGreen "Service %repairService% was removed."
+exit /b 0
 
 :clear_discord_cache
 setlocal EnableDelayedExpansion
