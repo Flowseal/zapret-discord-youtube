@@ -949,18 +949,9 @@ goto replace_active_fakes_prompt
 chcp 437 > nul
 
 set "listFile=%~dp0lists\ipset-all.txt"
-for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
-
-if !lineCount!==0 (
-    set "IPsetStatus=any"
-) else (
-    findstr /C:"203.0.113.113/32" "%listFile%" >nul
-    if !errorlevel!==0 (
-        set "IPsetStatus=none"
-    ) else (
-        set "IPsetStatus=loaded"
-    )
-)
+set "IPsetStatus=missing"
+set "ZDY_IPSET_STATUS_FILE=%listFile%"
+for /f "delims=" %%A in ('powershell -NoProfile -Command "if (-not (Test-Path -LiteralPath $env:ZDY_IPSET_STATUS_FILE -PathType Leaf)) { 'missing' } else { $content=[IO.File]::ReadAllText($env:ZDY_IPSET_STATUS_FILE).Trim(); if (-not $content) { 'any' } elseif ($content -eq '203.0.113.113/32') { 'none' } else { 'loaded' } }"') do set "IPsetStatus=%%A"
 exit /b
 
 
@@ -973,39 +964,40 @@ set "backupFile=%listFile%.backup"
 
 if "%IPsetStatus%"=="loaded" (
     echo Switching to none mode...
-    
-    if not exist "%backupFile%" (
-        ren "%listFile%" "ipset-all.txt.backup"
-    ) else (
-        del /f /q "%backupFile%"
-        ren "%listFile%" "ipset-all.txt.backup"
-    )
-    
-    >"%listFile%" (
-        echo 203.0.113.113/32
-    )
+    call :atomic_copy_file "%listFile%" "%backupFile%" "%backupFile%.previous"
+    if errorlevel 1 goto ipset_switch_failed
+    call :write_ipset_mode none "%listFile%"
+    if errorlevel 1 goto ipset_switch_failed
     
 ) else if "%IPsetStatus%"=="none" (
     echo Switching to any mode...
-    
-    >"%listFile%" (
-        rem Creating empty file
-    )
+    call :write_ipset_mode any "%listFile%"
+    if errorlevel 1 goto ipset_switch_failed
     
 ) else if "%IPsetStatus%"=="any" (
     echo Switching to loaded mode...
     
     if exist "%backupFile%" (
-        del /f /q "%listFile%"
-        ren "%backupFile%" "ipset-all.txt"
+        call :validate_ipset_file "%backupFile%"
+        if errorlevel 1 goto ipset_switch_failed
+        call :atomic_copy_file "%backupFile%" "%listFile%" "%listFile%.mode-backup"
+        if errorlevel 1 goto ipset_switch_failed
     ) else (
         echo Error: no backup to restore. Update list from service menu first
         pause
         goto menu
     )
-    
+) else (
+    call :PrintRed "[X] Active IPSet file is missing. Use Update IPSet List first."
+    pause
+    goto menu
 )
 
+pause
+goto menu
+
+:ipset_switch_failed
+call :PrintRed "[X] IPSet mode was not changed completely. Existing files were kept or backed up."
 pause
 goto menu
 
@@ -1016,28 +1008,69 @@ chcp 437 > nul
 cls
 
 set "listFile=%~dp0lists\ipset-all.txt"
+set "backupFile=%listFile%.backup"
 set "url=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/ipset-service.txt"
+set "downloadFile=%listFile%.download.%RANDOM%%RANDOM%.tmp"
+
+call :ipset_switch_status
+if /i "!IPsetStatus!"=="loaded" (
+    set "updateTarget=%listFile%"
+) else if /i "!IPsetStatus!"=="missing" (
+    set "updateTarget=%listFile%"
+) else (
+    set "updateTarget=%backupFile%"
+    call :PrintYellow "IPSet mode is !IPsetStatus!. The saved full list will be updated without changing the active mode."
+)
 
 echo Updating ipset-all...
 
+if exist "%downloadFile%" del /f /q "%downloadFile%" >nul 2>&1
 if exist "%SystemRoot%\System32\curl.exe" (
-    curl --version | find "libcurl/7"
+    curl --version | find "libcurl/7" >nul
     if !errorlevel!==0 (
-        curl --ssl-no-revoke -L -o "%listFile%" "%url%"
+        curl --fail --location --silent --show-error --connect-timeout 10 --max-time 60 --ssl-no-revoke --output "%downloadFile%" "%url%"
     ) else (
-        curl --ssl-revoke-best-effort -L -o "%listFile%" "%url%"
+        curl --fail --location --silent --show-error --connect-timeout 10 --max-time 60 --ssl-revoke-best-effort --output "%downloadFile%" "%url%"
     )
 ) else (
+    set "ZDY_DOWNLOAD_URL=%url%"
+    set "ZDY_DOWNLOAD_FILE=%downloadFile%"
     powershell -NoProfile -Command ^
-        "$url = '%url%';" ^
-        "$out = '%listFile%';" ^
-        "$dir = Split-Path -Parent $out;" ^
-        "if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null };" ^
-        "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
-        "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
+        "$res = Invoke-WebRequest -Uri $env:ZDY_DOWNLOAD_URL -TimeoutSec 60 -UseBasicParsing -Headers @{'Cache-Control'='no-cache'};" ^
+        "if ($res.StatusCode -ne 200) { exit 1 };" ^
+        "[IO.File]::WriteAllText($env:ZDY_DOWNLOAD_FILE, [string]$res.Content, (New-Object Text.UTF8Encoding($false)))"
+)
+if errorlevel 1 (
+    if exist "%downloadFile%" del /f /q "%downloadFile%" >nul 2>&1
+    call :PrintRed "[X] Failed to download the IPSet list. The current list was not changed."
+    pause
+    goto menu
 )
 
-echo Finished
+if not exist "%downloadFile%" (
+    call :PrintRed "[X] The download command reported success but produced no file."
+    pause
+    goto menu
+)
+
+call :validate_ipset_file "%downloadFile%"
+if errorlevel 1 (
+    del /f /q "%downloadFile%" >nul 2>&1
+    call :PrintRed "[X] Downloaded IPSet failed validation. The current list was not changed."
+    pause
+    goto menu
+)
+
+call :replace_temp_file "%downloadFile%" "!updateTarget!" "!updateTarget!.previous"
+if errorlevel 1 (
+    if exist "%downloadFile%" del /f /q "%downloadFile%" >nul 2>&1
+    call :PrintRed "[X] Failed to activate the downloaded IPSet. The previous list was preserved."
+    pause
+    goto menu
+)
+
+call :PrintGreen "IPSet update finished and validated successfully."
+echo Previous target saved as "!updateTarget!.previous".
 
 pause
 goto menu
@@ -1142,6 +1175,31 @@ exit /b
 
 
 :: Utility functions
+
+:validate_ipset_file
+set "ZDY_VALIDATE_FILE=%~1"
+powershell -NoProfile -Command "$valid=0; try { foreach ($raw in Get-Content -LiteralPath $env:ZDY_VALIDATE_FILE -ErrorAction Stop) { $line=$raw.Trim(); if (-not $line -or $line.StartsWith('#')) { continue }; $parts=$line.Split('/'); if ($parts.Count -ne 2) { throw ('Invalid IPSet line: '+$line) }; $ip=$null; $prefix=0; if (-not [Net.IPAddress]::TryParse($parts[0],[ref]$ip)) { throw ('Invalid address: '+$line) }; if (-not [int]::TryParse($parts[1],[ref]$prefix)) { throw ('Invalid prefix: '+$line) }; $maximum=if ($ip.AddressFamily -eq [Net.Sockets.AddressFamily]::InterNetwork) { 32 } elseif ($ip.AddressFamily -eq [Net.Sockets.AddressFamily]::InterNetworkV6) { 128 } else { throw ('Unsupported address family: '+$line) }; if ($prefix -lt 0 -or $prefix -gt $maximum) { throw ('Invalid prefix: '+$line) }; $valid++ }; if ($valid -lt 100) { throw ('Only '+$valid+' valid networks were found') }; exit 0 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; exit 1 }"
+exit /b %errorlevel%
+
+:replace_temp_file
+set "ZDY_TEMP_FILE=%~1"
+set "ZDY_TARGET_FILE=%~2"
+set "ZDY_BACKUP_FILE=%~3"
+powershell -NoProfile -Command "$tmp=$env:ZDY_TEMP_FILE; $dst=$env:ZDY_TARGET_FILE; $bak=$env:ZDY_BACKUP_FILE; try { if (-not (Test-Path -LiteralPath $tmp -PathType Leaf)) { throw 'Temporary file is missing' }; if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $bak -Force -ErrorAction SilentlyContinue; [IO.File]::Replace($tmp,$dst,$bak,$true) } else { [IO.File]::Move($tmp,$dst) }; exit 0 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; exit 1 }"
+exit /b %errorlevel%
+
+:atomic_copy_file
+set "ZDY_SOURCE_FILE=%~1"
+set "ZDY_TARGET_FILE=%~2"
+set "ZDY_BACKUP_FILE=%~3"
+powershell -NoProfile -Command "$src=$env:ZDY_SOURCE_FILE; $dst=$env:ZDY_TARGET_FILE; $bak=$env:ZDY_BACKUP_FILE; $tmp=$dst+'.new.'+[Guid]::NewGuid().ToString('N'); try { Copy-Item -LiteralPath $src -Destination $tmp -Force -ErrorAction Stop; if ((Get-FileHash -LiteralPath $src -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $tmp -Algorithm SHA256).Hash) { throw 'Hash verification failed' }; if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $bak -Force -ErrorAction SilentlyContinue; [IO.File]::Replace($tmp,$dst,$bak,$true) } else { [IO.File]::Move($tmp,$dst) }; exit 0 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; exit 1 }"
+exit /b %errorlevel%
+
+:write_ipset_mode
+set "ZDY_IPSET_MODE=%~1"
+set "ZDY_TARGET_FILE=%~2"
+powershell -NoProfile -Command "$dst=$env:ZDY_TARGET_FILE; $tmp=$dst+'.new.'+[Guid]::NewGuid().ToString('N'); $bak=$dst+'.mode-previous'; try { if ($env:ZDY_IPSET_MODE -eq 'none') { [IO.File]::WriteAllText($tmp,('203.0.113.113/32'+[Environment]::NewLine),(New-Object Text.ASCIIEncoding)) } elseif ($env:ZDY_IPSET_MODE -eq 'any') { [IO.File]::WriteAllBytes($tmp,[byte[]]@()) } else { throw 'Unknown IPSet mode' }; if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $bak -Force -ErrorAction SilentlyContinue; [IO.File]::Replace($tmp,$dst,$bak,$true) } else { [IO.File]::Move($tmp,$dst) }; exit 0 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; exit 1 }"
+exit /b %errorlevel%
 
 :clear_discord_cache
 setlocal EnableDelayedExpansion
