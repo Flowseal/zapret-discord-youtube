@@ -1050,7 +1050,7 @@ cls
 
 set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
 set "hostsUrl=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/hosts"
-set "tempFile=%TEMP%\zapret_hosts.txt"
+set "tempFile=%TEMP%\zapret_hosts_%RANDOM%%RANDOM%.txt"
 set "needsUpdate=0"
 
 set "cacheBuster=%RANDOM%%RANDOM%%RANDOM%"
@@ -1058,14 +1058,23 @@ set "requestUrl=%hostsUrl%?t=%cacheBuster%"
 
 echo Checking hosts file...
 
+if exist "%tempFile%" del /f /q "%tempFile%" >nul 2>&1
 if exist "%SystemRoot%\System32\curl.exe" (
-    curl -L -s -o "%tempFile%" "%requestUrl%"
+    curl --fail --location --silent --show-error --connect-timeout 10 --max-time 60 --output "%tempFile%" "%requestUrl%"
 ) else (
+    set "ZDY_DOWNLOAD_URL=%requestUrl%"
+    set "ZDY_DOWNLOAD_FILE=%tempFile%"
     powershell -NoProfile -Command ^
-        "$url = '%requestUrl%';" ^
-        "$out = '%tempFile%';" ^
-        "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
-        "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
+        "$res = Invoke-WebRequest -Uri $env:ZDY_DOWNLOAD_URL -TimeoutSec 60 -UseBasicParsing -Headers @{'Cache-Control'='no-cache'};" ^
+        "if ($res.StatusCode -ne 200) { exit 1 };" ^
+        "[IO.File]::WriteAllText($env:ZDY_DOWNLOAD_FILE, [string]$res.Content, (New-Object Text.UTF8Encoding($false)))"
+)
+if errorlevel 1 (
+    if exist "%tempFile%" del /f /q "%tempFile%" >nul 2>&1
+    call :PrintRed "Failed to download hosts file from repository"
+    call :PrintYellow "Copy hosts file manually from %hostsUrl%"
+    pause
+    goto menu
 )
 if not exist "%tempFile%" (
     call :PrintRed "Failed to download hosts file from repository"
@@ -1074,31 +1083,24 @@ if not exist "%tempFile%" (
     goto menu
 )
 
-set "firstLine="
-set "lastLine="
-for /f "usebackq delims=" %%a in ("%tempFile%") do (
-    if not defined firstLine (
-        set "firstLine=%%a"
-    )
-    set "lastLine=%%a"
+call :validate_hosts_file "%tempFile%"
+if errorlevel 1 (
+    del /f /q "%tempFile%" >nul 2>&1
+    call :PrintRed "[X] Downloaded hosts data failed validation. The system hosts file was not touched."
+    pause
+    goto menu
 )
 
-findstr /C:"!firstLine!" "%hostsFile%" >nul 2>&1
-if !errorlevel! neq 0 (
-    echo First line from repository not found in hosts file
-    set "needsUpdate=1"
-)
+set "ZDY_HOSTS_SOURCE=%tempFile%"
+set "ZDY_HOSTS_TARGET=%hostsFile%"
+powershell -NoProfile -Command "$normalize={ param([string]$line) (($line.Trim() -replace '\s+',' ').ToLowerInvariant()) }; $wanted=@(Get-Content -LiteralPath $env:ZDY_HOSTS_SOURCE | ForEach-Object { & $normalize $_ } | Where-Object { $_ -and -not $_.StartsWith('#') } | Sort-Object -Unique); $actual=@(Get-Content -LiteralPath $env:ZDY_HOSTS_TARGET -ErrorAction Stop | ForEach-Object { & $normalize $_ } | Where-Object { $_ -and -not $_.StartsWith('#') } | Sort-Object -Unique); $missing=@($wanted | Where-Object { $actual -notcontains $_ }); if ($missing.Count -gt 0) { Write-Host ($missing.Count.ToString() + ' required hosts line(s) are missing.'); exit 2 }; exit 0"
+if errorlevel 1 set "needsUpdate=1"
 
-findstr /C:"!lastLine!" "%hostsFile%" >nul 2>&1
-if !errorlevel! neq 0 (
-    echo Last line from repository not found in hosts file
-    set "needsUpdate=1"
-)
-
-if "%needsUpdate%"=="1" (
+if "!needsUpdate!"=="1" (
     echo:
     call :PrintYellow "Hosts file needs to be updated"
     call :PrintYellow "Please manually copy the content from the downloaded file to your hosts file"
+    echo Downloaded and fully validated data: "!tempFile!"
     
     start notepad "%tempFile%"
     explorer /select,"%hostsFile%"
@@ -1142,6 +1144,11 @@ exit /b
 
 
 :: Utility functions
+
+:validate_hosts_file
+set "ZDY_VALIDATE_FILE=%~1"
+powershell -NoProfile -Command "$valid=0; try { foreach ($raw in Get-Content -LiteralPath $env:ZDY_VALIDATE_FILE -ErrorAction Stop) { $line=($raw -split '#',2)[0].Trim(); if (-not $line) { continue }; $parts=@($line -split '\s+' | Where-Object { $_ }); if ($parts.Count -lt 2) { throw ('Invalid hosts line: '+$raw) }; $ip=$null; if (-not [Net.IPAddress]::TryParse($parts[0],[ref]$ip)) { throw ('Invalid hosts address: '+$raw) }; for ($i=1; $i -lt $parts.Count; $i++) { if ($parts[$i] -notmatch '^[A-Za-z0-9_.-]+$') { throw ('Invalid hostname: '+$parts[$i]) } }; $valid++ }; if ($valid -lt 1) { throw 'No hosts entries were found' }; exit 0 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; exit 1 }"
+exit /b %errorlevel%
 
 :clear_discord_cache
 setlocal EnableDelayedExpansion
