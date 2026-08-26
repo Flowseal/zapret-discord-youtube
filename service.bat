@@ -29,25 +29,54 @@ if "%~1"=="load_game_filter" (
 
 if "%~1"=="load_user_lists" (
     call :load_user_lists
-    exit /b
+    if errorlevel 1 exit /b 1
+    exit /b 0
 )
 
-if "%1"=="admin" (
+if /i "%~1"=="admin" (
+    call :is_admin
+    if errorlevel 1 (
+        echo [ERROR] Administrative privileges were not granted.
+        pause
+        exit /b 1
+    )
+
+    call :check_extracted
+    if errorlevel 1 exit /b 1
     call :check_command chcp
+    if errorlevel 1 exit /b 1
     call :check_command find
+    if errorlevel 1 exit /b 1
     call :check_command findstr
+    if errorlevel 1 exit /b 1
     call :check_command netsh
+    if errorlevel 1 exit /b 1
+    call :check_command powershell
+    if errorlevel 1 exit /b 1
     
     call :load_user_lists
+    if errorlevel 1 (
+        echo [ERROR] User list files could not be prepared.
+        pause
+        exit /b 1
+    )
 
     echo Started with admin rights
 ) else (
     call :check_extracted
+    if errorlevel 1 exit /b 1
     call :check_command powershell
+    if errorlevel 1 exit /b 1
 
     echo Requesting admin rights...
-    powershell -NoProfile -Command "Start-Process 'cmd.exe' -ArgumentList '/c \"\"%~f0\" admin\"' -Verb RunAs"
-    exit
+    set "ZDY_ELEVATE_SCRIPT=%~f0"
+    powershell -NoProfile -Command "$command=([string][char]34)+$env:ZDY_ELEVATE_SCRIPT+([string][char]34)+' admin'; Start-Process -FilePath $env:ComSpec -ArgumentList @('/d','/c',$command) -Verb RunAs"
+    if errorlevel 1 (
+        echo [ERROR] Failed to request administrative privileges.
+        pause
+        exit /b 1
+    )
+    exit /b 0
 )
 
 
@@ -116,18 +145,28 @@ goto menu
 :load_user_lists
 set "LISTS_PATH=%~dp0lists\"
 
+if not exist "%LISTS_PATH%" md "%LISTS_PATH%" >nul 2>&1
+if not exist "%LISTS_PATH%" (
+    echo [ERROR] Lists folder could not be created: "%LISTS_PATH%"
+    exit /b 1
+)
+
 if not exist "%LISTS_PATH%ipset-exclude-user.txt" (
     echo 203.0.113.113/32>"%LISTS_PATH%ipset-exclude-user.txt"
+    if errorlevel 1 exit /b 1
 )
 if not exist "%LISTS_PATH%list-general-user.txt" (
     echo # Never leave this file empty>"%LISTS_PATH%list-general-user.txt"
+    if errorlevel 1 exit /b 1
     echo domain.example.abc>>"%LISTS_PATH%list-general-user.txt"
+    if errorlevel 1 exit /b 1
 )
 if not exist "%LISTS_PATH%list-exclude-user.txt" (
     echo domain.example.abc>"%LISTS_PATH%list-exclude-user.txt"
+    if errorlevel 1 exit /b 1
 )
 
-exit /b
+exit /b 0
 
 
 :: TCP ENABLE ==========================
@@ -1143,6 +1182,11 @@ exit /b
 
 :: Utility functions
 
+:is_admin
+fltmc >nul 2>&1
+if errorlevel 1 exit /b 1
+exit /b 0
+
 :clear_discord_cache
 setlocal EnableDelayedExpansion
 set "discordProcess=%~1"
@@ -1192,7 +1236,7 @@ powershell -NoProfile -Command "Write-Host \"%~1\" -ForegroundColor Yellow"
 exit /b
 
 :check_command
-where %1 >nul 2>&1
+where "%~1" >nul 2>&1
 if %errorLevel% neq 0 (
     echo [ERROR] %1 not found in PATH
     echo Fix your PATH variable with instructions here https://github.com/Flowseal/zapret-discord-youtube/issues/7490
@@ -1209,6 +1253,6 @@ if not exist "%~dp0bin\" set "extracted=0"
 if "%extracted%"=="0" (
     echo Zapret must be extracted from archive first or bin folder not found for some reason
     pause
-    exit
+    exit /b 1
 )
 exit /b 0
