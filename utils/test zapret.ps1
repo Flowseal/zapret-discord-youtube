@@ -129,7 +129,7 @@ function Build-DpiTargets {
     $targets = @()
 
     if ($CustomHost) {
-        $targets += @{ Id = "CUSTOM"; Provider = "Custom"; Country = "💡"; Host = $CustomHost }
+        $targets += @{ Id = "CUSTOM"; Provider = "Custom"; Country = "рџ’Ў"; Host = $CustomHost }
     } else {
         foreach ($entry in $suite) {
             $targets += @{ Id = $entry.Id; Country = $entry.Country; Provider = $entry.Provider; Host = $entry.Host }
@@ -179,6 +179,7 @@ function Invoke-DpiSuite {
                 "--range", $rangeSpec,
                 "-m", $TimeoutSeconds,
                 "--connect-timeout", ([Math]::Min(3, $TimeoutSeconds)),
+                "--ssl-revoke-best-effort",
                 "-w", "%{http_code} %{size_upload} %{size_download} %{time_total}",
                 "-o", "NUL",
                 "-X", "POST",
@@ -200,7 +201,7 @@ function Invoke-DpiSuite {
                 $upBytes = [int64]$matches['up']
                 $downBytes = [int64]$matches['down']
                 $time = [double]$matches['time']
-            } elseif (($exit -eq 35) -or ($text -match "not supported|does not support|protocol\s+'.+'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel|SSL")) {
+            } elseif ($text -match "not supported|does not support|protocol\s+'.+'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature") {
                 $code = "UNSUP"
             } elseif ($text) {
                 $code = "ERR"
@@ -678,7 +679,7 @@ try {
                     @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
                 )
 
-                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "--connect-timeout", ([Math]::Min(2, $curlTimeoutSeconds)), "-o", "NUL", "-w", "%{http_code}", "--show-error")
+                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "--connect-timeout", ([Math]::Min(2, $curlTimeoutSeconds)), "--ssl-revoke-best-effort", "-o", "NUL", "-w", "%{http_code}", "--show-error")
                 foreach ($test in $tests) {
                     try {
                         $curlArgs = $baseArgs + $test.Args
@@ -698,7 +699,7 @@ try {
                             continue
                         }
                         
-                        $unsupported = (($LASTEXITCODE -eq 35) -or ($stderr -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel"))
+                        $unsupported = ($stderr -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature")
                         if ($unsupported) {
                             $httpPieces += "$($test.Label):UNSUP"
                             continue
