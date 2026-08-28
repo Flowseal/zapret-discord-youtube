@@ -4,6 +4,7 @@ set "LOCAL_VERSION=1.10.2"
 :: External commands
 if "%~1"=="status_zapret" (
     call :test_service zapret soft
+    if errorlevel 1 exit /b 2
     call :tcp_enable
     exit /b
 )
@@ -177,7 +178,7 @@ if "%ServiceStatus%"=="RUNNING" (
     if "%~2"=="soft" (
         echo "%ServiceName%" is ALREADY RUNNING as service, use "service.bat" and choose "Remove Services" first if you want to run standalone bat.
         pause
-        exit /b
+        exit /b 1
     ) else (
         echo "%ServiceName%" service is RUNNING.
     )
