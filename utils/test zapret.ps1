@@ -200,7 +200,7 @@ function Invoke-DpiSuite {
                 $upBytes = [int64]$matches['up']
                 $downBytes = [int64]$matches['down']
                 $time = [double]$matches['time']
-            } elseif (($exit -eq 35) -or ($text -match "not supported|does not support|protocol\s+'.+'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel|SSL")) {
+            } elseif ($text -match "not supported|does not support|protocol\s+'.+'\s+not\s+supported|protocol\s+.+\s+not\s+supported|unsupported protocol|TLS.not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature") {
                 $code = "UNSUP"
             } elseif ($text) {
                 $code = "ERR"
@@ -698,7 +698,7 @@ try {
                             continue
                         }
                         
-                        $unsupported = (($LASTEXITCODE -eq 35) -or ($stderr -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature|schannel"))
+                        $unsupported = ($stderr -match "does not support|not supported|protocol\s+'?.+'?\s+not\s+supported|unsupported protocol|TLS.*not supported|Unrecognized option|Unknown option|unsupported option|unsupported feature")
                         if ($unsupported) {
                             $httpPieces += "$($test.Label):UNSUP"
                             continue
