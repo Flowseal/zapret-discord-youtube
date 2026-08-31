@@ -354,6 +354,13 @@ set SRVCNAME=zapret
 net stop %SRVCNAME% >nul 2>&1
 sc delete %SRVCNAME% >nul 2>&1
 sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto
+if !errorlevel! neq 0 (
+    call :PrintRed "Failed to create the zapret service."
+    call :PrintYellow "The install path is likely too long or the strategy has too many arguments."
+    call :PrintYellow "Move the folder to a short path like C:\zapret and try again."
+    pause
+    goto menu
+)
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
 for %%F in ("!file%choice%!") do (
