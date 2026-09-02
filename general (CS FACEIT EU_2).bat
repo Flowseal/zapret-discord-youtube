@@ -19,7 +19,7 @@ set "LISTS=%~dp0lists\"
 cd /d %BIN%
 
 start "zapret: %~n0" /min "%BIN%winws.exe" --debug=0 --wf-tcp=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp=443,19294-19344,50000-50100,%GameFilterUDP% --wf-raw-part=@"%~dp0cs.txt" ^
---filter-udp=10000-65535 --dpi-desync=fake --dpi-desync-autottl=1:3-8 --dpi-desync-repeats=2 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%BIN%quic_initial_game.bin" --new ^
+--filter-udp=10000-65535 --dpi-desync=fake --dpi-desync-autottl=1:3-8 --dpi-desync-repeats=2 --dpi-desync-any-protocol=1 --dpi-desync-cutoff=n3 --dpi-desync-fake-unknown-udp="%BIN%quic_initial_game.bin" --new ^
 --filter-udp=443 --hostlist="%LISTS%list-general.txt" --hostlist="%LISTS%list-general-user.txt" --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" --dpi-desync=fake --dpi-desync-repeats=11 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
 --filter-udp=19294-19344,50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-fake-discord="%BIN%quic_initial_game.bin" --dpi-desync-fake-stun="%BIN%quic_initial_game.bin" --dpi-desync-repeats=6 --new ^
 --filter-tcp=2053,2083,2087,2096,8443 --hostlist-domains=discord.media --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-fooling=ts --dpi-desync-repeats=8 --dpi-desync-split-seqovl-pattern="%BIN%tls_clienthello_www_google_com.bin" --dpi-desync-fake-tls="%BIN%tls_clienthello_www_google_com.bin" --new ^
