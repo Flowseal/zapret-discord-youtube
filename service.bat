@@ -1,5 +1,5 @@
 @echo off
-set "LOCAL_VERSION=1.10.0"
+set "LOCAL_VERSION=1.10.2"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -272,27 +272,30 @@ set "args_with_value=sni host altorder"
 set "args="
 set "capture=0"
 set "mergeargs=0"
+set "BIN=%~dp0bin\"
+set "LISTS=%~dp0lists\"
 set QUOTE="
 
 for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
     set "line=%%a"
     call set "line=%%line:^!=EXCL_MARK%%"
+    call set "line=!line!"
 
-    echo !line! | findstr /i "%BIN%winws.exe" >nul
+    echo !line! | findstr /i "winws.exe" >nul
     if not errorlevel 1 (
         set "capture=1"
     )
 
     if !capture!==1 (
         if not defined args (
-            set "line=!line:*%BIN%winws.exe"=!"
+            set "line=!line:*winws.exe"=!"
         )
 
         set "temp_args="
         for %%i in (!line!) do (
             set "arg=%%i"
 
-            if not "!arg!"=="^" (
+            if not "!arg!"=="^" if not "!arg!"=="^^" (
                 if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
                     set "mergeargs=0"
                 )
@@ -305,19 +308,9 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
                         set "arg=\!QUOTE!!arg!\!QUOTE!"
                     ) else if "!arg:~0,1!"=="@" (
                         set "arg=\!QUOTE!@%~dp0!arg:~1!\!QUOTE!"
-                    ) else if "!arg:~0,5!"=="%%BIN%%" (
-                        set "arg=\!QUOTE!!BIN_PATH!!arg:~5!\!QUOTE!"
-                    ) else if "!arg:~0,7!"=="%%LISTS%%" (
-                        set "arg=\!QUOTE!!LISTS_PATH!!arg:~7!\!QUOTE!"
                     ) else (
                         set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
                     )
-                ) else if "!arg:~0,12!" EQU "%%GameFilter%%" (
-                    set "arg=%GameFilter%"
-                ) else if "!arg:~0,15!" EQU "%%GameFilterTCP%%" (
-                    set "arg=%GameFilterTCP%"
-                ) else if "!arg:~0,15!" EQU "%%GameFilterUDP%%" (
-                    set "arg=%GameFilterUDP%"
                 )
 
                 if !mergeargs!==1 (
@@ -417,6 +410,10 @@ goto menu
 :service_diagnostics
 chcp 437 > nul
 cls
+
+:: Zapret path
+call :PrintGreen "Zapret is installed in: '%~dp0'"
+echo:
 
 :: Base Filtering Engine
 sc query BFE | findstr /I "RUNNING" > nul
@@ -519,6 +516,26 @@ if !errorlevel!==0 (
     call :PrintRed "Try to uninstall or disable SmartByte through services.msc"
 ) else (
     call :PrintGreen "SmartByte check passed"
+)
+echo:
+
+:: Cyrillic path
+powershell -NoProfile -Command "if ('%~dp0' -match '[\u0430-\u044F\u0410-\u042F\u0451\u0401]') { exit 0 } else { exit 1 }"
+if !errorlevel!==0 (
+    call :PrintYellow "[?] The path where Zapret is installed contains Cyrillic characters"
+    call :PrintYellow "If bypass doesn't work, try to move Zapret to another directory, for example in C:\zapret"
+) else (
+    call :PrintGreen "Cyrillic path check passed"
+)
+echo:
+
+:: OneDrive
+echo %~dp0\ | findstr /I /C:"%OneDrive%\\" > nul
+if !errorlevel!==0 (
+    call :PrintRed "[X] Zapret is installed in a OneDrive folder"
+    call :PrintRed "If bypass doesn't work, try to move Zapret to another directory, for example in C:\zapret"
+) else (
+    call :PrintGreen "OneDrive check passed"
 )
 echo:
 
@@ -676,7 +693,7 @@ if !found_any_conflict!==1 (
 
 :: Discord cache clearing
 set "CHOICE="
-set /p "CHOICE=Do you want to clear the Discord and Discord PTB cache? (Y/N) (default: Y) "
+set /p "CHOICE=Do you want to clear the Discord cache (Stable, PTB, Canary, Development)? (Y/N) (default: Y) "
 if "!CHOICE!"=="" set "CHOICE=Y"
 if "!CHOICE!"=="y" set "CHOICE=Y"
 
@@ -690,7 +707,15 @@ if /i "!CHOICE!"=="Y" (
         set "discordFound=1"
         call :clear_discord_cache "DiscordPTB.exe" "Discord PTB" "%APPDATA%\discordptb"
     )
-    if !discordFound! equ 0 call :PrintRed "Discord and Discord PTB were not found"
+    if exist "%APPDATA%\discordcanary\" (
+        set "discordFound=1"
+        call :clear_discord_cache "DiscordCanary.exe" "Discord Canary" "%APPDATA%\discordcanary"
+    )
+    if exist "%APPDATA%\discorddevelopment\" (
+        set "discordFound=1"
+        call :clear_discord_cache "DiscordDevelopment.exe" "Discord Development" "%APPDATA%\discorddevelopment"
+    )
+    if !discordFound! equ 0 call :PrintRed "Discord installations were not found"
     set "discordFound="
 )
 echo:

@@ -10,8 +10,10 @@ body:
       label: ⚠️ Чеклист
       description: Перед созданием нового Issue, удостоверьтесь что выполнили следующие пункты
       options:
-        - label: Я искал решение проблемы в [README](https://github.com/Flowseal/zapret-discord-youtube/blob/main/README.md) и среди [Issues](https://github.com/Flowseal/zapret-discord-youtube/issues)
+        - label: Я искал решение проблемы в [README](https://github.com/Flowseal/zapret-discord-youtube/blob/main/README.md) и среди [Issues](https://github.com/Flowseal/zapret-discord-youtube/issues) и [Discussions](https://github.com/Flowseal/zapret-discord-youtube/discussions)
         - label: Я скачал ``zapret-discord-youtube`` из [релизов официального репозитория](https://github.com/Flowseal/zapret-discord-youtube/releases)
+        - label: Ознакомился с [условиями создания Issue](https://gist.github.com/ControlRe/af8f5ae80816af2ff4ffa9228bbaf626)
+          required: true
 
   - type: textarea
     id: description
@@ -21,7 +23,14 @@ body:
       placeholder: Описание проблемы
     validations:
       required: true
-
+  
+  - type: textarea
+    id: providerandregion
+    attributes:
+      label: Укажите своего провайдера и регион (при желании)
+      description: Провайдер и регион на котором вы словили проблему
+      placeholder: Провайдер и регион
+  
   - type: textarea
     id: version
     attributes:
