@@ -1,6 +1,13 @@
 @echo off
 set "LOCAL_VERSION=1.10.2"
 
+:: ---- Fast ANSI color setup (no more spawning powershell.exe for colored output) ----
+for /F "delims=#" %%E in ('"prompt #$E# & for %%b in (1) do rem"') do set "ESC=%%E"
+set "COL_GREEN=%ESC%[32m"
+set "COL_RED=%ESC%[31m"
+set "COL_YELLOW=%ESC%[33m"
+set "COL_RESET=%ESC%[0m"
+
 :: External commands
 if "%~1"=="status_zapret" (
     call :test_service zapret soft
@@ -37,7 +44,7 @@ if "%1"=="admin" (
     call :check_command find
     call :check_command findstr
     call :check_command netsh
-    
+
     call :load_user_lists
 
     echo Started with admin rights
@@ -115,6 +122,8 @@ goto menu
 :: LOAD USER LISTS =====================
 :load_user_lists
 set "LISTS_PATH=%~dp0lists\"
+
+if not exist "%LISTS_PATH%" mkdir "%LISTS_PATH%" >nul 2>&1
 
 if not exist "%LISTS_PATH%ipset-exclude-user.txt" (
     echo 203.0.113.113/32>"%LISTS_PATH%ipset-exclude-user.txt"
@@ -235,6 +244,12 @@ cd /d "%~dp0"
 set "BIN_PATH=%~dp0bin\"
 set "LISTS_PATH=%~dp0lists\"
 
+if not exist "%BIN_PATH%winws.exe" (
+    call :PrintRed "[X] bin\winws.exe not found. Zapret is corrupted or not fully extracted."
+    pause
+    goto menu
+)
+
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
 set "count=0"
@@ -242,6 +257,12 @@ for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -Literal
     set /a count+=1
     echo   !count!. %%F
     set "file!count!=%%F"
+)
+
+if !count!==0 (
+    call :PrintRed "[X] No strategy .bat files found next to service.bat."
+    pause
+    goto menu
 )
 
 echo   0. Exit
@@ -261,7 +282,13 @@ if "!choice!"=="0" (
 
 set "selectedFile=!file%choice%!"
 if not defined selectedFile (
-    echo Invalid choice, exiting...
+    call :PrintRed "Invalid choice, exiting..."
+    pause
+    goto menu
+)
+
+if not exist "!selectedFile!" (
+    call :PrintRed "[X] Selected strategy file no longer exists: !selectedFile!"
     pause
     goto menu
 )
@@ -343,6 +370,12 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
     )
 )
 
+if not defined args (
+    call :PrintRed "[X] Failed to parse winws.exe arguments from !selectedFile!. The strategy file may be malformed."
+    pause
+    goto menu
+)
+
 :: Creating service with parsed args
 call :tcp_enable
 
@@ -353,13 +386,24 @@ set SRVCNAME=zapret
 
 net stop %SRVCNAME% >nul 2>&1
 sc delete %SRVCNAME% >nul 2>&1
-sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto
-sc description %SRVCNAME% "Zapret DPI bypass software"
-sc start %SRVCNAME%
+sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto >nul
+if !errorlevel! neq 0 (
+    call :PrintRed "[X] Failed to create the zapret service (sc create returned an error)."
+    pause
+    goto menu
+)
+sc description %SRVCNAME% "Zapret DPI bypass software" >nul
+sc start %SRVCNAME% >nul
+if !errorlevel! neq 0 (
+    call :PrintYellow "[?] Service created but failed to start. Run 'Run Diagnostics' or 'Check Status' to investigate."
+) else (
+    call :PrintGreen "Service installed and started successfully."
+)
+
 for %%F in ("!file%choice%!") do (
     set "filename=%%~nF"
 )
-reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
+reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f >nul
 
 pause
 goto menu
@@ -376,33 +420,34 @@ set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/relea
 set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest"
 
 :: Get the latest version from GitHub
-for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Uri \"%GITHUB_VERSION_URL%\" -Headers @{\"Cache-Control\"=\"no-cache\"} -UseBasicParsing -TimeoutSec 5).Content.Trim()" 2^>nul') do set "GITHUB_VERSION=%%A"
+set "GITHUB_VERSION="
+for /f "delims=" %%A in ('powershell -NoProfile -Command "try { (Invoke-WebRequest -Uri \"%GITHUB_VERSION_URL%\" -Headers @{\"Cache-Control\"=\"no-cache\"} -UseBasicParsing -TimeoutSec 5).Content.Trim() } catch { '' }" 2^>nul') do set "GITHUB_VERSION=%%A"
 
 :: Error handling
 if not defined GITHUB_VERSION (
-    echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
+    call :PrintYellow "Warning: failed to fetch the latest version (network issue?). This does not affect zapret's operation."
     timeout /T 9
-    if "%1"=="soft" exit 
+    if "%1"=="soft" exit
     goto menu
 )
 
 :: Version comparison
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
-    echo Latest version installed: %LOCAL_VERSION%
-    
-    if "%1"=="soft" exit 
+    call :PrintGreen "Latest version installed: %LOCAL_VERSION%"
+
+    if "%1"=="soft" exit
     pause
     goto menu
-) 
+)
 
-echo New version available: %GITHUB_VERSION%
+call :PrintYellow "New version available: %GITHUB_VERSION% (current: %LOCAL_VERSION%)"
 echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
 
 echo Opening the download page...
 start "" "%GITHUB_DOWNLOAD_URL%"
 
 
-if "%1"=="soft" exit 
+if "%1"=="soft" exit
 pause
 goto menu
 
@@ -438,7 +483,7 @@ if !proxyEnabled!==1 (
     for /f "tokens=2*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul ^| findstr /i "ProxyServer"') do (
         set "proxyServer=%%B"
     )
-    
+
     call :PrintYellow "[?] System proxy is enabled: !proxyServer!"
     call :PrintYellow "Make sure it's valid or disable it if you don't use a proxy"
 ) else (
@@ -601,16 +646,16 @@ set "windivert_running=!errorlevel!"
 
 if !winws_running! neq 0 if !windivert_running!==0 (
     call :PrintYellow "[?] winws.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
-    
+
     net stop "WinDivert" >nul 2>&1
     sc delete "WinDivert" >nul 2>&1
     sc query "WinDivert" >nul 2>&1
     if !errorlevel!==0 (
         call :PrintRed "[X] Failed to delete WinDivert. Checking for conflicting services..."
-        
+
         set "conflicting_services=GoodbyeDPI"
         set "found_conflict=0"
-        
+
         for %%s in (!conflicting_services!) do (
             sc query "%%s" >nul 2>&1
             if !errorlevel!==0 (
@@ -625,7 +670,7 @@ if !winws_running! neq 0 if !windivert_running!==0 (
                 set "found_conflict=1"
             )
         )
-        
+
         if !found_conflict!==0 (
             call :PrintRed "[X] No conflicting services found. Check manually if any other bypass is using WinDivert."
         ) else (
@@ -643,7 +688,7 @@ if !winws_running! neq 0 if !windivert_running!==0 (
     ) else (
         call :PrintGreen "WinDivert successfully removed"
     )
-    
+
     echo:
 )
 
@@ -666,12 +711,12 @@ for %%s in (!conflicting_services!) do (
 
 if !found_any_conflict!==1 (
     call :PrintRed "[X] Conflicting bypass services found: !found_conflicts!"
-    
+
     set "CHOICE="
     set /p "CHOICE=Do you want to remove these conflicting services? (Y/N) (default: N) "
     if "!CHOICE!"=="" set "CHOICE=N"
     if "!CHOICE!"=="y" set "CHOICE=Y"
-    
+
     if /i "!CHOICE!"=="Y" (
         for %%s in (!found_conflicts!) do (
             call :PrintYellow "Stopping and removing service: %%s"
@@ -689,7 +734,7 @@ if !found_any_conflict!==1 (
         net stop "WinDivert14" >nul 2>&1
         sc delete "WinDivert14" >nul 2>&1
     )
-    
+
     echo:
 )
 
@@ -791,7 +836,7 @@ if "%GameFilterChoice%"=="0" (
 ) else if "%GameFilterChoice%"=="3" (
     echo udp>"%gameFlagFile%"
 ) else (
-    echo Invalid choice, exiting...
+    call :PrintRed "Invalid choice, exiting..."
     pause
     goto menu
 )
@@ -846,7 +891,7 @@ set "current_discord_fake=(not found)"
 set "current_game_fake=(not found)"
 
 if not exist "%BIN_PATH%" (
-    echo Error: bin folder not found.
+    call :PrintRed "Error: bin folder not found."
     pause
     goto menu
 )
@@ -867,7 +912,7 @@ for /f "tokens=1,2,3 delims=|" %%A in ('powershell -NoProfile -Command "foreach 
 popd
 
 if !fake_count! EQU 0 (
-    echo No .bin files were found in the bin folder.
+    call :PrintRed "No .bin files were found in the bin folder."
     pause
     goto menu
 )
@@ -913,7 +958,7 @@ if "!fake_type!"=="1" (
 ) else if "!fake_type!"=="2" (
     set "active_file=%BIN_PATH%ACTIVE_GAME_UDP.bin"
 ) else (
-    echo Invalid fake type.
+    call :PrintRed "Invalid fake type."
     pause
     cls
     goto replace_active_fakes_prompt
@@ -922,7 +967,7 @@ if "!fake_type!"=="1" (
 set "source_file="
 for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" set "source_file=!fake_file%%N!"
 if not defined source_file (
-    echo Invalid fake file number.
+    call :PrintRed "Invalid fake file number."
     pause
     cls
     goto replace_active_fakes_prompt
@@ -931,9 +976,9 @@ if not defined source_file (
 del /f /q "!active_file!" >nul 2>&1
 copy /y "!source_file!" "!active_file!" >nul
 if errorlevel 1 (
-    echo Failed to replace the active fake file.
+    call :PrintRed "Failed to replace the active fake file."
 ) else (
-    echo Active fake file replaced successfully.
+    call :PrintGreen "Active fake file replaced successfully."
     for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" (
         if "!fake_type!"=="1" set "current_discord_fake=!fake_name%%N!"
         if "!fake_type!"=="2" set "current_game_fake=!fake_name%%N!"
@@ -973,37 +1018,37 @@ set "backupFile=%listFile%.backup"
 
 if "%IPsetStatus%"=="loaded" (
     echo Switching to none mode...
-    
+
     if not exist "%backupFile%" (
         ren "%listFile%" "ipset-all.txt.backup"
     ) else (
         del /f /q "%backupFile%"
         ren "%listFile%" "ipset-all.txt.backup"
     )
-    
+
     >"%listFile%" (
         echo 203.0.113.113/32
     )
-    
+
 ) else if "%IPsetStatus%"=="none" (
     echo Switching to any mode...
-    
+
     >"%listFile%" (
         rem Creating empty file
     )
-    
+
 ) else if "%IPsetStatus%"=="any" (
     echo Switching to loaded mode...
-    
+
     if exist "%backupFile%" (
         del /f /q "%listFile%"
         ren "%backupFile%" "ipset-all.txt"
     ) else (
-        echo Error: no backup to restore. Update list from service menu first
+        call :PrintRed "Error: no backup to restore. Update list from service menu first"
         pause
         goto menu
     )
-    
+
 )
 
 pause
@@ -1017,27 +1062,40 @@ cls
 
 set "listFile=%~dp0lists\ipset-all.txt"
 set "url=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/ipset-service.txt"
+set "tmpFile=%listFile%.tmp"
 
 echo Updating ipset-all...
 
+set "downloadOk=0"
 if exist "%SystemRoot%\System32\curl.exe" (
-    curl --version | find "libcurl/7"
+    curl --version | find "libcurl/7" >nul
     if !errorlevel!==0 (
-        curl --ssl-no-revoke -L -o "%listFile%" "%url%"
+        curl --ssl-no-revoke -f -L -o "%tmpFile%" "%url%" && set "downloadOk=1"
     ) else (
-        curl --ssl-revoke-best-effort -L -o "%listFile%" "%url%"
+        curl --ssl-revoke-best-effort -f -L -o "%tmpFile%" "%url%" && set "downloadOk=1"
     )
 ) else (
     powershell -NoProfile -Command ^
         "$url = '%url%';" ^
-        "$out = '%listFile%';" ^
+        "$out = '%tmpFile%';" ^
         "$dir = Split-Path -Parent $out;" ^
         "if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null };" ^
-        "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
-        "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
+        "try { $res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing; if ($res.StatusCode -eq 200) { [IO.File]::WriteAllText($out, $res.Content) ; exit 0 } else { exit 1 } } catch { exit 1 }"
+    if !errorlevel!==0 set "downloadOk=1"
 )
 
-echo Finished
+if "!downloadOk!"=="1" if exist "%tmpFile%" (
+    for %%s in ("%tmpFile%") do if %%~zs GTR 0 (
+        move /y "%tmpFile%" "%listFile%" >nul
+        call :PrintGreen "ipset-all list updated successfully."
+    ) else (
+        call :PrintRed "[X] Downloaded file was empty, keeping the old list."
+        del /f /q "%tmpFile%" >nul 2>&1
+    )
+) else (
+    call :PrintRed "[X] Failed to download ipset list. Keeping the old one."
+    if exist "%tmpFile%" del /f /q "%tmpFile%" >nul 2>&1
+)
 
 pause
 goto menu
@@ -1058,18 +1116,26 @@ set "requestUrl=%hostsUrl%?t=%cacheBuster%"
 
 echo Checking hosts file...
 
+if exist "%tempFile%" del /f /q "%tempFile%" >nul 2>&1
+
 if exist "%SystemRoot%\System32\curl.exe" (
-    curl -L -s -o "%tempFile%" "%requestUrl%"
+    curl -f -L -s -o "%tempFile%" "%requestUrl%"
 ) else (
     powershell -NoProfile -Command ^
         "$url = '%requestUrl%';" ^
         "$out = '%tempFile%';" ^
-        "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
-        "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
+        "try { $res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing; if ($res.StatusCode -eq 200) { [IO.File]::WriteAllText($out, $res.Content) } else { exit 1 } } catch { exit 1 }"
 )
 if not exist "%tempFile%" (
     call :PrintRed "Failed to download hosts file from repository"
     call :PrintYellow "Copy hosts file manually from %hostsUrl%"
+    pause
+    goto menu
+)
+
+for %%s in ("%tempFile%") do if %%~zs EQU 0 (
+    call :PrintRed "Downloaded hosts file is empty, aborting update."
+    del /f /q "%tempFile%" >nul 2>&1
     pause
     goto menu
 )
@@ -1099,7 +1165,7 @@ if "%needsUpdate%"=="1" (
     echo:
     call :PrintYellow "Hosts file needs to be updated"
     call :PrintYellow "Please manually copy the content from the downloaded file to your hosts file"
-    
+
     start notepad "%tempFile%"
     explorer /select,"%hostsFile%"
 ) else (
@@ -1120,9 +1186,15 @@ cls
 :: Require PowerShell 3.0+
 powershell -NoProfile -Command "if ($PSVersionTable -and $PSVersionTable.PSVersion -and $PSVersionTable.PSVersion.Major -ge 3) { exit 0 } else { exit 1 }" >nul 2>&1
 if %errorLevel% neq 0 (
-    echo PowerShell 3.0 or newer is required.
+    call :PrintRed "PowerShell 3.0 or newer is required."
     echo Please upgrade PowerShell and rerun this script.
     echo.
+    pause
+    goto menu
+)
+
+if not exist "%~dp0utils\test zapret.ps1" (
+    call :PrintRed "[X] utils\test zapret.ps1 not found."
     pause
     goto menu
 )
@@ -1179,16 +1251,17 @@ if exist "!discordCacheDir!\" (
 endlocal
 exit /b
 
+:: Fast colored output — no more spawning powershell.exe per call
 :PrintGreen
-powershell -NoProfile -Command "Write-Host \"%~1\" -ForegroundColor Green"
+echo %COL_GREEN%%~1%COL_RESET%
 exit /b
 
 :PrintRed
-powershell -NoProfile -Command "Write-Host \"%~1\" -ForegroundColor Red"
+echo %COL_RED%%~1%COL_RESET%
 exit /b
 
 :PrintYellow
-powershell -NoProfile -Command "Write-Host \"%~1\" -ForegroundColor Yellow"
+echo %COL_YELLOW%%~1%COL_RESET%
 exit /b
 
 :check_command
