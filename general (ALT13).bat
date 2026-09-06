@@ -1,18 +1,51 @@
 @echo off
 chcp 65001 > nul
 :: 65001 - UTF-8
-
 cd /d "%~dp0"
 call service.bat status_zapret
 call service.bat check_updates
 call service.bat load_game_filter
 call service.bat load_user_lists
 echo:
-
 set "BIN=%~dp0bin\"
 set "LISTS=%~dp0lists\"
-cd /d %BIN%
 
+:: --- Pre-launch sanity checks ---
+:: NOTE: service.bat's "Install Service" parses this file as plain text and starts
+:: capturing arguments at the first line containing the engine executable's name.
+:: So nothing above the real launch line below may contain that name, even in a comment.
+if not exist "%BIN%quic_initial_www_google_com.bin" goto :missing_bin
+if not exist "%BIN%ACTIVE_DISCORD_UDP.bin" goto :missing_bin
+if not exist "%BIN%tls_clienthello_www_google_com.bin" goto :missing_bin
+if not exist "%BIN%tls_clienthello_sochi_park.bin" goto :missing_bin
+if not exist "%BIN%stun2.bin" goto :missing_bin
+if not exist "%BIN%ACTIVE_GAME_UDP.bin" goto :missing_bin
+
+if not exist "%LISTS%list-general.txt" goto :missing_lists
+if not exist "%LISTS%list-general-user.txt" goto :missing_lists
+if not exist "%LISTS%list-exclude.txt" goto :missing_lists
+if not exist "%LISTS%list-exclude-user.txt" goto :missing_lists
+if not exist "%LISTS%list-google.txt" goto :missing_lists
+if not exist "%LISTS%ipset-exclude.txt" goto :missing_lists
+if not exist "%LISTS%ipset-exclude-user.txt" goto :missing_lists
+if not exist "%LISTS%ipset-all.txt" goto :missing_lists
+
+goto :launch
+
+:missing_bin
+echo [ERROR] One or more required fake/engine files are missing from the bin folder.
+echo Re-extract/reinstall zapret and try again.
+pause
+exit /b 1
+
+:missing_lists
+echo [ERROR] One or more required list files are missing from the lists folder.
+echo Try the update options in service.bat, or reinstall.
+pause
+exit /b 1
+
+:launch
+cd /d %BIN%
 start "zapret: %~n0" /min "%BIN%winws.exe" --wf-tcp=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp=443,19294-19344,50000-50100,%GameFilterUDP% ^
 --filter-udp=443 --hostlist="%LISTS%list-general.txt" --hostlist="%LISTS%list-general-user.txt" --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" --dpi-desync=fake --dpi-desync-repeats=11 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
 --filter-udp=19294-19344,50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-fake-discord="%BIN%ACTIVE_DISCORD_UDP.bin" --dpi-desync-fake-stun="%BIN%ACTIVE_DISCORD_UDP.bin" --dpi-desync-repeats=5 --new ^
