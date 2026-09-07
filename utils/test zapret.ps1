@@ -55,6 +55,8 @@ trap {
         Set-IpsetMode -mode "restore"
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
+    Write-Host "Press any key to close..." -ForegroundColor Yellow
+    [void][System.Console]::ReadKey($true)
     break
 }
 
@@ -605,14 +607,18 @@ function Restore-WinwsSnapshot {
         $processArgs = ""
         if ($p.CommandLine) {
             $quotedExe = '"' + $exe + '"'
-            if ($p.CommandLine.StartsWith($quotedExe)) {
+            if ($p.CommandLine.StartsWith($quotedExe, [StringComparison]::OrdinalIgnoreCase)) {
                 $processArgs = $p.CommandLine.Substring($quotedExe.Length).Trim()
-            } elseif ($p.CommandLine.StartsWith($exe)) {
+            } elseif ($p.CommandLine.StartsWith($exe, [StringComparison]::OrdinalIgnoreCase)) {
                 $processArgs = $p.CommandLine.Substring($exe.Length).Trim()
             }
         }
 
-        Start-Process -FilePath $exe -ArgumentList $processArgs -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null
+        try {
+            Start-Process -FilePath $exe -ArgumentList $processArgs -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null
+        } catch {
+            Write-Host "[WARN] Failed to restore previous winws instance ($exe): $_" -ForegroundColor Yellow
+        }
     }
 }
 
