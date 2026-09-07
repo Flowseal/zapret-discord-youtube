@@ -1,0 +1,52 @@
+<UserControl x:Class="ZapretUi.StrategyLabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <DockPanel LastChildFill="True" Margin="0,0,0,8">
+                <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,8,0" Text="Имя"/>
+                <WrapPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+                    <Button Content="Загрузить выбранную" Click="LoadSelected_Click"/>
+                    <Button Content="Сохранить .bat" Click="Save_Click"/>
+                    <Button x:Name="TestDraftButton" Content="Быстрый тест" Click="TestDraft_Click"/>
+                </WrapPanel>
+                <TextBox x:Name="NameBox" TextChanged="NameBox_TextChanged"/>
+            </DockPanel>
+            <TextBlock Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap"
+                       Text="Глобальные — WinDivert (--wf-*). Каждый профиль — блок до --new. Тест остановит текущий winws."/>
+            <TextBox x:Name="PreviewBox" Margin="0,8,0,0" Height="64" IsReadOnly="True"
+                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontSize="11"/>
+            <TextBlock x:Name="LabStatus" Margin="0,6,0,0" Foreground="{StaticResource Muted}" Text=""/>
+        </StackPanel>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0">
+                <WrapPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                    <Button Content="+" Click="AddProfile_Click" ToolTip="Добавить профиль" Width="36"/>
+                    <Button Content="Копия" Click="DupProfile_Click" ToolTip="Дублировать"/>
+                    <Button Content="-" Click="RemoveProfile_Click" ToolTip="Удалить профиль" Width="36"/>
+                </WrapPanel>
+                <ListBox x:Name="SectionList" SelectionChanged="SectionList_SelectionChanged"
+                         IsTextSearchEnabled="False"/>
+            </DockPanel>
+
+            <DockPanel Grid.Column="2">
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <TextBox x:Name="OptionFilter" Margin="0,0,0,6" TextChanged="OptionFilter_TextChanged"/>
+                    <ListBox x:Name="OptionList" Height="140" IsTextSearchEnabled="False"/>
+                    <Button Margin="0,6,0,0" HorizontalAlignment="Left" Content="Добавить параметр" Click="AddOption_Click"/>
+                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False"
+                              CanContentScroll="False">
+                    <StackPanel x:Name="EditorsHost"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

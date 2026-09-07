@@ -6,3 +6,8 @@
 
 .vscode/
 /build/
+/ZapretUi.exe
+/ZapretUi.pdb
+src/ZapretUi/bin/
+src/ZapretUi/obj/
+*.user
