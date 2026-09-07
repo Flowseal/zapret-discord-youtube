@@ -51,12 +51,20 @@ public static class StrategyTester
         return result.Count == 0 ? DefaultTargets() : result;
     }
 
-    public static async Task<StrategyTestResult> TestOneAsync(
+    public static Task<StrategyTestResult> TestOneAsync(
         StrategyInfo strategy,
+        IReadOnlyList<ProbeTarget> targets,
+        CancellationToken ct) =>
+        TestFromArgumentsAsync(strategy.Name, StrategyCatalog.BuildArguments(strategy), targets, ct);
+
+    public static async Task<StrategyTestResult> TestFromArgumentsAsync(
+        string strategyName,
+        string arguments,
         IReadOnlyList<ProbeTarget> targets,
         CancellationToken ct)
     {
-        await WinwsController.ConnectAsync(strategy, autostart: false, ct).ConfigureAwait(false);
+        await WinwsController.ConnectFromArgumentsAsync(arguments, strategyName, autostart: false, ct)
+            .ConfigureAwait(false);
         try
         {
             using var handler = new SocketsHttpHandler
@@ -113,7 +121,7 @@ public static class StrategyTester
             var median = times.Count == 0 ? 0 : times[times.Count / 2];
             return new StrategyTestResult
             {
-                StrategyName = strategy.Name,
+                StrategyName = strategyName,
                 Passed = passed,
                 Total = targets.Count,
                 MedianMs = median

@@ -19,7 +19,16 @@ public static class StrategyCatalog
             .ToList();
     }
 
+    public static string ExtractRawCommand(string batPath) =>
+        ExtractWinwsCommand(File.ReadAllLines(batPath, Encoding.UTF8));
+
     public static string BuildArguments(StrategyInfo strategy)
+    {
+        var command = ExtractWinwsCommand(File.ReadAllLines(strategy.BatPath, Encoding.UTF8));
+        return ExpandPlaceholders(command);
+    }
+
+    public static string ExpandPlaceholders(string command)
     {
         EnsureUserLists();
         var (tcp, udp) = ReadGameFilterPorts();
@@ -27,16 +36,14 @@ public static class StrategyCatalog
         var bin = ZapretPaths.BinDir.TrimEnd('\\') + "\\";
         var lists = ZapretPaths.ListsDir.TrimEnd('\\') + "\\";
 
-        var command = ExtractWinwsCommand(File.ReadAllLines(strategy.BatPath, Encoding.UTF8));
-        command = command
+        return command
             .Replace("%BIN%", bin, StringComparison.OrdinalIgnoreCase)
             .Replace("%LISTS%", lists, StringComparison.OrdinalIgnoreCase)
             .Replace("%~dp0", root, StringComparison.OrdinalIgnoreCase)
             .Replace("%GameFilterTCP%", tcp, StringComparison.OrdinalIgnoreCase)
             .Replace("%GameFilterUDP%", udp, StringComparison.OrdinalIgnoreCase)
-            .Replace("%GameFilter%", tcp, StringComparison.OrdinalIgnoreCase);
-
-        return command.Trim();
+            .Replace("%GameFilter%", tcp, StringComparison.OrdinalIgnoreCase)
+            .Trim();
     }
 
     public static void EnsureUserLists()

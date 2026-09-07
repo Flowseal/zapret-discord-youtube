@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Threading;
 using ZapretUi.Services;
 using MessageBox = System.Windows.MessageBox;
 
@@ -9,9 +10,17 @@ public partial class App : System.Windows.Application
     private Mutex? _mutex;
     private MainWindow? _window;
     private TrayService? _tray;
+    private bool _loggingCrash;
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        DispatcherUnhandledException += OnDispatcherUnhandled;
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+                CrashLog.Write(ex);
+        };
+
         base.OnStartup(e);
 
         _mutex = new Mutex(true, @"Global\ZapretUi.SingleInstance", out var created);
@@ -36,6 +45,22 @@ public partial class App : System.Windows.Application
         _window = new MainWindow();
         _tray = new TrayService(_window);
         _window.Show();
+    }
+
+    private void OnDispatcherUnhandled(object sender, DispatcherUnhandledExceptionEventArgs args)
+    {
+        args.Handled = true;
+        if (_loggingCrash)
+            return;
+        _loggingCrash = true;
+        try
+        {
+            CrashLog.Write(args.Exception);
+        }
+        finally
+        {
+            _loggingCrash = false;
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

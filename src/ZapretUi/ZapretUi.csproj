@@ -10,7 +10,6 @@
     <AssemblyName>ZapretUi</AssemblyName>
     <RootNamespace>ZapretUi</RootNamespace>
     <Version>1.0.0</Version>
-    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.1" />

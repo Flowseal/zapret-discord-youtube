@@ -52,17 +52,23 @@ public static class WinwsController
         };
     }
 
-    public static async Task ConnectAsync(StrategyInfo strategy, bool autostart, CancellationToken ct = default)
+    public static Task ConnectAsync(StrategyInfo strategy, bool autostart, CancellationToken ct = default) =>
+        ConnectFromArgumentsAsync(StrategyCatalog.BuildArguments(strategy), strategy.Name, autostart, ct);
+
+    public static async Task ConnectFromArgumentsAsync(
+        string args,
+        string displayName,
+        bool autostart,
+        CancellationToken ct = default)
     {
         EnableTcpTimestamps();
         StrategyCatalog.EnsureUserLists();
-        var args = StrategyCatalog.BuildArguments(strategy);
 
         await StopAsync(removeWinDivert: false, ct).ConfigureAwait(false);
 
         if (autostart)
         {
-            InstallService(args, strategy.Name);
+            InstallService(args, displayName);
             Run("sc", $"start {ServiceName}");
             await WaitForWinwsAsync(ct).ConfigureAwait(false);
             return;

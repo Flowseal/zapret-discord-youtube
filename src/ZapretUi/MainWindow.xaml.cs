@@ -4,6 +4,8 @@ using System.Windows.Threading;
 using ZapretUi.Models;
 using ZapretUi.Services;
 using MessageBox = System.Windows.MessageBox;
+using Style = System.Windows.Style;
+using Visibility = System.Windows.Visibility;
 
 namespace ZapretUi;
 
@@ -15,16 +17,14 @@ public partial class MainWindow : System.Windows.Window
     private bool _busy;
     private bool _suppressAutostart;
 
+    private StrategyLabView? _lab;
+
     public MainWindow()
     {
         InitializeComponent();
         StrategyList.ItemsSource = _rows;
 
-        foreach (var s in StrategyCatalog.Load())
-            _rows.Add(new StrategyRow { Info = s });
-
-        if (_rows.Count > 0)
-            StrategyList.SelectedIndex = 0;
+        ReloadStrategies();
 
         var warn = ZapretPaths.PathWarning();
         if (warn.Length > 0)
@@ -39,7 +39,66 @@ public partial class MainWindow : System.Windows.Window
         RefreshStatus();
     }
 
+    private void NavStrategies_Click(object sender, RoutedEventArgs e)
+    {
+        StrategyList.Visibility = Visibility.Visible;
+        LabHost.Visibility = Visibility.Collapsed;
+        StrategiesNav.Style = (Style)FindResource("PrimaryButton");
+        LabNav.Style = (Style)FindResource(typeof(System.Windows.Controls.Button));
+    }
+
+    private void NavLab_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_lab == null)
+            {
+                _lab = new StrategyLabView();
+                _lab.RunExclusive = RunBusyAsync;
+                _lab.GetSelectedStrategy = () => SelectedRow?.Info;
+                _lab.ReloadStrategies = ReloadStrategies;
+                _lab.RegisterTestCts = cts => _testCts = cts;
+                _lab.SetCancelEnabled = v => CancelTestButton.IsEnabled = v;
+                LabHost.Content = _lab;
+            }
+
+            StrategyList.Visibility = Visibility.Collapsed;
+            LabHost.Visibility = Visibility.Visible;
+            LabNav.Style = (Style)FindResource("PrimaryButton");
+            StrategiesNav.Style = (Style)FindResource(typeof(System.Windows.Controls.Button));
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write(ex);
+            MessageBox.Show(
+                ex.Message + (CrashLog.LastPath == null ? "" : "\n\nЛог: " + CrashLog.LastPath),
+                "Конструктор",
+                MessageBoxButton.OK,
+                MessageBoxImage.None);
+        }
+    }
+
     private StrategyRow? SelectedRow => StrategyList.SelectedItem as StrategyRow;
+
+    public void ReloadStrategies()
+    {
+        var selected = SelectedRow?.Name;
+        _rows.Clear();
+        foreach (var s in StrategyCatalog.Load())
+            _rows.Add(new StrategyRow { Info = s });
+
+        if (selected != null)
+        {
+            var match = _rows.FirstOrDefault(r =>
+                string.Equals(r.Name, selected, StringComparison.OrdinalIgnoreCase));
+            if (match != null)
+                StrategyList.SelectedItem = match;
+            else if (_rows.Count > 0)
+                StrategyList.SelectedIndex = 0;
+        }
+        else if (_rows.Count > 0)
+            StrategyList.SelectedIndex = 0;
+    }
 
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
@@ -231,5 +290,10 @@ public partial class MainWindow : System.Windows.Window
         TestButton.IsEnabled = enabled;
         AutostartCheck.IsEnabled = enabled;
         StrategyList.IsHitTestVisible = enabled;
+        StrategiesNav.IsHitTestVisible = enabled;
+        LabNav.IsHitTestVisible = enabled;
+        if (_lab != null)
+            _lab.IsHitTestVisible = enabled;
+        Background = (System.Windows.Media.Brush)FindResource("Bg");
     }
 }
