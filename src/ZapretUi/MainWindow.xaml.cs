@@ -230,6 +230,6 @@ public partial class MainWindow : System.Windows.Window
         DisconnectButton.IsEnabled = enabled;
         TestButton.IsEnabled = enabled;
         AutostartCheck.IsEnabled = enabled;
-        StrategyList.IsEnabled = enabled;
+        StrategyList.IsHitTestVisible = enabled;
     }
 }
