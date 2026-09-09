@@ -9,17 +9,14 @@ if "%~1"=="status_zapret" (
 )
 
 if "%~1"=="check_updates" (
-    if defined NO_UPDATE_CHECK exit /b
+    if defined NO_UPDATE_CHECK exit /b 0
 
     if exist "%~dp0utils\check_updates.enabled" (
-        if not "%~2"=="soft" (
-            start /b service check_updates soft
-        ) else (
-            call :service_check_updates soft
-        )
+        call :run_update_check -RestartBatch "%~2" -Quiet
+        if errorlevel 20 if not errorlevel 21 exit /b 20
     )
 
-    exit /b
+    exit /b 0
 )
 
 if "%~1"=="load_game_filter" (
@@ -61,6 +58,7 @@ cls
 call :ipset_switch_status
 call :game_switch_status
 call :check_updates_switch_status
+call :update_mode_status
 call :get_strategy_name
 
 set "menu_choice=null"
@@ -85,6 +83,7 @@ echo   :: UPDATES
 echo      8. Update IPSet List
 echo      9. Update Hosts File
 echo      10. Check for Updates
+echo      13. Update mode        [!UpdateMode!]
 echo.
 echo   :: TOOLS
 echo      11. Run Diagnostics
@@ -94,7 +93,7 @@ echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-12): 
+set /p "menu_choice=   Select option (0-13): "
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -108,6 +107,7 @@ if "%menu_choice%"=="9" goto hosts_update
 if "%menu_choice%"=="10" goto service_check_updates
 if "%menu_choice%"=="11" goto service_diagnostics
 if "%menu_choice%"=="12" goto run_tests
+if "%menu_choice%"=="13" goto update_mode_switch
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -370,42 +370,18 @@ goto menu
 chcp 437 > nul
 cls
 
-:: Set current version and URLs
-set "GITHUB_VERSION_URL=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/version.txt"
-set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/"
-set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest"
-
-:: Get the latest version from GitHub
-for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Uri \"%GITHUB_VERSION_URL%\" -Headers @{\"Cache-Control\"=\"no-cache\"} -UseBasicParsing -TimeoutSec 5).Content.Trim()" 2^>nul') do set "GITHUB_VERSION=%%A"
-
-:: Error handling
-if not defined GITHUB_VERSION (
-    echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
-    timeout /T 9
-    if "%1"=="soft" exit 
-    goto menu
-)
-
-:: Version comparison
-if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
-    echo Latest version installed: %LOCAL_VERSION%
-    
-    if "%1"=="soft" exit 
-    pause
-    goto menu
-) 
-
-echo New version available: %GITHUB_VERSION%
-echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
-
-echo Opening the download page...
-start "" "%GITHUB_DOWNLOAD_URL%"
-
-
-if "%1"=="soft" exit 
+call :run_update_check
+if errorlevel 20 exit /b 20
 pause
 goto menu
 
+
+
+:run_update_check
+setlocal DisableDelayedExpansion
+call :update_mode_status
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\update.ps1" -CurrentVersion "%LOCAL_VERSION%" -InstallDir "%~dp0." %UpdateModeArgument% %*
+endlocal & exit /b %errorlevel%
 
 
 :: DIAGNOSTICS =========================
@@ -828,6 +804,25 @@ if not exist "%checkUpdatesFlag%" (
 )
 
 pause
+goto menu
+
+
+:update_mode_status
+set "UpdateMode=GitHub"
+set "UpdateModeArgument=-OpenReleasePage"
+if exist "%~dp0utils\auto_update.enabled" (
+    set "UpdateMode=Install"
+    set "UpdateModeArgument=-Install"
+)
+exit /b
+
+
+:update_mode_switch
+if exist "%~dp0utils\auto_update.enabled" (
+    del /f /q "%~dp0utils\auto_update.enabled"
+) else (
+    echo ENABLED > "%~dp0utils\auto_update.enabled"
+)
 goto menu
 
 

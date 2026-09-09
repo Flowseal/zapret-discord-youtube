@@ -1,0 +1,23 @@
+name: Test updater
+
+on:
+  pull_request:
+    paths:
+      - '**/*.bat'
+      - 'utils/update.ps1'
+      - 'utils/test update.ps1'
+      - '.github/workflows/test-updater.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-powershell:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test installation and rollback without controlling services
+        shell: powershell
+        run: '& ".\utils\test update.ps1"'
