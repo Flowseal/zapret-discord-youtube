@@ -83,11 +83,11 @@ echo   :: UPDATES
 echo      8. Update IPSet List
 echo      9. Update Hosts File
 echo      10. Check for Updates
-echo      13. Update mode        [!UpdateMode!]
+echo      11. Update mode        [!UpdateMode!]
 echo.
 echo   :: TOOLS
-echo      11. Run Diagnostics
-echo      12. Run Tests
+echo      12. Run Diagnostics
+echo      13. Run Tests
 echo.
 echo   ----------------------------------------
 echo      0. Exit
@@ -105,9 +105,9 @@ if "%menu_choice%"=="7" goto replace_active_fakes
 if "%menu_choice%"=="8" goto ipset_update
 if "%menu_choice%"=="9" goto hosts_update
 if "%menu_choice%"=="10" goto service_check_updates
-if "%menu_choice%"=="11" goto service_diagnostics
-if "%menu_choice%"=="12" goto run_tests
-if "%menu_choice%"=="13" goto update_mode_switch
+if "%menu_choice%"=="11" goto update_mode_switch
+if "%menu_choice%"=="12" goto service_diagnostics
+if "%menu_choice%"=="13" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
