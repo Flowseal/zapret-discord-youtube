@@ -77,6 +77,63 @@ function Get-LocalService([string]$Executable) {
     return $service
 }
 
+function Get-StrategyCommand([string]$BatchPath, [string]$Root) {
+    # Read the shipped BAT format without executing a strategy during preparation.
+    $text = [regex]::Replace([IO.File]::ReadAllText($BatchPath), '\^\r?\n\s*', ' ')
+    $commands = [regex]::Matches($text, '(?im)^\s*start\s+[^\r\n]*?"%BIN%winws\.exe"\s+([^\r\n]+)')
+    if ($commands.Count -ne 1) { throw "Unsupported strategy format: $BatchPath" }
+    $values = @{ BIN = "$Root\bin\"; LISTS = "$Root\lists\"; GameFilter = '12'; GameFilterTCP = '12'; GameFilterUDP = '12' }
+    $flag = Join-Path $Root 'utils\game_filter.enabled'
+    if (Test-Path -LiteralPath $flag) {
+        $mode = @(Get-Content -LiteralPath $flag | Where-Object { $_ }) | Select-Object -First 1
+        $values.GameFilter = '1024-65535'
+        $values.GameFilterTCP = if ($mode -in @('all','tcp')) { '1024-65535' } else { '12' }
+        $values.GameFilterUDP = if ($mode -eq 'tcp') { '12' } else { '1024-65535' }
+    }
+    $arguments = $commands[0].Groups[1].Value.Replace('^!', '!')
+    # Validate BAT syntax before inserting paths, which may legitimately contain & or %.
+    $unquoted = [regex]::Replace($arguments, '"[^"]*"', '')
+    if ($unquoted -match '[&|<>^\r\n]' -or ($arguments.ToCharArray() | Where-Object { $_ -eq '"' }).Count % 2) {
+        throw "Unsupported strategy arguments: $BatchPath"
+    }
+    $arguments = [regex]::Replace($arguments, '%~dp0|%([^%]+)%', {
+        param($match)
+        if ($match.Value -eq '%~dp0') { return "$Root\" }
+        if (-not $values.ContainsKey($match.Groups[1].Value)) { throw "Unsupported strategy variable: $($match.Value)" }
+        return $values[$match.Groups[1].Value]
+    })
+    return (Quote-ProcessArgument (Join-Path $Root 'bin\winws.exe')) + ' ' + $arguments.Trim()
+}
+
+function Get-CommandKey([string]$CommandLine) {
+    # Ignore spacing between arguments and equivalent placement of quotes.
+    return (@([regex]::Matches($CommandLine, '(?:[^\s"]+|"[^"]*")+') | ForEach-Object { $_.Value.Replace('"', '') }) -join "`n")
+}
+
+function Get-UpdatedCommand([string]$Name, [string]$PackageRoot, [string]$Root) {
+    if ($Name -ne [IO.Path]::GetFileName($Name) -or [IO.Path]::GetExtension($Name) -ine '.bat') { throw 'Invalid strategy filename.' }
+    $batch = Join-Path $PackageRoot $Name
+    if (-not (Test-Path -LiteralPath $batch -PathType Leaf)) { throw "Selected strategy is missing from release: $Name" }
+    return Get-StrategyCommand $batch $Root
+}
+
+function Get-ProcessUpdateCommand([string]$CommandLine, [string]$PackageRoot, [string]$Root) {
+    $key = Get-CommandKey $CommandLine
+    $candidates = @(Get-ChildItem -LiteralPath $Root -Filter 'general*.bat' -File | Where-Object {
+        try { (Get-CommandKey (Get-StrategyCommand $_.FullName $Root)) -ceq $key } catch { $false }
+    })
+    if (-not $candidates.Count) { throw 'Cannot identify the running strategy. Stop it and start the desired BAT before updating.' }
+    $commands = @($candidates | ForEach-Object { Get-UpdatedCommand $_.Name $PackageRoot $Root })
+    $keys = @($commands | ForEach-Object { Get-CommandKey $_ } | Select-Object -Unique)
+    if ($keys.Count -ne 1) { throw 'Running strategy matches multiple BAT files with different release parameters. Stop it and update from the desired BAT.' }
+    return $commands[0]
+}
+
+function Set-ServiceCommand($Service, [string]$CommandLine) {
+    $result = Invoke-CimMethod -InputObject $Service -MethodName Change -Arguments @{ PathName = $CommandLine }
+    if ($result.ReturnValue -ne 0) { throw "Cannot update service arguments: $($result.ReturnValue)" }
+}
+
 function Invoke-ApplyUpdate {
     $root = [IO.Path]::GetFullPath($InstallDir).TrimEnd('\')
     $executable = Join-Path $root 'bin\winws.exe'
@@ -85,6 +142,8 @@ function Invoke-ApplyUpdate {
     $changed = @()
     $serviceStopped = $false
     $stoppedProcesses = @()
+    $service = $null
+    $serviceCommandChanged = $false
     $installed = $false
     $canRestart = $false
     $failure = $null
@@ -175,19 +234,33 @@ function Invoke-ApplyUpdate {
         }
         if (-not $SkipRuntimeControl) {
             $service = Get-LocalService $executable
+            if ($service) {
+                $originalServiceCommand = $service.PathName
+                $strategy = Get-ItemPropertyValue -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\zapret' -Name 'zapret-discord-youtube'
+                $updatedServiceCommand = Get-UpdatedCommand ($strategy + '.bat') $packageRoot $root
+            }
+            # Resolve all strategies before stopping anything; never silently reuse stale arguments.
+            $processPlans = @(Get-CimInstance Win32_Process -Filter "Name = 'winws.exe'" | Where-Object {
+                $_.ExecutablePath -and [IO.Path]::GetFullPath($_.ExecutablePath) -ieq $executable -and
+                (-not $service -or $_.ProcessId -ne $service.ProcessId)
+            } | ForEach-Object {
+                if (-not $_.CommandLine) { throw 'Cannot save local winws command line for restart.' }
+                [pscustomobject]@{ Process = $_; Original = $_.CommandLine; Updated = (Get-ProcessUpdateCommand $_.CommandLine $packageRoot $root) }
+            })
             if ($service -and $service.State -ne 'Stopped') {
                 # Remember intent before Stop-Service: a timeout may still have stopped it.
                 $serviceStopped = $true
                 Stop-Service -Name 'zapret'
                 (Get-Service -Name 'zapret').WaitForStatus('Stopped', [TimeSpan]::FromSeconds(15))
             }
-            foreach ($process in @(Get-CimInstance Win32_Process -Filter "Name = 'winws.exe'")) {
+            foreach ($plan in $processPlans) {
+                $process = $plan.Process
                 if ($process.ExecutablePath -and [IO.Path]::GetFullPath($process.ExecutablePath) -ieq $executable) {
                     if (-not $process.CommandLine) { throw 'Cannot save local winws command line for restart.' }
                     $localProcess = Get-Process -Id $process.ProcessId
                     if (-not $localProcess.Path -or [IO.Path]::GetFullPath($localProcess.Path) -ine $executable) { throw 'Local winws changed before stop.' }
                     Stop-Process -InputObject $localProcess -Force
-                    $stoppedProcesses += $process.CommandLine
+                    $stoppedProcesses += $plan
                     if (-not $localProcess.WaitForExit(15000)) { throw 'Local winws did not exit.' }
                 }
             }
@@ -196,6 +269,10 @@ function Invoke-ApplyUpdate {
             $changed += $file
             New-Item -ItemType Directory -Path (Split-Path -Parent $file.Target) -Force | Out-Null
             Copy-Item -LiteralPath $file.Source -Destination $file.Target -Force
+        }
+        if (-not $SkipRuntimeControl -and $service) {
+            $serviceCommandChanged = $true
+            Set-ServiceCommand $service $updatedServiceCommand
         }
         $installed = $true
     } catch {
@@ -206,7 +283,23 @@ function Invoke-ApplyUpdate {
             try {
                 if ($file.Existed) { Copy-Item -LiteralPath (Join-Path $backup $file.Relative) -Destination $file.Target -Force }
                 elseif (Test-Path -LiteralPath $file.Target -PathType Leaf) { Remove-Item -LiteralPath $file.Target -Force }
-            } catch { $rollbackErrors += $_.Exception.Message }
+            } catch {
+                $restoreError = $_.Exception.Message
+                # A sharing violation may prevent both writes while leaving the old file intact.
+                # Keep attempted writes in $changed: Copy-Item can also fail after a partial write.
+                $unchanged = $false
+                if ($file.Existed) {
+                    try {
+                        $savedHash = (Get-FileHash -LiteralPath (Join-Path $backup $file.Relative) -Algorithm SHA256).Hash
+                        $unchanged = $savedHash -eq (Get-FileHash -LiteralPath $file.Target -Algorithm SHA256).Hash
+                    } catch { }
+                }
+                if (-not $unchanged) { $rollbackErrors += $restoreError }
+            }
+        }
+        if ($serviceCommandChanged) {
+            try { Set-ServiceCommand (Get-LocalService $executable) $originalServiceCommand }
+            catch { $rollbackErrors += $_.Exception.Message }
         }
         if ($rollbackErrors.Count) {
             $canRestart = $false
@@ -222,7 +315,8 @@ function Invoke-ApplyUpdate {
                         if (-not $restartService) { throw 'The local service no longer exists.' }
                         Start-Service -Name 'zapret'
                     }
-                    foreach ($commandLine in $stoppedProcesses) {
+                    foreach ($plan in $stoppedProcesses) {
+                        $commandLine = if ($installed) { $plan.Updated } else { $plan.Original }
                         $result = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $commandLine; CurrentDirectory = $root }
                         if ($result.ReturnValue -ne 0) { throw "winws restart failed: $($result.ReturnValue)" }
                     }
