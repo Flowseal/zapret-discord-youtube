@@ -57,3 +57,17 @@ betterttv.net
 localizeapi.com
 klipy.com
 live-video.net
+amazon.com
+amazonaws.com
+awsstatic.com
+deadbydaylight.com
+behaviour-interactive.com
+bhvr.com
+bhvrdbd.com
+easy.ac
+easyanticheat.net
+epicgames.com
+epiconlineservices.com
+s3.amazonaws.com
+signin.aws.amazon.com
+console.aws.a2z.com
