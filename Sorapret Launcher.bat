@@ -61,11 +61,16 @@ if not defined selected (
 )
 
 echo.
-echo  Запуск: !selected!
-echo  Для остановки закройте окно winws.exe или используйте менеджер служб.
+echo  Подготовка и запуск: !selected!
+echo  При первом запуске создаётся bin\winws-sorapret.exe с новой иконкой.
+echo  Оригинальный bin\winws.exe остаётся без изменений.
 echo.
-call "%~dp0!selected!"
-start "Sorapret Icon" /min powershell -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0utils\set-sorapret-icon-v2.ps1" -TitlePrefix "zapret:"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\run-sorapret-strategy.ps1" -Strategy "!selected!"
+if errorlevel 1 (
+    echo.
+    echo  Не удалось подготовить или запустить стратегию.
+    echo  Проверьте сообщения PowerShell выше.
+)
 echo.
 pause
 goto menu
