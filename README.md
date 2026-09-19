@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=28 /> <a href="https://github.com/Flowseal/">Flowseal</a><a href="https://github.com/Flowseal/zapret-discord-youtube">/zapret-discord-youtube</a> <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=28 />
+# <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=28 /> <a href="https://github.com/SoraMasora">SoraMasora</a><a href="https://github.com/SoraMasora/zapret-discord-youtube">/zapret-discord-youtube</a> <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=28 />
 
 **NEW**: Ускорение Telegram Desktop - https://github.com/Flowseal/tg-ws-proxy  
 Альтернатива https://github.com/bol-van/zapret-win-bundle  
@@ -47,7 +47,7 @@
 
 ## ℹ️Краткие описания файлов
 
-- [**`general.bat ...`**](./general.bat) - запуск стратегии вручную
+- [**`Sorapret.bat ...`**](./Sorapret.bat) - запуск стратегии вручную
 
   Запуск вручную можно использовать для проверки работоспособности стратегий. Работоспособность той или иной стратегии зависит от многих факторов. **Пробуйте разные стратегии (ALT, FAKE и другие), пока не найдёте рабочее для вас решение**
 
@@ -78,7 +78,7 @@
 
 ## ☑️Распространенные вопросы и проблемы
 
-### После запуска скрипта `general*` ничего не происходит
+### После запуска скрипта `Sorapret*` ничего не происходит
 
 - После запуска стратегии (отдельным bat файлом, не через service), должен открыться winws.exe (обход), который можно увидеть в панели задач.  
 Если этого не произошло, то см. [#522](https://github.com/Flowseal/zapret-discord-youtube/issues/522)
@@ -110,17 +110,12 @@
 > **Стратегии со временем могут переставать работать.**
 > Определенная стратегия может работать какое-то время, но со временем она может переставать работать из-за обнаружения.
 > В репозитории представлены множество различных стратегий для обхода. Если ни одна из них вам не помогает, то вам необходимо создать новую, взяв за основу одну из представленных здесь и изменив её параметры.
-> Информацию про параметры стратегий вы можете найти [тут](https://github.com/bol-van/zapret/blob/master/docs/readme.md#nfqws).
+> Информацию про параметры стратегий можно найти [тут](https://github.com/bol-van/zapret/blob/master/docs/readme.md#nfqws).
 
 - Проверьте, чтобы не было ошибок в `service.bat` -> `Run Diagnostics`
-
 - Убедитесь, что адрес ресурса записан в списках доменов или IP
-
 - Проверьте другие стратегии (**`ALT`**/**`FAKE`** и другие)
-
 - Попробуйте полную переустановку (см. раздел ниже)
-
-- См. [#765](https://github.com/Flowseal/zapret-discord-youtube/issues/765)
 
 ### Как переустановить/обновить полностью?
 - Сохраните ресурсы/данные, которые вы сами добавляли
@@ -131,7 +126,7 @@
 - Скачайте последнюю версию [со страницы релизов](https://github.com/Flowseal/zapret-discord-youtube/releases) (`zapret-discord-youtube-...`)
 - Нажмите пкм по архиву -> свойства. Если снизу справа есть галочка разблокировать, то нажмите на неё -> применить -> ОК
 - Распакуйте в новую папку в корне диска (без спец. символов и пробелов)
-- Далее пробуйте запускать различные `general` скрипты (стратегии). Проверьте доступность интернет ресурсов - если не работают, то закрывайте программу (в панели задач иконка замочка) и пробуйте другую стратегию
+- Далее пробуйте запускать различные `Sorapret` скрипты (стратегии). Проверьте доступность интернет ресурсов - если не работают, то закрывайте программу (в панели задач иконка замочка) и пробуйте другую стратегию
 - Как найдёте рабочую стратегию, можете поставить её на автозапуск: `service.bat` -> `Install Service` -> выбираете нужную
 
 ### Не работает игра/приложение с включённым запретом
@@ -142,72 +137,13 @@
 
 - Прочитайте инструкцию тут - https://github.com/bol-van/zapret-win-bundle/tree/master/windivert-hide
 
-### Требуется цифровая подпись драйвера WinDivert (Windows 7)
-
-- Замените файлы `WinDivert.dll` и `WinDivert64.sys` в папке [`bin`](./bin) на одноименные из [zapret-win-bundle/win7](https://github.com/bol-van/zapret-win-bundle/tree/master/win7)
-
-### При удалении с помощью [**`service.bat`**](./service.bat), WinDivert остается в службах
-
-1. Узнайте название службы с помощью команды, в командной строке Windows (Win+R, `cmd`):
-
-```cmd
-driverquery | find "Divert"
-```
-
-2. Остановите и удалите службу командами:
-
-```cmd
-sc stop название_из_первого_шага
-
-sc delete название_из_первого_шага
-```
-
-### Не работает <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png" height=18 /> YouTube
-
-- Убедитесь что вы настроили [Secure DNS](#%EF%B8%8Fиспользование)
-- Отключите блокировщик рекламы, известно что YouTube начал с ними бороться.
-- Пробуйте все другие стратегии (если раньше работало, но перестало).
-- См. также [#251](https://github.com/Flowseal/zapret-discord-youtube/discussions/251)
-
-### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968756.png" height=18 /> Discord
-
-- Убедитесь что вы настроили [Secure DNS](#%EF%B8%8Fиспользование)
-- Желательно сначала узнать, на какой стратегии открывается сайт YouTube. Запустите эту стратегию.
-- Запустите `service.bat` -> `Run Diagnostics` и выполните там очистку кэша Discord.
-- Проверьте приложение Discord. Помогла ли очистка кэша?
-- Проверьте Discord в браузере: https://discord.com/app. В браузере работает? Если работает, то можете пользоваться в нём.
-- Если Discord и в браузере не работает, то пробуйте ещё раз все стратегии. Бывает такое, что на одной стратегии YouTube работает, а Discord нет.
-- См. также [#252](https://github.com/Flowseal/zapret-discord-youtube/discussions/252)
-
-### Не работает <img src="https://cdn-icons-png.flaticon.com/128/5968/5968804.png" height=18 /> Telegram
-
-- Используйте программу [tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy)
-- Или используйте бесплатные MTProto прокси из интернета
-
-### Не работают игры
-
-Есть много разных игр. Исследовать и чинить каждую из них нет возможности.
-
-Наиболее универсальный рецепт такой:
-- через `service.bat` обновите ipset и включите `Game Filter`
-- если это не поможет, то попробуйте также включить настройку `ipset any`
-
-Но помните, что при включении `ipset any` появятся проблемы с открытием многих сайтов. Чтобы этого избежать, не используйте `ipset any` на постоянной основе. Вместо этого нужно выяснить все IP адреса, которые используются игрой, и добавить их в `ipset-all.txt`
-
-Если и это не помогло, создайте ветку обсуждений в разделе [Discussions](https://github.com/Flowseal/zapret-discord-youtube/discussions) (не в issues) и ждите помощи от других игроков.
-
-### Не нашли своей проблемы
-
-- Создайте её [тут](https://github.com/Flowseal/zapret-discord-youtube/issues)
-
 ## 🗒️Добавление адресов прочих ресурсов
 
 Список адресов для обхода можно расширить, добавляя их в:
 - **`list-general-user.txt`** для доменов (поддомены автоматически учитываются)
-- **`list-exclude-user.txt`** для исключения доменов (например, если айпи сети указан в `ipset-all.txt`, но конкретный домен из этой сети не надо фильтровать)
+- **`list-exclude-user.txt`** для исключения доменов
 - **`ipset-all.txt`** для IP и подсетей
 - **`ipset-exclude-user.txt`** для исключения IP и подсетей
-  - Файлы **`*-user.txt`** автоматически создадутся при первом запуске `zapret` или `service.bat`
 
 ## ⭐Поддержка проекта
 
@@ -218,9 +154,5 @@ sc delete название_из_первого_шага
 ## ⚖️Лицензирование
 
 Проект распространяется на условиях лицензии [MIT](https://github.com/Flowseal/zapret-discord-youtube/blob/main/LICENSE.txt)
-
-## 🩷Благодарность участникам проекта
-
-[![Contributors](https://contrib.rocks/image?repo=Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discord-youtube/graphs/contributors)
 
 💖 Отдельная благодарность разработчику [zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van)
