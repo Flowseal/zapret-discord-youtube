@@ -65,7 +65,7 @@ echo  Запуск: !selected!
 echo  Для остановки закройте окно winws.exe или используйте менеджер служб.
 echo.
 call "%~dp0!selected!"
-start "Sorapret Icon" /min powershell -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0utils\set-sorapret-icon.ps1" -TitlePrefix "zapret:"
+start "Sorapret Icon" /min powershell -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0utils\set-sorapret-icon-v2.ps1" -TitlePrefix "zapret:"
 echo.
 pause
 goto menu
