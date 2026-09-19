@@ -4,8 +4,7 @@
 
 **В РАЗРАБОТКЕ**: фикс для Telegram Desktop ещё разрабатывается — https://github.com/SoraMasora/zapret-discord-youtube  
 Альтернатива https://github.com/bol-van/zapret-win-bundle  
-Также вы можете материально поддержать оригинального разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
-</div>
+
 
 > [!CAUTION]
 >
@@ -133,14 +132,11 @@
 
 - Проверьте, что в service.bat `Game Filter` **`disabled`**, а `IPSet Filter` **`none`**. Иначе это может затронуть доступность ресурсов, которых вы не ожидали.
 
-### Античит ругается на WinDivert
-
-- Прочитайте инструкцию тут - https://github.com/bol-van/zapret-win-bundle/tree/master/windivert-hide
 
 ## 🗒️Добавление адресов прочих ресурсов
 
 Список адресов для обхода можно расширить, добавляя их в:
-- **`list-general-user.txt`** для доменов (поддомены автоматически учитываются)
+- **`list-user.txt`** для доменов (поддомены автоматически учитываются)
 - **`list-exclude-user.txt`** для исключения доменов
 - **`ipset-all.txt`** для IP и подсетей
 - **`ipset-exclude-user.txt`** для исключения IP и подсетей
@@ -150,4 +146,4 @@
 
 Проект распространяется на условиях лицензии [MIT](https://github.com/Flowseal/zapret-discord-youtube/blob/main/LICENSE.txt)
 
-💖 Отдельная благодарность разработчику [zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van)
+💖 Отдельная благодарность разработчику [zapret](https://github.com/SoraMasora/zapret-discord-youtube)
