@@ -7,12 +7,10 @@ title Sorapret Launcher
 
 :: Request administrator rights once for WinDivert/winws.
 fltmc >nul 2>&1
-if errorlevel 1 (
-    if /i not "%~1"=="admin" (
-        echo Запрашиваются права администратора...
-        powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%ComSpec%' -ArgumentList '/c \"\"%~f0\" admin\"' -Verb RunAs"
-        exit /b
-    )
+if errorlevel 1 if /i not "%~1"=="admin" (
+    echo Запрашиваются права администратора...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%ComSpec%' -ArgumentList '/c ""%~f0" admin' -Verb RunAs"
+    exit /b
 )
 
 :menu
@@ -20,8 +18,8 @@ cls
 echo.
 echo  ==================================================
 echo           SORAPRET LAUNCHER
- echo  Быстрый запуск стратегий обхода для Discord
- echo  ==================================================
+echo  Быстрый запуск стратегий обхода для Discord
+echo  ==================================================
 echo.
 echo  Стратегии:
 
@@ -36,12 +34,12 @@ if !count! EQU 0 (
     echo    Стратегии Sorapret не найдены.
     echo.
     pause
-goto :eof
+    goto :eof
 )
 
 echo.
 echo    M. Открыть менеджер служб
- echo    0. Выход
+echo    0. Выход
 echo.
 set "choice="
 set /p "choice=  Выберите стратегию: "
