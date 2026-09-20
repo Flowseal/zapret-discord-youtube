@@ -1116,9 +1116,9 @@ echo Updating ipset-all...
 if exist "%SystemRoot%\System32\curl.exe" (
     curl --version | find "libcurl/7"
     if !errorlevel!==0 (
-        curl --ssl-no-revoke -L -o "%listFile%" "%url%"
+        curl --ssl-no-revoke -L -f -o "%listFile%" "%url%"
     ) else (
-        curl --ssl-revoke-best-effort -L -o "%listFile%" "%url%"
+        curl --ssl-revoke-best-effort -L -f -o "%listFile%" "%url%"
     )
 ) else (
     powershell -NoProfile -Command ^
@@ -1152,7 +1152,7 @@ set "requestUrl=%hostsUrl%?t=%cacheBuster%"
 echo Checking hosts file...
 
 if exist "%SystemRoot%\System32\curl.exe" (
-    curl -L -s -o "%tempFile%" "%requestUrl%"
+    curl -L -s -f -o "%tempFile%" "%requestUrl%"
 ) else (
     powershell -NoProfile -Command ^
         "$url = '%requestUrl%';" ^
