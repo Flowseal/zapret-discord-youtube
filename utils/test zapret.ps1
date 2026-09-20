@@ -49,12 +49,28 @@ function Set-IpsetMode {
     }
 }
 
+# Pause that tolerates stray keystrokes and non-interactive hosts.
+# Tests run for minutes, so any key pressed meanwhile stays in the console
+# input buffer and would be swallowed instantly by a bare ReadKey.
+function Wait-AnyKey {
+    param([string]$message = "Press any key to close...")
+    Write-Host $message -ForegroundColor Yellow
+    try {
+        while ([System.Console]::KeyAvailable) { [void][System.Console]::ReadKey($true) }
+        [void][System.Console]::ReadKey($true)
+    } catch {
+        # No interactive console (stdin redirected): ReadKey throws here
+        [void](Read-Host)
+    }
+}
+
 trap {
     Write-Host "[ERROR] Script interrupted. Restoring ipset..." -ForegroundColor Red
     if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
         Set-IpsetMode -mode "restore"
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
+    Wait-AnyKey
     break
 }
 
@@ -382,8 +398,7 @@ if (Test-ZapretServiceConflict) {
 if ($hasErrors) {
     Write-Host ""
     Write-Host "Fix the errors above and rerun." -ForegroundColor Yellow
-    Write-Host "Press any key to exit..." -ForegroundColor Yellow
-    [void][System.Console]::ReadKey($true)
+    Wait-AnyKey -message "Press any key to exit..."
     exit 1
 }
 
@@ -566,8 +581,7 @@ if ($testType -eq 'standard') {
 # Ensure we have configs to run
 if (-not $batFiles -or $batFiles.Count -eq 0) {
     Write-Host "[ERROR] No general*.bat files found" -ForegroundColor Red
-    Write-Host "Press any key to exit..." -ForegroundColor Yellow
-    [void][System.Console]::ReadKey($true)
+    Wait-AnyKey -message "Press any key to exit..."
     exit 1
 }
 
@@ -602,17 +616,29 @@ function Restore-WinwsSnapshot {
         if ($current -and $current -contains $p.CommandLine) { continue }
 
         $exe = $p.ExecutablePath
-        $processArgs = ""
-        if ($p.CommandLine) {
-            $quotedExe = '"' + $exe + '"'
-            if ($p.CommandLine.StartsWith($quotedExe)) {
-                $processArgs = $p.CommandLine.Substring($quotedExe.Length).Trim()
-            } elseif ($p.CommandLine.StartsWith($exe)) {
-                $processArgs = $p.CommandLine.Substring($exe.Length).Trim()
-            }
+
+        # Split the program token off the command line to recover the arguments.
+        # A quoted token is unambiguous; an unquoted one may contain spaces, so
+        # fall back to the known executable path before guessing at whitespace.
+        $processArgs = $null
+        if ($p.CommandLine -match '^\s*"[^"]*"\s*(.*)$') {
+            $processArgs = $matches[1].Trim()
+        } elseif ($p.CommandLine -and $p.CommandLine.StartsWith($exe, [StringComparison]::OrdinalIgnoreCase)) {
+            $processArgs = $p.CommandLine.Substring($exe.Length).Trim()
+        } elseif ($p.CommandLine -match '^\s*\S+\s*(.*)$') {
+            $processArgs = $matches[1].Trim()
         }
 
-        Start-Process -FilePath $exe -ArgumentList $processArgs -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null
+        if (-not $processArgs) {
+            Write-Host "[WARN] Could not read arguments of previous winws instance ($exe); skipping restore." -ForegroundColor Yellow
+            continue
+        }
+
+        try {
+            Start-Process -FilePath $exe -ArgumentList $processArgs -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null
+        } catch {
+            Write-Host "[WARN] Failed to restore previous winws instance ($exe): $_" -ForegroundColor Yellow
+        }
     }
 }
 
@@ -989,7 +1015,6 @@ try {
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 }
 
-    Write-Host "Press any key to close..." -ForegroundColor Yellow
-    [void][System.Console]::ReadKey($true)
+    Wait-AnyKey
     exit
 }
