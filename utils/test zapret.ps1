@@ -321,13 +321,16 @@ function Invoke-DpiSuite {
             $failedLine = [PSCustomObject]@{
                 TestLabel  = 'RUNSPACE'
                 Code       = 'ERR'
-                SizeBytes  = 0
-                SizeKB     = 0
+                UpBytes    = 0
+                UpKB       = 0
+                DownBytes  = 0
+                DownKB     = 0
+                Time       = -1
                 Status     = 'FAIL'
                 Color      = 'Red'
                 Warned     = $false
             }
-            $results += [PSCustomObject]@{ TargetId = 'UNKNOWN'; Provider = 'UNKNOWN'; Lines = @($failedLine); Warned = $false }
+            $results += [PSCustomObject]@{ TargetId = $rs.TargetId; Provider = 'UNKNOWN'; Country = ''; Lines = @($failedLine); Warned = $false }
         }
         $rs.Powershell.Dispose()
     }
@@ -866,7 +869,7 @@ try {
     Write-Host "All tests finished." -ForegroundColor Green
 
     # Analytics
-    $analytics = @{}
+    $analytics = [ordered]@{}
     foreach ($res in $globalResults) {
         if ($res.Type -eq 'standard') {
             foreach ($targetRes in $res.Results) {
@@ -934,8 +937,22 @@ try {
             }
         }
     }
+    if ($analytics.Count -eq 0) {
+        $bestConfig = $null
+        $bestLabel = "n/a (no configs were tested)"
+    } elseif ($maxScore -le 0) {
+        $bestConfig = $null
+        $bestLabel = "n/a (no config passed a single check)"
+    } else {
+        $bestLabel = $bestConfig
+    }
+
     Write-Host ""
-    Write-Host "Best config: $bestConfig" -ForegroundColor Green
+    if ($bestConfig) {
+        Write-Host "Best config: $bestLabel" -ForegroundColor Green
+    } else {
+        Write-Host "Best config: $bestLabel" -ForegroundColor Red
+    }
     Write-Host ""
 
     # Save to file
@@ -994,7 +1011,7 @@ try {
         [void]$resultLines.Add($line)
     }
 
-    [void]$resultLines.Add("Best strategy: $bestConfig")
+    [void]$resultLines.Add("Best strategy: $bestLabel")
     $resultLines | Set-Content $resultFile -Encoding UTF8
 
     Write-Host "Results saved to $resultFile" -ForegroundColor Green
