@@ -874,7 +874,7 @@ try {
         if ($res.Type -eq 'standard') {
             foreach ($targetRes in $res.Results) {
                 $config = $res.Config
-                if (-not $analytics.ContainsKey($config)) { $analytics[$config] = @{ OK = 0; ERROR = 0; UNSUP = 0; PingOK = 0; PingFail = 0 } }
+                if (-not $analytics.Contains($config)) { $analytics[$config] = @{ OK = 0; ERROR = 0; UNSUP = 0; PingOK = 0; PingFail = 0 } }
                 if ($targetRes.IsUrl) {
                     foreach ($tok in $targetRes.HttpTokens) {
                         if ($tok -match "OK") { $analytics[$config].OK++ }
@@ -888,7 +888,7 @@ try {
         } elseif ($res.Type -eq 'dpi') {
             foreach ($targetRes in $res.Results) {
                 $config = $res.Config
-                if (-not $analytics.ContainsKey($config)) { $analytics[$config] = @{ OK = 0; FAIL = 0; UNSUPPORTED = 0; LIKELY_BLOCKED = 0 } }
+                if (-not $analytics.Contains($config)) { $analytics[$config] = @{ OK = 0; FAIL = 0; UNSUPPORTED = 0; LIKELY_BLOCKED = 0 } }
                 foreach ($line in $targetRes.Lines) {
                     if ($line.Status -eq "OK") { $analytics[$config].OK++ }
                     elseif ($line.Status -eq "FAIL") { $analytics[$config].FAIL++ }
