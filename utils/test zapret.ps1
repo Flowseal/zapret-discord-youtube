@@ -942,6 +942,26 @@ try {
     $dateStr = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
     $resultFile = Join-Path $resultsDir "test_results_$dateStr.txt"
     $resultLines = New-Object System.Collections.Generic.List[string]
+
+    $localVersion = "unknown"
+    $serviceBat = Join-Path $rootDir "service.bat"
+    if (Test-Path $serviceBat) {
+        $versionMatch = Select-String -LiteralPath $serviceBat -Pattern '^\s*set\s+"LOCAL_VERSION=(.+)"' | Select-Object -First 1
+        if ($versionMatch) { $localVersion = $versionMatch.Matches[0].Groups[1].Value }
+    }
+
+    $curlVersion = "unknown"
+    try { $curlVersion = (& curl.exe --version 2>&1 | Select-Object -First 1) } catch { }
+
+    if ($testType -eq 'dpi') { $targetCount = $dpiTargets.Count } else { $targetCount = $targetList.Count }
+
+    [void]$resultLines.Add("zapret $localVersion")
+    [void]$resultLines.Add((Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
+    [void]$resultLines.Add("Test type: $testType | Configs: $($batFiles.Count) | Targets: $targetCount")
+    [void]$resultLines.Add("Ipset at start: $originalIpsetStatus")
+    [void]$resultLines.Add("$curlVersion")
+    [void]$resultLines.Add("")
+
     foreach ($res in $globalResults) {
         $config = $res.Config
         $type = $res.Type
