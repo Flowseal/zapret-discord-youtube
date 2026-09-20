@@ -955,10 +955,16 @@ try {
 
     if ($testType -eq 'dpi') { $targetCount = $dpiTargets.Count } else { $targetCount = $targetList.Count }
 
+    $ipsetDuring = Get-IpsetStatus
+
     [void]$resultLines.Add("zapret $localVersion")
     [void]$resultLines.Add((Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
     [void]$resultLines.Add("Test type: $testType | Configs: $($batFiles.Count) | Targets: $targetCount")
-    [void]$resultLines.Add("Ipset at start: $originalIpsetStatus")
+    if ($ipsetDuring -eq $originalIpsetStatus) {
+        [void]$resultLines.Add("Ipset: $ipsetDuring")
+    } else {
+        [void]$resultLines.Add("Ipset: $ipsetDuring during tests, restored to $originalIpsetStatus afterwards")
+    }
     [void]$resultLines.Add("$curlVersion")
     [void]$resultLines.Add("")
 
