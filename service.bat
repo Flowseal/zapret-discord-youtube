@@ -32,6 +32,11 @@ if "%~1"=="load_user_lists" (
     exit /b
 )
 
+if "%~1"=="load_discord_double_fake_udp" (
+    call :load_discord_double_fake_udp
+    exit /b
+)
+
 if "%1"=="admin" (
     call :check_command chcp
     call :check_command find
@@ -39,6 +44,7 @@ if "%1"=="admin" (
     call :check_command netsh
     
     call :load_user_lists
+    call :load_discord_double_fake_udp
 
     echo Started with admin rights
 ) else (
@@ -125,6 +131,25 @@ if not exist "%LISTS_PATH%list-general-user.txt" (
 )
 if not exist "%LISTS_PATH%list-exclude-user.txt" (
     echo domain.example.abc>"%LISTS_PATH%list-exclude-user.txt"
+)
+
+exit /b
+
+
+:: LOAD DISCORD DOUBLE FAKE UDP ========
+:load_discord_double_fake_udp
+set "active_double_discord_udp_file=%~dp0utils\active_double_discord_udp.txt"
+set "discord_double_fake_udp="
+
+if not exist %active_double_discord_udp_file% (
+    echo none>%active_double_discord_udp_file%
+)
+set /p current_double_discord_fake=< %active_double_discord_udp_file%
+
+if "%current_double_discord_fake%"=="none" (
+    set "discord_double_fake_udp="
+) else (
+    set "discord_double_fake_udp=--dpi-desync-fake-discord="%current_double_discord_fake%.bin""
 )
 
 exit /b
@@ -934,12 +959,15 @@ chcp 437 > nul
 cls
 
 set "BIN_PATH=%~dp0bin\"
+set "UTILS_PATH=%~dp0utils\"
+set "active_double_discord_udp_file=%UTILS_PATH%active_double_discord_udp.txt"
 set "fake_count=0"
 set "fake_type="
 set "fake_number="
 set "discord_hash="
 set "game_hash="
 set "current_discord_fake=(not found)"
+set "current_double_discord_fake=(not found)"
 set "current_game_fake=(not found)"
 
 if not exist "%BIN_PATH%" (
@@ -961,6 +989,12 @@ for /f "tokens=1,2,3 delims=|" %%A in ('powershell -NoProfile -Command "foreach 
         set "fake_hash!fake_count!=%%C"
     )
 )
+
+if not exist %active_double_discord_udp_file% (
+    echo none>%active_double_discord_udp_file%
+)
+set /p current_double_discord_fake=< %active_double_discord_udp_file%
+
 popd
 
 if !fake_count! EQU 0 (
@@ -978,24 +1012,27 @@ for /l %%N in (1,1,!fake_count!) do (
 echo.
 echo Enter the fake type number and the fake file number to replace it with.
 echo Example: 1 4 (replaces Discord UDP with fake file under number 4)
-echo          2 1 (replaces GameFilter UDP with fake file under number 1)
+echo          2 3 (replaces Double Discord UDP with fake file under number 3)
+echo          3 1 (replaces GameFilter UDP with fake file under number 1)
 echo.
-echo Press ENTER or 0 to return.
+echo Press ENTER or -1 to return.
 echo.
 echo   ----------------------------------------
 echo.
 echo Fake types:
-echo   1. Discord UDP     (current: !current_discord_fake!)
-echo   2. GameFilter UDP  (current: !current_game_fake!)
+echo   1. Discord UDP         (current: !current_discord_fake!)
+echo   2. Double Discord UDP  (current: !current_double_discord_fake!)
+echo   3. GameFilter UDP      (current: !current_game_fake!)
 echo.
 echo Fake files:
+echo   0. none
 for /l %%N in (1,1,!fake_count!) do echo   %%N. !fake_name%%N!
 echo.
 
 set "replace_choice="
 set /p "replace_choice=Enter choice: "
 if not defined replace_choice goto menu
-if "!replace_choice!"=="0" goto menu
+if "!replace_choice!"=="-1" goto menu
 
 set "active_file="
 set "fake_type="
@@ -1008,9 +1045,40 @@ for /f "tokens=1,2" %%A in ("!replace_choice!") do (
 if "!fake_type!"=="1" (
     set "active_file=%BIN_PATH%ACTIVE_DISCORD_UDP.bin"
 ) else if "!fake_type!"=="2" (
+    if "!fake_number!"=="0" (
+        set "current_double_discord_fake=none"
+    ) else (
+        call set "double_discord_fake=%%fake_name!fake_number!%%"
+        if "!double_discord_fake!"=="" (
+            echo Invalid fake file number.
+            pause
+            cls
+            goto replace_active_fakes_prompt
+        )
+        set "current_double_discord_fake=!double_discord_fake!"
+    )
+
+    echo !current_double_discord_fake!>%active_double_discord_udp_file%
+    if errorlevel 1 (
+        echo Failed to replace the active fake file.
+    ) else (
+        echo Active fake file replaced successfully.
+    )
+
+    pause
+    cls
+    goto replace_active_fakes_prompt
+) else if "!fake_type!"=="3" (
     set "active_file=%BIN_PATH%ACTIVE_GAME_UDP.bin"
 ) else (
     echo Invalid fake type.
+    pause
+    cls
+    goto replace_active_fakes_prompt
+)
+
+if not "!fake_type!"=="2" if "!fake_number!"=="0" (
+    echo None fake file is available only in Double Discord UDP.
     pause
     cls
     goto replace_active_fakes_prompt
