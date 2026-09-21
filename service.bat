@@ -1058,7 +1058,7 @@ if "!fake_type!"=="1" (
         set "current_double_discord_fake=!double_discord_fake!"
     )
 
-    echo !current_double_discord_fake!>%active_double_discord_udp_file%
+    echo !current_double_discord_fake!>"%active_double_discord_udp_file%"
     if errorlevel 1 (
         echo Failed to replace the active fake file.
     ) else (
