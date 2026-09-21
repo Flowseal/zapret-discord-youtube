@@ -149,7 +149,7 @@ set /p current_double_discord_fake=< %active_double_discord_udp_file%
 if "%current_double_discord_fake%"=="none" (
     set "discord_double_fake_udp="
 ) else (
-    set "discord_double_fake_udp=--dpi-desync-fake-discord="%current_double_discord_fake%.bin""
+    set "discord_double_fake_udp=--dpi-desync-fake-discord="%~dp0bin\%current_double_discord_fake%.bin""
 )
 
 exit /b
@@ -990,10 +990,10 @@ for /f "tokens=1,2,3 delims=|" %%A in ('powershell -NoProfile -Command "foreach 
     )
 )
 
-if not exist %active_double_discord_udp_file% (
-    echo none>%active_double_discord_udp_file%
+if not exist "%active_double_discord_udp_file%" (
+    echo none>"%active_double_discord_udp_file%"
 )
-set /p current_double_discord_fake=< %active_double_discord_udp_file%
+set /p current_double_discord_fake=< "%active_double_discord_udp_file%"
 
 popd
 
@@ -1063,6 +1063,7 @@ if "!fake_type!"=="1" (
         echo Failed to replace the active fake file.
     ) else (
         echo Active fake file replaced successfully.
+        call :load_discord_double_fake_udp
     )
 
     pause
