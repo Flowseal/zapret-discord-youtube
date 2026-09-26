@@ -37,7 +37,7 @@ if "%1"=="admin" (
     call :check_command find
     call :check_command findstr
     call :check_command netsh
-    
+
     call :load_user_lists
 
     echo Started with admin rights
@@ -94,7 +94,7 @@ echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-12): 
+set /p menu_choice=   Select option (0-12):
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -382,18 +382,18 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Ur
 if not defined GITHUB_VERSION (
     echo Warning: failed to fetch the latest version. This warning does not affect the operation of zapret
     timeout /T 9
-    if "%1"=="soft" exit 
+    if "%1"=="soft" exit
     goto menu
 )
 
 :: Version comparison
 if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
     echo Latest version installed: %LOCAL_VERSION%
-    
-    if "%1"=="soft" exit 
+
+    if "%1"=="soft" exit
     pause
     goto menu
-) 
+)
 
 echo New version available: %GITHUB_VERSION%
 echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
@@ -402,7 +402,7 @@ echo Opening the download page...
 start "" "%GITHUB_DOWNLOAD_URL%"
 
 
-if "%1"=="soft" exit 
+if "%1"=="soft" exit
 pause
 goto menu
 
@@ -438,7 +438,7 @@ if !proxyEnabled!==1 (
     for /f "tokens=2*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul ^| findstr /i "ProxyServer"') do (
         set "proxyServer=%%B"
     )
-    
+
     call :PrintYellow "[?] System proxy is enabled: !proxyServer!"
     call :PrintYellow "Make sure it's valid or disable it if you don't use a proxy"
 ) else (
@@ -605,16 +605,16 @@ set "windivert_running=!errorlevel!"
 
 if !winws_running! neq 0 if !windivert_running!==0 (
     call :PrintYellow "[?] winws.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
-    
+
     net stop "WinDivert" >nul 2>&1
     sc delete "WinDivert" >nul 2>&1
     sc query "WinDivert" >nul 2>&1
     if !errorlevel!==0 (
         call :PrintRed "[X] Failed to delete WinDivert. Checking for conflicting services..."
-        
+
         set "conflicting_services=GoodbyeDPI"
         set "found_conflict=0"
-        
+
         for %%s in (!conflicting_services!) do (
             sc query "%%s" >nul 2>&1
             if !errorlevel!==0 (
@@ -629,7 +629,7 @@ if !winws_running! neq 0 if !windivert_running!==0 (
                 set "found_conflict=1"
             )
         )
-        
+
         if !found_conflict!==0 (
             call :PrintRed "[X] No conflicting services found. Check manually if any other bypass is using WinDivert."
         ) else (
@@ -647,7 +647,7 @@ if !winws_running! neq 0 if !windivert_running!==0 (
     ) else (
         call :PrintGreen "WinDivert successfully removed"
     )
-    
+
     echo:
 )
 
@@ -670,12 +670,12 @@ for %%s in (!conflicting_services!) do (
 
 if !found_any_conflict!==1 (
     call :PrintRed "[X] Conflicting bypass services found: !found_conflicts!"
-    
+
     set "CHOICE="
     set /p "CHOICE=Do you want to remove these conflicting services? (Y/N) (default: N) "
     if "!CHOICE!"=="" set "CHOICE=N"
     if "!CHOICE!"=="y" set "CHOICE=Y"
-    
+
     if /i "!CHOICE!"=="Y" (
         for %%s in (!found_conflicts!) do (
             call :PrintYellow "Stopping and removing service: %%s"
@@ -693,7 +693,7 @@ if !found_any_conflict!==1 (
         net stop "WinDivert14" >nul 2>&1
         sc delete "WinDivert14" >nul 2>&1
     )
-    
+
     echo:
 )
 
@@ -1070,28 +1070,28 @@ set "backupFile=%listFile%.backup"
 
 if "%IPsetStatus%"=="loaded" (
     echo Switching to none mode...
-    
+
     if not exist "%backupFile%" (
         ren "%listFile%" "ipset-all.txt.backup"
     ) else (
         del /f /q "%backupFile%"
         ren "%listFile%" "ipset-all.txt.backup"
     )
-    
+
     >"%listFile%" (
         echo 203.0.113.113/32
     )
-    
+
 ) else if "%IPsetStatus%"=="none" (
     echo Switching to any mode...
-    
+
     >"%listFile%" (
         rem Creating empty file
     )
-    
+
 ) else if "%IPsetStatus%"=="any" (
     echo Switching to loaded mode...
-    
+
     if exist "%backupFile%" (
         del /f /q "%listFile%"
         ren "%backupFile%" "ipset-all.txt"
@@ -1100,7 +1100,7 @@ if "%IPsetStatus%"=="loaded" (
         pause
         goto menu
     )
-    
+
 )
 
 pause
@@ -1180,11 +1180,13 @@ for /f "usebackq delims=" %%a in ("%tempFile%") do (
     set "lastLine=%%a"
 )
 
+
 findstr /C:"!firstLine!" "%hostsFile%" >nul 2>&1
 if !errorlevel! neq 0 (
     echo First line from repository not found in hosts file
     set "needsUpdate=1"
 )
+
 
 findstr /C:"!lastLine!" "%hostsFile%" >nul 2>&1
 if !errorlevel! neq 0 (
@@ -1192,11 +1194,12 @@ if !errorlevel! neq 0 (
     set "needsUpdate=1"
 )
 
+
 if "%needsUpdate%"=="1" (
     echo:
     call :PrintYellow "Hosts file needs to be updated"
     call :PrintYellow "Please manually copy the content from the downloaded file to your hosts file"
-    
+
     start notepad "%tempFile%"
     explorer /select,"%hostsFile%"
 ) else (
@@ -1207,7 +1210,6 @@ if "%needsUpdate%"=="1" (
 echo:
 pause
 goto menu
-
 
 :: RUN TESTS =============================
 :run_tests
@@ -1230,13 +1232,11 @@ start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test za
 pause
 goto menu
 
-
 :: Get strategy name
 :get_strategy_name
 set "CurrentStrategy="
 for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "CurrentStrategy=Strategy: %%B"
 exit /b
-
 
 :: Utility functions
 
