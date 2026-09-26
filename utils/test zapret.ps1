@@ -66,7 +66,7 @@ function Wait-AnyKey {
 
 trap {
     Write-Host "[ERROR] Script interrupted. Restoring ipset..." -ForegroundColor Red
-    if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
+    if ($ipsetSwitched) {
         Set-IpsetMode -mode "restore"
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
@@ -652,10 +652,13 @@ Write-Host "                 Mode: $($testType.ToUpper())" -ForegroundColor Cyan
 Write-Host "                 Total configs: $($batFiles.Count.ToString().PadLeft(2))" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
+$ipsetSwitched = $false
+
 try {
     # Save original ipset status and switch to 'any' for accurate DPI tests
     if (($originalIpsetStatus -ne "any") -and ($testType -eq 'dpi')) {
         Write-Host "[WARNING] Ipset is in '$originalIpsetStatus' mode. Switching to 'any' for accurate DPI tests..." -ForegroundColor Yellow
+        $ipsetSwitched = $true
         Set-IpsetMode -mode "any"
         # Create flag file to indicate ipset was switched
         "" | Out-File -FilePath $ipsetFlagFile -Encoding UTF8
@@ -1001,14 +1004,14 @@ try {
 
 } catch {
     Write-Host "[ERROR] An error occurred during tests. Restoring ipset..." -ForegroundColor Red
-    if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
+    if ($ipsetSwitched) {
         Set-IpsetMode -mode "restore"
     }
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 } finally {
     Stop-Zapret
     Restore-WinwsSnapshot -snapshot $originalWinws
-    if ($originalIpsetStatus -ne "any") {
+    if ($ipsetSwitched) {
         Write-Host "[INFO] Restoring original ipset mode..." -ForegroundColor DarkGray
         Set-IpsetMode -mode "restore"
     }
