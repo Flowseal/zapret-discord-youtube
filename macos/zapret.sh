@@ -260,12 +260,21 @@ ipset_file() {
 	local out
 	case "$IPSET_FILTER" in
 		loaded)
+			# Список в репозитории (.service/ipset-service.txt, он же
+			# lists/ipset-all.txt.backup в формате Windows) обновляется при
+			# синхронизации с оригиналом, копия в .state — командой update-ipset.
+			# Берём ту, что свежее: иначе после синхронизации остался бы старый кэш
+			local src= f
 			out="$STATE_DIR/ipset-loaded.txt"
-			[ -s "$out" ] || {
-				mkdir -p "$STATE_DIR"
-				if [ -s "$ROOT_DIR/.service/ipset-service.txt" ]; then cp -f "$ROOT_DIR/.service/ipset-service.txt" "$out"
-				else curl -fsSL "$IPSET_URL" -o "$out" || return 1; fi
-			}
+			for f in "$ROOT_DIR/.service/ipset-service.txt" "$LISTS_DIR/ipset-all.txt.backup"; do
+				[ -s "$f" ] && { src="$f"; break; }
+			done
+			mkdir -p "$STATE_DIR"
+			if [ -n "$src" ] && { [ ! -s "$out" ] || [ "$src" -nt "$out" ]; }; then
+				tr -d '\r' < "$src" > "$out.tmp" && mv -f "$out.tmp" "$out" || return 1
+			elif [ ! -s "$out" ]; then
+				curl -fsSL "$IPSET_URL" -o "$out.tmp" && mv -f "$out.tmp" "$out" || return 1
+			fi
 			printf '%s' "$out" ;;
 		any)
 			out="$STATE_DIR/ipset-any.txt"
@@ -1758,7 +1767,7 @@ cmd_update_ipset() {
 		ok "обновлено: $f ($(grep -c . "$f") строк)"
 	elif [ -s "$ROOT_DIR/.service/ipset-service.txt" ]; then
 		rm -f "$tmp"
-		cp -f "$ROOT_DIR/.service/ipset-service.txt" "$f"
+		tr -d '\r' < "$ROOT_DIR/.service/ipset-service.txt" > "$f"
 		warn "сеть недоступна, взял локальную копию .service/ipset-service.txt ($(grep -c . "$f") строк)"
 	else
 		rm -f "$tmp"; die "не удалось обновить список"
