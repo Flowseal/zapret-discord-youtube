@@ -1,0 +1,265 @@
+--- a/nfq/nfqws.c
++++ b/nfq/nfqws.c
+@@ -3,6 +3,9 @@
+ #include "nfqws.h"
+ #include "sec.h"
+ #include "desync.h"
++#ifdef __APPLE__
++#include "mac_backend.h"
++#endif
+ #include "helpers.h"
+ #include "checksum.h"
+ #include "params.h"
+@@ -374,6 +377,167 @@
+ 	wlan_info_deinit();
+ #endif
+ 	return 1;
++}
++
++#elif defined(__APPLE__)
++
++// macos-бэкенд: пакеты приходят из utun (pf route-to), отправляются заново
++// raw-сокетом, привязанным к uplink. Подробности в mac_backend.c
++static volatile bool mac_bStop = false;
++static void mac_onstop(int sig)
++{
++	(void)sig;
++	mac_bStop = true;
++}
++
++static int mac_main(void)
++{
++	uint8_t buf[16384] __attribute__((aligned));
++	char utun_if[IFNAMSIZ], uplink[IFNAMSIZ];
++	int utun_fd = -1, res = 1;
++	unsigned int id = 0;
++	uint32_t af, mark = 0;
++	uint8_t verdict;
++	size_t len;
++	ssize_t rd;
++	FILE *Fpid = NULL;
++
++	if (geteuid())
++	{
++		DLOG_ERR("must be run as root : utun, raw sockets and pf require it\n");
++		return 1;
++	}
++	if (params.droproot)
++		DLOG_CONDUP("WARNING ! dropping root is not supported by the macos backend, ignoring\n");
++
++	if (*params.pidfile && !(Fpid = fopen(params.pidfile, "w")))
++	{
++		DLOG_PERROR("create pidfile");
++		return 1;
++	}
++
++	if (!mac_uplink_detect(uplink, sizeof(uplink)))
++	{
++		DLOG_ERR("cannot detect uplink interface. set MACWS_UPLINK\n");
++		goto exiterr;
++	}
++	DLOG_CONDUP("uplink interface : %s\n", uplink);
++
++	DLOG_CONDUP("initializing raw socket\n");
++	if (!mac_inject_init(uplink)) goto exiterr;
++
++	DLOG_CONDUP("creating utun interface\n");
++	if ((utun_fd = mac_utun_open(utun_if, sizeof(utun_if))) == -1) goto exiterr;
++	DLOG_CONDUP("created %s\n", utun_if);
++	if (!mac_utun_config(utun_if)) goto exiterr;
++
++	if (!mac_pf_apply(utun_if)) goto exiterr;
++
++	if (params.daemon) daemonize();
++
++	if (Fpid)
++	{
++		if (fprintf(Fpid, "%d", getpid()) <= 0)
++		{
++			DLOG_PERROR("write pidfile");
++			goto exiterr;
++		}
++		fclose(Fpid);
++		Fpid = NULL;
++	}
++
++	pre_desync();
++	signal(SIGTERM, mac_onstop);
++	signal(SIGINT, mac_onstop);
++
++	while (!mac_bStop)
++	{
++		mac_wire_audit_drain();
++		{
++			// входящие пакеты: сами их не отправляем и не дропаем (ядро уже
++			// их получило), но движку они нужны — по TTL входящего SYN-ACK
++			// он вычисляет autottl
++			uint8_t ibuf[256];
++			size_t ilen;
++			uint32_t imark;
++			while (mac_inbound_next(ibuf, sizeof(ibuf), &ilen))
++			{
++				imark = 0;
++				DLOG("\ninbound: len=%zu\n", ilen);
++				processPacketData(&imark, uplink, NULL, ibuf, &ilen);
++			}
++		}
++		{
++			// ждём пакет с таймаутом: так аудит провода и сигналы
++			// обрабатываются, даже когда трафика нет
++			fd_set fds;
++			struct timeval tv = { 1, 0 };
++			int r;
++			FD_ZERO(&fds);
++			FD_SET(utun_fd, &fds);
++			r = select(utun_fd + 1, &fds, NULL, NULL, &tv);
++			if (r < 0)
++			{
++				if (errno == EINTR) continue;
++				DLOG_PERROR("select");
++				goto exiterr;
++			}
++			if (!r) continue;
++		}
++		rd = read(utun_fd, buf, sizeof(buf));
++		if (rd < 0)
++		{
++			if (errno == EINTR || errno == EAGAIN) continue;
++			DLOG_PERROR("utun read");
++			goto exiterr;
++		}
++		// 4 байта заголовка utun = семейство адресов
++		if (rd <= 4) continue;
++		ReloadCheck();
++		af = ntohl(*(uint32_t*)buf);
++		len = (size_t)rd - 4;
++		if (af != AF_INET && af != AF_INET6)
++		{
++			DLOG("packet: id=%u af=%u unsupported, dropping\n", id++, af);
++			continue;
++		}
++		if (!mac_packet_routable(buf + 4, len))
++		{
++			// служебный трафик самого utun (NDP/MLD, multicast)
++			DLOG("packet: id=%u service traffic, skipping\n", id++);
++			continue;
++		}
++		DLOG("\npacket: id=%u len=%zu af=%u\n", id, len, af);
++		// ядро могло отдать пакет с неготовой контрольной суммой (offload)
++		mac_fix_csum(buf + 4, len);
++		// предупредить, если трафик уходит не через наш интерфейс (включённый VPN)
++		if (af == AF_INET) mac_check_source(buf + 4, len, uplink);
++		verdict = processPacketData(&mark, NULL, uplink, buf + 4, &len);
++		switch (verdict & VERDICT_MASK)
++		{
++		case VERDICT_PASS:
++		case VERDICT_MODIFY:
++			if ((verdict & VERDICT_MASK) == VERDICT_PASS)
++				DLOG("packet: id=%u send unmodified\n", id);
++			else
++				DLOG("packet: id=%u send modified len=%zu\n", id, len);
++			if (!mac_inject(buf + 4, len) && mac_inject_overload())
++			{
++				DLOG_ERR("aborting : injection overload\n");
++				goto exiterr;
++			}
++			break;
++		default:
++			DLOG("packet: id=%u drop\n", id);
++		}
++		id++;
++	}
++	res = 0;
++exiterr:
++	mac_pf_flush();
++	if (Fpid) fclose(Fpid);
++	if (utun_fd != -1) close(utun_fd);
++	return res;
+ }
+ 
+ #elif defined(BSD)
+@@ -2308,6 +2472,12 @@
+ 	PRINT_VER;
+ 
+ 	memset(&params, 0, sizeof(params));
++
++#ifdef __APPLE__
++	// macos: проверка инъекции пакетов и заворота через pf/utun без запуска обхода
++	if (getenv("MACWS_SELFTEST"))
++		return mac_selftest();
++#endif
+ 
+ 	struct desync_profile_list *dpl;
+ 	struct desync_profile *dp;
+@@ -3448,6 +3618,8 @@
+ 		DLOG_ERR("Need queue number (--qnum)\n");
+ 		exit_clean(1);
+ 	}
++#elif defined(__APPLE__)
++	// utun-бэкенд не использует divert-порт
+ #elif defined(BSD)
+ 	if (!params.port)
+ 	{
+@@ -3618,6 +3790,8 @@
+ 
+ #ifdef __linux__
+ 	result = nfq_main();
++#elif defined(__APPLE__)
++	result = mac_main();
+ #elif defined(BSD)
+ 	result = dvt_main();
+ #elif defined(__CYGWIN__)
+--- a/nfq/darkmagic.c
++++ b/nfq/darkmagic.c
+@@ -16,6 +16,9 @@
+ 
+ #include "darkmagic.h"
+ #include "helpers.h"
++#ifdef __APPLE__
++#include "mac_backend.h"
++#endif
+ #include "params.h"
+ #include "nfqws.h"
+ 
+@@ -1598,6 +1601,9 @@
+ }
+ void rawsend_cleanup(void)
+ {
++#ifdef __APPLE__
++	mac_inject_cleanup();
++#endif
+ 	rawsend_clean_sock(&rawsend_sock4);
+ 	rawsend_clean_sock(&rawsend_sock6);
+ }
+@@ -1770,6 +1776,11 @@
+ }
+ bool rawsend_preinit(bool bind_fix4, bool bind_fix6)
+ {
++#ifdef __APPLE__
++	// macos: инъекция идёт через raw-сокет, привязанный к uplink (mac_backend.c)
++	(void)bind_fix4; (void)bind_fix6;
++	return mac_inject_init(NULL);
++#endif
+ 	b_bind_fix4 = bind_fix4;
+ 	b_bind_fix6 = bind_fix6;
+ 	// allow ipv6 disabled systems
+@@ -1777,6 +1788,11 @@
+ }
+ bool rawsend(const struct sockaddr* dst,uint32_t fwmark,const char *ifout,const void *data,size_t len)
+ {
++#ifdef __APPLE__
++	(void)fwmark; (void)ifout; (void)dst;
++	// версия определяется по самому пакету, ipv6 уходит через bpf
++	return mac_inject((void*)data,len);
++#else
+ 	ssize_t bytes;
+ 	int sock=rawsend_socket(dst->sa_family);
+ 	if (sock==-1) return false;
+@@ -1847,6 +1863,7 @@
+ 	}
+ 	return true;
+ #endif
++#endif // __APPLE__
+ }
+ 
+ #endif // not CYGWIN
