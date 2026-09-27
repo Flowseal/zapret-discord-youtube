@@ -29,6 +29,7 @@ PATCH_DIR="$SELF_DIR/patches"
 TPWS="$BIN_DIR/tpws"
 MACWS="$BIN_DIR/macws"
 STRATEGIES="$SELF_DIR/strategies.conf"
+DEBUG_TOOLS_ENV="${DEBUG_TOOLS-}"   # разовое включение из окружения важнее config
 
 : "${PF_CONF:=/etc/pf.conf}"
 : "${PF_ANCHOR:=/etc/pf.anchors/zapret}"
@@ -55,7 +56,7 @@ STRATEGIES="$SELF_DIR/strategies.conf"
 : "${USE_IPSET:=auto}"
 : "${USE_LISTS:=1}"
 : "${TEST_TIMEOUT:=5}"
-: "${BIGCH_SIZE:=0}"                                  # 0 — естественный размер Chrome-подобного ClientHello
+: "${BIGCH_SIZE:=0}"                                  # размер ClientHello браузерной пробы; 0 — как у браузера (1538)
 : "${TEST_PORT:=10800}"
 : "${TARGETS_FILE:=$ROOT_DIR/utils/targets.txt}"
 : "${ZAPRET_TAG:=v72.9}"
@@ -68,8 +69,16 @@ STRATEGIES="$SELF_DIR/strategies.conf"
 : "${PF_WATCH_INTERVAL:=10}"
 : "${PF_TAKEOVER:=auto}"                             # auto | 1 | 0 — дописывать ли ссылку на anchor в активный ruleset pf
 : "${ENGINE_LOG:=}"                                  # файл лога движка (в тестах ставится сам)
+: "${DEBUG_TOOLS:=0}"                                # 1 — отладочные функции, которых нет в оригинале (см. README)
 : "${IPSET_URL:=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/ipset-service.txt}"
 [ -f "$SELF_DIR/config" ] && . "$SELF_DIR/config"
+[ -n "$DEBUG_TOOLS_ENV" ] && DEBUG_TOOLS="$DEBUG_TOOLS_ENV"
+
+# Отладочные функции (подробные логи, их разбор, подбор параметров, пробы) в
+# оригинале нет — по умолчанию они выключены, но не удалены. DEBUG_TOOLS=1
+# включает команды и расширенную диагностику в самом движке (MACWS_DIAG).
+debug_tools_on() { [ "$DEBUG_TOOLS" = 1 ]; }
+debug_tools_on && export MACWS_DIAG=1
 
 # ------------------------------------------------------------------ утилиты --
 if [ -t 1 ]; then C_R=$'\033[31m'; C_G=$'\033[32m'; C_Y=$'\033[33m'; C_B=$'\033[1m'; C_D=$'\033[2m'; C_0=$'\033[0m'
@@ -78,6 +87,12 @@ else C_R=; C_G=; C_Y=; C_B=; C_D=; C_0=; fi
 msg()  { printf '%s\n' "$*"; }
 ok()   { printf '%s%s%s\n' "$C_G" "$*" "$C_0"; }
 warn() { printf '%s%s%s\n' "$C_Y" "$*" "$C_0" >&2; }
+require_debug_tools() {
+	debug_tools_on && return 0
+	warn "«$1» — отладочная функция, её нет в оригинале, и по умолчанию она выключена."
+	warn "Включить: DEBUG_TOOLS=1 в macos/config (или разово: sudo DEBUG_TOOLS=1 $0 $1 ...)"
+	exit 1
+}
 die()  { printf '%s%s%s\n' "$C_R" "$*" "$C_0" >&2; exit 1; }
 
 require_root() {
@@ -143,10 +158,17 @@ fetch_src() {
 	[ -d "$SRC/tpws" ] || die "нет исходников в $SRC (проверьте ZAPRET_TAG=$ZAPRET_TAG)"
 }
 
+# Бинарник кладём новым файлом, а не поверх старого: на Apple Silicon запись
+# поверх уже запускавшегося файла ломает проверку подписи кода, и ядро убивает
+# процесс при запуске (Killed: 9)
+install_bin() {
+	rm -f "$2" && cp "$1" "$2" && chmod 755 "$2"
+}
+
 build_tpws() {
 	msg "собираю tpws..."
 	make -C "$SRC/tpws" mac >/dev/null || die "сборка tpws не удалась"
-	cp -f "$SRC/tpws/tpws" "$TPWS" && chmod 755 "$TPWS"
+	install_bin "$SRC/tpws/tpws" "$TPWS"
 	ok "tpws: $("$TPWS" --version 2>&1 | head -1)"
 }
 
@@ -161,7 +183,7 @@ build_macws() {
 	cp -f "$SRC_DIR/mac_backend.c" "$SRC_DIR/mac_backend.h" "$SRC/nfq/"
 	msg "собираю macws (движок nfqws + бэкенд utun)..."
 	make -C "$SRC/nfq" mac >/dev/null || die "сборка macws не удалась"
-	cp -f "$SRC/nfq/dvtws" "$MACWS" && chmod 755 "$MACWS"
+	install_bin "$SRC/nfq/dvtws" "$MACWS"
 	ok "macws: $("$MACWS" --version 2>&1 | head -1)"
 }
 
@@ -169,6 +191,7 @@ cmd_build() {
 	fetch_src
 	build_tpws
 	build_macws || true
+	build_bigch || true
 	[ -x "$MACWS" ] && msg "проверить бэкенд macws: sudo ./macos/zapret.sh selftest"
 	return 0
 }
@@ -491,7 +514,8 @@ service_stop() {
 pf_watch_running() {
 	local pid=
 	[ -f "$PIDFILE_WATCH" ] && read -r pid < "$PIDFILE_WATCH"
-	[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+	# ps, а не kill -0: без sudo kill -0 на процесс root даёт «нет прав»
+	[ -n "$pid" ] && ps -p "$pid" >/dev/null 2>&1
 }
 
 pf_enable() {
@@ -758,7 +782,7 @@ verify_after_start() {
 		warn "подберите стратегию: sudo $0 test-bat"
 	else
 		warn "проверка: ни одна цель не открылась — обход не действует"
-		warn "смотрите: sudo $0 status  и  sudo $0 debug"
+		warn "смотрите: sudo $0 status$(debug_tools_on && printf '  и  sudo %s debug' "$0")"
 	fi
 	return 0
 }
@@ -965,11 +989,20 @@ curl_reason() {
 # Проба «как браузер»: ClientHello ~1900 байт не влезает в один сегмент, и DPI
 # ведёт себя иначе, чем с коротким запросом curl. Именно это ломало браузер при
 # зелёных тестах curl.
-BIGCH="$SRC_DIR/bigch.py"
-bigch_available() { [ -f "$BIGCH" ] && command -v python3 >/dev/null; }
+# Браузерная проба: настоящее TLS-рукопожатие системным стеком Apple (как у
+# Safari), ClientHello 1538 байт в двух TCP-сегментах. Собирается тем же clang,
+# что и движки, — ни Python, ни других языков не нужно
+BIGCH="$BIN_DIR/bigch"
+build_bigch() {
+	command -v clang >/dev/null || { warn "нет clang — браузерная проба не собрана (xcode-select --install)"; return 1; }
+	as_user clang -O2 -fblocks "$SRC_DIR/bigch.c" -framework Network -framework Security -o "$BIGCH" 2>/dev/null ||
+		{ warn "браузерная проба не собралась — тесты пойдут только по curl"; return 1; }
+	ok "bigch: браузерная проба собрана"
+}
+bigch_available() { [ -x "$BIGCH" ] || build_bigch >/dev/null 2>&1; [ -x "$BIGCH" ]; }
 bigch_ok() {
 	bigch_available || return 0
-	as_user python3 "$BIGCH" "$(url_host "$1")" 443 "$BIGCH_SIZE" "$TEST_TIMEOUT" >/dev/null 2>&1
+	as_user "$BIGCH" "$(url_host "$1")" 443 "$BIGCH_SIZE" "$TEST_TIMEOUT" >/dev/null 2>&1
 }
 
 curl_ok() {
@@ -1038,16 +1071,25 @@ cmd_test() {
 }
 
 # перебор .bat стратегий на живом движке macws (нужен root)
+# «браузер 8/8, curl 7/8» — или только curl, если браузерной пробы нет
+score_text() {
+	if bigch_available; then printf 'браузер %s/%s, curl %s/%s' "$1" "$3" "$2" "$3"
+	else printf 'curl %s/%s' "$2" "$3"; fi
+}
+
 cmd_test_bat() {
 	require_root
 	[ -x "$MACWS" ] || cmd_build
 	local bats url b bat ok_n total force=0 control= blocked=() failed=()
-	local best= best_n=-1 best_failed= any= any_n=-1 broke=0
+	local best= best_n=-1 best_failed= any= any_n=-1 broke=0 best_big=0 best_curl=0 any_big=0 any_curl=0
 	while [ $# -gt 0 ]; do
 		case "$1" in --force|-f) force=1; shift ;; *) break ;; esac
 	done
 	if [ $# -gt 0 ]; then bats="$*"; else bats="$(bat_list | tr '\n' '|')"; fi
-	ENGINE_LOG="$STATE_DIR/engine.log"
+	# подробный лог движка пишется только в отладочном режиме: он тяжёлый и
+	# нужен лишь для разбора, вмешивался ли движок
+	ENGINE_LOG=""
+	debug_tools_on && ENGINE_LOG="$STATE_DIR/engine.log"
 	local suspect="$STATE_DIR/engine-suspect.log" saved=0
 	# перебор поднимает и гасит движок на каждой стратегии, поэтому работающий
 	# обход придётся остановить. Запомним, что было, и вернём в конце
@@ -1079,15 +1121,13 @@ cmd_test_bat() {
 			case "$why" in "DNS не разрешается"*) dns_bad=$((dns_bad+1)) ;; esac
 		fi
 	done
-	# ранжировать по браузерной пробе можно только если она вообще что-то ловит
+	# лучшая выбирается по браузеру, а при равенстве — по curl
 	if bigch_available; then
-		if [ ${#bigblocked[@]} -gt 0 ]; then
-			rank_by_big=1
-			msg "${C_D}браузерная проба режется у ${#bigblocked[@]} цели(ей) — по ней и выбираем лучшую${C_0}"
-		else
-			warn "браузерная проба не режется ни на одной цели: на этой сети она стратегии не различает,"
-			warn "выбираю по curl. Если браузер при этом не работает — причина не в SNI-блокировке TCP."
-		fi
+		rank_by_big=1
+		[ ${#bigblocked[@]} -gt 0 ] ||
+			msg "${C_D}браузерная проба без обхода не режется — стратегии различит в основном curl${C_0}"
+	else
+		warn "браузерная проба недоступна — выбираю только по curl"
 	fi
 	[ "$dns_bad" -gt 0 ] && {
 		warn "у $dns_bad цели(ей) не разрешается DNS — это подмена DNS, а не DPI."
@@ -1107,7 +1147,7 @@ cmd_test_bat() {
 			warn "контроль $(url_host "$control") не входит в хостлисты: он проверит только сквозной пропуск"
 		fi
 	}
-	bigch_available && msg "${C_D}вторая колонка — проба Chrome-подобным ClientHello (~1530 байт, рвётся на два TCP-сегмента)${C_0}"
+	bigch_available && msg "${C_D}curl — маленький ClientHello в одном пакете; браузер — настоящее рукопожатие как у Safari/Chrome (1538 байт, два пакета)${C_0}"
 	msg "${C_B}2) перебор .bat стратегий${C_0} на ${#blocked[@]} целях (движок macws)"
 	local IFS='|'
 	for b in $bats; do
@@ -1121,38 +1161,46 @@ cmd_test_bat() {
 			if [ -n "$control" ] && ! curl_ok "$control" && { sleep 1; ! curl_ok "$control"; }; then broke=1; fi
 			ok_n=0; total=0; big_n=0
 			for url in "${blocked[@]}"; do
+				local c=0 b=0
 				total=$((total+1))
-				if curl_ok "$url"; then ok_n=$((ok_n+1)); else failed+=("$(url_host "$url")"); fi
-				bigch_ok "$url" && big_n=$((big_n+1))
+				curl_ok "$url" && { ok_n=$((ok_n+1)); c=1; }
+				if bigch_available; then bigch_ok "$url" && { big_n=$((big_n+1)); b=1; }; else b=1; fi
+				# в скобках — какая проба не прошла, если не прошла только одна
+				case "$c$b" in
+					00) failed+=("$(url_host "$url")") ;;
+					10) failed+=("$(url_host "$url")(браузер)") ;;
+					01) failed+=("$(url_host "$url")(curl)") ;;
+				esac
 			done
 		else
 			warn "не удалось запустить $(basename "$bat") (лог: $STATE_DIR/test-bat.log)"
 		fi
 		# движок обязан быть жив к концу проверки, иначе мерили пустоту
-		local alive=1 touched=0
+		local alive=1 touched=1
 		[ -n "$(macws_pid)" ] || alive=0
-		grep -q "dpi desync " "$ENGINE_LOG" 2>/dev/null && touched=1
+		[ -n "$ENGINE_LOG" ] && ! grep -q "dpi desync " "$ENGINE_LOG" 2>/dev/null && touched=0
 		engines_stop; pfctl -qa "$PF_ANCHOR_NAME" -F all 2>/dev/null
 
 		local mark="" col="$C_R" bigtxt=""
 		[ "$alive" = 0 ] && mark="$mark  ${C_R}(движок завершился)${C_0}"
 		[ "$touched" = 0 ] && mark="$mark  ${C_Y}(движок не вмешивался)${C_0}"
-		[ "$ok_n" = 0 ] && [ "$saved" = 0 ] && { cp -f "$ENGINE_LOG" "$suspect" 2>/dev/null && saved=1; }
+		[ -n "$ENGINE_LOG" ] && [ "$ok_n" = 0 ] && [ "$saved" = 0 ] && { cp -f "$ENGINE_LOG" "$suspect" 2>/dev/null && saved=1; }
 		[ "$broke" = 1 ] && mark="$mark  ${C_R}(ломает $(url_host "$control"))${C_0}"
 		[ "$ok_n" -gt 0 ] && col="$C_Y"
 		[ "$ok_n" = "$total" ] && col="$C_G"
 		bigch_available && bigtxt="$(printf '  браузер %s%s/%s%s' "$([ "$big_n" = "$total" ] && printf '%s' "$C_G" || { [ "$big_n" -gt 0 ] && printf '%s' "$C_Y" || printf '%s' "$C_R"; })" "$big_n" "$total" "$C_0")"
 		printf '   %-34s curl %s%s/%s%s%s%s\n' "$(basename "$bat")" "$col" "$ok_n" "$total" "$C_0" "$bigtxt" "$mark"
 
-		# лучшая — среди тех, что не ломают контроль; отдельно лучшая вообще
-		# ранжируем по браузерной пробе: именно она отражает реальную работу
+		# лучшая — среди тех, что не ломают контроль; отдельно лучшая вообще.
+		# Главное — браузер (он и есть реальная работа), curl решает при равенстве:
+		# 8/8 в браузере и 6/8 в curl лучше, чем 7/8 и 8/8
 		local score="$ok_n"
-		[ "$rank_by_big" = 1 ] && score="$big_n"
+		[ "$rank_by_big" = 1 ] && score=$(( big_n * 100 + ok_n ))
 		if [ "$broke" = 0 ] && [ "$score" -gt "$best_n" ]; then
-			best_n=$score; best="$(basename "$bat")"
+			best_n=$score; best="$(basename "$bat")"; best_big=$big_n; best_curl=$ok_n
 			best_failed="$(printf '%s ' "${failed[@]+"${failed[@]}"}")"
 		fi
-		[ "$score" -gt "$any_n" ] && { any_n=$score; any="$(basename "$bat")"; }
+		[ "$score" -gt "$any_n" ] && { any_n=$score; any="$(basename "$bat")"; any_big=$big_n; any_curl=$ok_n; }
 		local IFS='|'
 	done
 	unset IFS
@@ -1170,6 +1218,7 @@ cmd_test_bat() {
 		[ "$best_n" -gt 0 ] && st="$best"
 		msg ""
 		msg "возвращаю обход: $st"
+		ENGINE_LOG=""   # рабочий обход — без подробного лога
 		if [ "$(engine)" = macws ]; then start_macws "$st"; else start_tpws "$st"; fi
 	}
 
@@ -1179,17 +1228,17 @@ cmd_test_bat() {
 			warn "лог движка первой неудачной стратегии: $suspect"
 			grep -E "cannot|error|failed|pf: |inject: |exiting" "$suspect" 2>/dev/null | head -8 | sed 's/^/   /'
 		}
-		warn "что дальше: ./macos/zapret.sh diag  и  sudo ./macos/zapret.sh trace general.bat"
+		warn "что дальше: ./macos/zapret.sh diag$(debug_tools_on && printf '  и  sudo ./macos/zapret.sh trace general.bat')"
 		restore_after_test
 		return 1
 	fi
 	if [ "$best_n" -gt 0 ]; then
-		ok "лучшая стратегия: $best ($best_n из ${#blocked[@]}, ничего не ломает)"
+		ok "лучшая стратегия: $best ($(score_text "$best_big" "$best_curl" ${#blocked[@]}), ничего не ломает)"
 		[ -n "$best_failed" ] && msg "не вылечены: $best_failed"
 	else
 		warn "все помогающие стратегии ломают контрольную цель"
 	fi
-	[ "$any_n" -gt "$best_n" ] && msg "${C_Y}$any даёт больше ($any_n из ${#blocked[@]}), но ломает $(url_host "$control")${C_0}"
+	[ "$any_n" -gt "$best_n" ] && msg "${C_Y}$any даёт больше ($(score_text "$any_big" "$any_curl" ${#blocked[@]})), но ломает $(url_host "$control")${C_0}"
 	# профили в .bat ссылаются на ipset-all.txt; в репозитории он заглушка
 	[ "$IPSET_FILTER" = none ] && msg "если часть целей ходит по ip без имени, попробуйте IPSET_FILTER=loaded в macos/config (осторожно: меняет поведение всех стратегий)"
 	[ "$best_n" -gt 0 ] && {
@@ -1427,14 +1476,14 @@ cmd_tune() {
 	require_root
 	ensure_engine
 	[ "$(engine)" = macws ] || die "tune работает только с движком macws"
-	bigch_available || die "нужен python3 и $BIGCH"
+	bigch_available || die "браузерная проба не собрана: ./macos/zapret.sh build"
 	local host="${1:-www.youtube.com}" line name opts ok_big ok_curl found=0
 	host="$(url_host "$host")"
 
 	uplink_is_tunnel && die "трафик уходит в туннель (VPN) — сначала отключите VPN"
 	engines_stop
 	pfctl -qa "$PF_ANCHOR_NAME" -F all 2>/dev/null
-	msg "${C_B}подбор параметров для $host${C_0} (проба Chrome-подобным ClientHello)"
+	msg "${C_B}подбор параметров для $host${C_0} (браузерной пробой)"
 	if bigch_ok "https://$host"; then
 		warn "$host сейчас открывается и без обхода — подбирать нечего"
 		return 0
@@ -1515,17 +1564,17 @@ reasm_stats() {
 # Пробы ClientHello разного вида: размер, наличие и содержимое SNI, адрес подключения
 probe_ch() {   # probe_ch <хост> <размер> [ключи...]
 	local h="$1" sz="$2"; shift 2
-	as_user python3 "$BIGCH" "$h" 443 "$sz" "$TEST_TIMEOUT" "$@" >/dev/null 2>&1
+	as_user "$BIGCH" "$h" 443 "$sz" "$TEST_TIMEOUT" "$@" >/dev/null 2>&1
 }
 
 # Набор проб различающего опыта: описание|размер|ключи (%IP% подставляется)
 why_matrix() {
 	cat <<EOF
-ClientHello 517 б, SNI есть|0|--small
-ClientHello 1280 б, один сегмент, SNI есть|1300|--small
-ClientHello 1538 б, два сегмента, SNI есть|0|
-ClientHello 1538 б, без SNI, по IP|0|--sni none --connect %IP%
-ClientHello 1538 б, чужой SNI, по IP|0|--sni example.com --connect %IP%
+маленький ClientHello, SNI есть|0|--small
+ClientHello ~1300 б, один сегмент, SNI есть|1300|--small
+браузерный ClientHello, два сегмента|0|
+браузерный, без SNI, по IP|0|--sni none --connect %IP%
+браузерный, чужой SNI, по IP|0|--sni example.com --connect %IP%
 EOF
 }
 
@@ -1536,7 +1585,7 @@ cmd_why() {
 	require_root
 	ensure_engine
 	[ "$(engine)" = macws ] || die "why работает только с движком macws"
-	bigch_available || die "нужен python3 и $BIGCH"
+	bigch_available || die "браузерная проба не собрана: ./macos/zapret.sh build"
 	local host="${1:-www.youtube.com}" strat="${2:-$STRATEGY_BAT}" ip bat
 	local labels=() sizes=() flags=() off=() on=() i=0 n=0
 	host="$(url_host "$host")"
@@ -1593,6 +1642,7 @@ EOF
 		[ -n "$was_running" ] || return 0
 		msg ""
 		msg "возвращаю обход: ${was_strategy:-$STRATEGY_BAT}"
+		ENGINE_LOG=""
 		if [ "$(engine)" = macws ]; then start_macws "${was_strategy:-$STRATEGY_BAT}"; else start_tpws "${was_strategy:-$STRATEGY_BAT}"; fi
 	}
 
@@ -1633,13 +1683,13 @@ EOF
 	if [ "${on[1]}" = 1 ] || [ "${on[0]}" = 1 ]; then
 		warn "обход лечит ClientHello в одном сегменте, но не разорванный на два:"
 		warn "DPI собирает TCP-сегменты, поэтому расщепление его не обманывает"
-		[ "${off[1]}" = 0 ] && msg "${C_D}(1280 байт режется и без обхода, значит дело не в размере, а в имени)${C_0}"
+		[ "${off[1]}" = 0 ] && msg "${C_D}(~1300 байт в одном сегменте режется и без обхода, значит дело не в размере, а в имени)${C_0}"
 		msg "что делать: включить ECH в браузере (тогда имени в ClientHello нет вовсе),"
 		msg "либо увести только этот хост в прокси: ./macos/zapret.sh socks"
 		why_restore; return 1
 	fi
 	warn "обход не помог даже маленькому ClientHello — стратегия $(basename "$bat") для этой цели не подходит"
-	msg "переберите другие: sudo $0 test-bat   или подберите параметры: sudo $0 tune $host"
+	msg "переберите другие: sudo $0 test-bat$(debug_tools_on && printf '   или подберите параметры: sudo %s tune %s' "$0" "$host")"
 	why_restore; return 1
 }
 
@@ -1745,8 +1795,6 @@ zapret для macOS. Движок: $(engine) (ENGINE=$ENGINE)
        ./macos/zapret.sh test [--force] [стратегии...] перебрать стратегии tpws (без sudo)
        ./macos/zapret.sh socks [стратегия]            SOCKS5 tpws на 127.0.0.1:$SOCKS_PORT
 
-  sudo ./macos/zapret.sh debug [стратегия]   запустить с подробным логом на переднем плане
-  sudo ./macos/zapret.sh check [стратегия]   показать правила pf и проверить параметры
   sudo ./macos/zapret.sh start [стратегия]   включить обход
   sudo ./macos/zapret.sh stop
   sudo ./macos/zapret.sh restart [стратегия]
@@ -1755,16 +1803,27 @@ zapret для macOS. Движок: $(engine) (ENGINE=$ENGINE)
   sudo ./macos/zapret.sh install [стратегия] автозапуск (launchd)
   sudo ./macos/zapret.sh uninstall           убрать автозапуск и правила pf
        ./macos/zapret.sh diag                 что именно блокирует: DNS, IP или DPI по SNI
-  sudo ./macos/zapret.sh trace [стратегия] [url]  разобрать одно соединение по шагам
-       ./macos/zapret.sh logsum [файл]       разбор лога движка (по умолчанию .state/debug.log)
-  sudo ./macos/zapret.sh why [хост] [стратегия]   за что цепляется DPI у одной цели
-       ./macos/zapret.sh bigch [хост] [размер]  проба «браузерным» ClientHello
-  sudo ./macos/zapret.sh tune [хост]        перебрать параметры desync по одной цели
-       ./macos/zapret.sh update-ipset        обновить lists/ipset-all.txt
+       ./macos/zapret.sh update-ipset        обновить список адресов для IPSET_FILTER=loaded
 
 Стратегия macws по умолчанию: $STRATEGY_BAT, tpws: $STRATEGY
 Настройки: macos/config (см. config.example). Что работает — macos/README.md
 USAGE_EOF
+	if debug_tools_on; then
+		cat <<USAGE_EOF
+
+Отладка (DEBUG_TOOLS=1):
+  sudo ./macos/zapret.sh debug [стратегия]   движок на переднем плане с подробным логом
+  sudo ./macos/zapret.sh check [стратегия]   показать правила pf и проверить параметры
+  sudo ./macos/zapret.sh trace [стратегия] [url]  разобрать одно соединение по шагам
+       ./macos/zapret.sh logsum [файл]       разбор лога движка (по умолчанию .state/debug.log)
+  sudo ./macos/zapret.sh why [хост] [стратегия]   за что цепляется DPI у одной цели
+       ./macos/zapret.sh bigch [хост] [размер]  браузерная проба вручную
+  sudo ./macos/zapret.sh tune [хост]        перебрать параметры desync по одной цели
+USAGE_EOF
+	else
+		msg ""
+		msg "Отладочные команды (debug, check, trace, logsum, why, bigch, tune) выключены: DEBUG_TOOLS=1 в macos/config"
+	fi
 }
 
 case "${1:-help}" in
@@ -1775,7 +1834,7 @@ case "${1:-help}" in
 	test)         shift; cmd_test "$@" ;;
 	test-bat)     shift; cmd_test_bat "$@" ;;
 	socks)        shift; cmd_socks "${1:-}" ;;
-	check)        shift; cmd_check "${1:-}" ;;
+	check)        require_debug_tools check; shift; cmd_check "${1:-}" ;;
 	start)        shift; cmd_start "${1:-}" ;;
 	stop)         cmd_stop ;;
 	restart)      shift; cmd_restart "${1:-}" ;;
@@ -1783,22 +1842,22 @@ case "${1:-help}" in
 	install)      shift; cmd_install "${1:-}" ;;
 	uninstall)    cmd_uninstall ;;
 	diag)         cmd_diag ;;
-	logsum)       shift; cmd_logsum "${1:-}" ;;
-	tune)         shift; cmd_tune "${1:-}" ;;
-	why)          shift; cmd_why "$@" ;;
-	bigch)        shift; bigch_available || die "нужен python3 и $BIGCH"
+	logsum)       require_debug_tools logsum; shift; cmd_logsum "${1:-}" ;;
+	tune)         require_debug_tools tune; shift; cmd_tune "${1:-}" ;;
+	why)          require_debug_tools why; shift; cmd_why "$@" ;;
+	bigch)        require_debug_tools bigch; shift; bigch_available || die "браузерная проба не собрана: ./macos/zapret.sh build"
 	              # лишние ключи (--small, --sni, --connect) передаём пробнику как есть
 	              case "${1:-}" in
-	              --selfcheck) shift; as_user python3 "$BIGCH" --selfcheck "$BIGCH_SIZE" "$@" ;;
+	              --selfcheck) shift; as_user "$BIGCH" --selfcheck "$BIGCH_SIZE" "$@" ;;
 	              *)  BHOST="$(url_host "${1:-www.youtube.com}")"; BSIZE="${2:-$BIGCH_SIZE}"
 	                  case "${1:-}" in -*) BHOST=www.youtube.com; BSIZE="$BIGCH_SIZE" ;; *) [ $# -gt 0 ] && shift ;; esac
 	                  case "${1:-}" in -*) ;; *) [ $# -gt 0 ] && shift ;; esac
-	                  as_user python3 "$BIGCH" "$BHOST" 443 "$BSIZE" "$TEST_TIMEOUT" "$@" ;;
+	                  as_user "$BIGCH" "$BHOST" 443 "$BSIZE" "$TEST_TIMEOUT" "$@" ;;
 	              esac ;;
-	trace)        shift; cmd_trace "${1:-}" "${2:-}" ;;
+	trace)        require_debug_tools trace; shift; cmd_trace "${1:-}" "${2:-}" ;;
 	update-ipset) cmd_update_ipset ;;
 	_run)         shift; cmd_run "${1:-}" ;;
-	debug)        shift; msg "движок на переднем плане, Ctrl-C — стоп"; cmd_run "${1:-}" debug ;;
+	debug)        require_debug_tools debug; shift; msg "движок на переднем плане, Ctrl-C — стоп"; cmd_run "${1:-}" debug ;;
 	quic)         shift; msg "QUIC=$QUIC (fake — фейки по стратегии, block — глушить udp/443)" ;;
 	_args)        shift; cmd_args "${1:-}" "${2:-}" "${3:-}" ;;
 	help|-h|--help) usage ;;

@@ -53,6 +53,9 @@ strategy_now() {
 
 pause() { printf '\n%s' "${D}Enter — назад в меню${N} "; read -r _; }
 
+# отладочные пункты (их нет в оригинальном service.bat) — только при DEBUG_TOOLS=1
+debug_on() { [ "$(cfg_get DEBUG_TOOLS 0)" = 1 ]; }
+
 # ------------------------------------------------------------------- шапка --
 header() {
 	local eng strat pid auto gf
@@ -71,7 +74,8 @@ header() {
 	printf ' автозапуск:  %s\n' "$auto"
 	printf ' game filter: %s\n' "$gf"
 	printf ' ipset:       %s\n' "$(cfg_get IPSET_FILTER none)"
-	printf ' quic:        %s\n' "$(cfg_get QUIC fake)"
+	printf ' quic:        %s\n' "$(cfg_get QUIC block)"
+	debug_on && printf ' отладка:     %s\n' "${Y}включена${N}"
 	[ -x ./bin/macws ] || printf ' %s\n' "${Y}движки не собраны — пункт 12${N}"
 	printf '%s\n' "${D}──────────────────────────────────────${N}"
 }
@@ -93,11 +97,14 @@ menu() {
  11. IPSet Filter (none / loaded / any)
  12. Собрать / обновить движки
  13. Диагностика: что блокирует + статус
- 14. Запустить с подробным логом (отладка)
- 15. QUIC: фейки / глушить (если в браузере не грузится)
- 16. Почему сайт не открывается (разбор одной цели)
-  0. Выход
+ 14. QUIC: фейки / глушить (если в браузере не грузится)
 EOM
+	debug_on && cat <<'EOM'
+
+ 15. Запустить с подробным логом (отладка)
+ 16. Почему сайт не открывается (разбор одной цели)
+EOM
+	echo "  0. Выход"
 }
 
 # ------------------------------------------------------------------ пункты --
@@ -139,7 +146,7 @@ toggle_engine() {
 }
 
 toggle_quic() {
-	local q; q="$(cfg_get QUIC fake)"
+	local q; q="$(cfg_get QUIC block)"
 	case "$q" in
 		block) cfg_set QUIC fake ;;
 		*)     cfg_set QUIC block ;;
@@ -190,9 +197,17 @@ diagnostics() {
 	echo
 	"$Z" status
 	echo
+	debug_on || return 0
 	printf 'показать правила pf и проверить параметры (нужен пароль)? [y/N] '
 	read -r yn
 	case "$yn" in [yYдД]*) sudo "$Z" check ;; esac
+}
+
+debug_only() {
+	debug_on && return 0
+	echo "${Y}это отладочная функция, по умолчанию она выключена${N}"
+	echo "${D}включить: DEBUG_TOOLS=1 в macos/config${N}"
+	return 1
 }
 
 # -------------------------------------------------------------------- цикл --
@@ -217,11 +232,13 @@ while :; do
 		11) toggle_ipset_filter; pause ;;
 		12) "$Z" build; pause ;;
 		13) diagnostics; pause ;;
-		14) sudo "$Z" debug "$(strategy_now)"; pause ;;
-		15) toggle_quic; pause ;;
-		16) printf 'какой сайт разобрать? [www.youtube.com] '
-		    read -r h
-		    sudo "$Z" why "${h:-www.youtube.com}" "$(strategy_now)"; pause ;;
+		14) toggle_quic; pause ;;
+		15) debug_only && sudo "$Z" debug "$(strategy_now)"; pause ;;
+		16) if debug_only; then
+		        printf 'какой сайт разобрать? [www.youtube.com] '
+		        read -r h
+		        sudo "$Z" why "${h:-www.youtube.com}" "$(strategy_now)"
+		    fi; pause ;;
 		0|q|Q|"") exit 0 ;;
 		*)  echo "${R}нет такого пункта${N}"; sleep 1 ;;
 	esac

@@ -111,6 +111,13 @@ static bool run_cmd(const char *fmt, ...)
 }
 
 // вывести результат команды в лог движка построчно
+// расширенная диагностика (дампы pf и т.п.) — только по запросу
+static bool mac_diag_on(void)
+{
+	const char *e = getenv("MACWS_DIAG");
+	return e && *e && strcmp(e, "0");
+}
+
 static void log_cmd(const char *prefix, const char *fmt, ...)
 {
 	char cmd[512], line[512], *p;
@@ -577,7 +584,8 @@ static bool bpf_init(const char *ifn)
 	}
 	{
 		const char *e = getenv("MACWS_WIRE_AUDIT");
-		if (e && strcmp(e, "0")) audit_on = true;
+		// сверка с проводом — отладочная функция, по умолчанию выключена
+		if (e ? strcmp(e, "0") != 0 : mac_diag_on()) audit_on = true;
 		if (audit_on || inbound_on)
 		{
 			int one = 1, fl;
@@ -1120,11 +1128,15 @@ bool mac_pf_load_rules(const char *rules)
 	DLOG_CONDUP("pf: loaded rules into anchor \"%s\"\n", anchor);
 	if (!mac_pf_enabled())
 		DLOG_CONDUP("pf: WARNING ! pf is disabled, rules will not work. enable it: pfctl -E\n");
-	// что на самом деле в pf: без этого молчаливую неработу не отличить
-	log_cmd("pf: ", "/sbin/pfctl -s info 2>/dev/null | /usr/bin/head -2");
-	log_cmd("pf: anchor rule: ", "/sbin/pfctl -a %s -sr 2>/dev/null", anchor);
-	log_cmd("pf: main ruleset: ", "/sbin/pfctl -sr 2>/dev/null | /usr/bin/head -10");
-	log_cmd("pf: anchors: ", "/sbin/pfctl -sA 2>/dev/null | /usr/bin/head -10");
+	// что на самом деле в pf: без этого молчаливую неработу не отличить.
+	// Отладочная диагностика — только при MACWS_DIAG=1 (DEBUG_TOOLS=1 в zapret.sh)
+	if (mac_diag_on())
+	{
+		log_cmd("pf: ", "/sbin/pfctl -s info 2>/dev/null | /usr/bin/head -2");
+		log_cmd("pf: anchor rule: ", "/sbin/pfctl -a %s -sr 2>/dev/null", anchor);
+		log_cmd("pf: main ruleset: ", "/sbin/pfctl -sr 2>/dev/null | /usr/bin/head -10");
+		log_cmd("pf: anchors: ", "/sbin/pfctl -sA 2>/dev/null | /usr/bin/head -10");
+	}
 	return true;
 }
 
