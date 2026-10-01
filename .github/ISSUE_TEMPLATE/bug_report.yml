@@ -12,7 +12,7 @@ body:
       options:
         - label: Я искал решение проблемы в [README](https://github.com/Flowseal/zapret-discord-youtube/blob/main/README.md) и среди [Issues](https://github.com/Flowseal/zapret-discord-youtube/issues) и [Discussions](https://github.com/Flowseal/zapret-discord-youtube/discussions)
         - label: Я скачал ``zapret-discord-youtube`` из [релизов официального репозитория](https://github.com/Flowseal/zapret-discord-youtube/releases)
-        - label: Ознакомился с [условиями создания Issue](https://gist.github.com/ControlRe/af8f5ae80816af2ff4ffa9228bbaf626)
+        - label: Ознакомился с [условиями создания Issue](https://gist.github.com/ShadowCreator-5/aa7e39d647c22139103b4191156e3d31)
           required: true
 
   - type: textarea
