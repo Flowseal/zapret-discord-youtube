@@ -69,6 +69,7 @@ trap {
     if ($originalIpsetStatus -and $originalIpsetStatus -ne "any") {
         Set-IpsetMode -mode "restore"
     }
+    Restore-TestFakes
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
     Wait-AnyKey
     break
@@ -408,6 +409,71 @@ $dpiTargets = @()
 $targetDir = $rootDir
 if (-not $targetDir) { $targetDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
 $batFiles = Get-ChildItem -Path $targetDir -Filter "*.bat" | Where-Object { $_.Name -notlike "service*" } | Sort-Object { [Regex]::Replace($_.Name, "(\d+)", { $args[0].Value.PadLeft(8, "0") }) }
+$autoFakeTests = $false
+$activeFakePaths = @(
+    (Join-Path $rootDir "bin\ACTIVE_DISCORD_UDP.bin"),
+    (Join-Path $rootDir "bin\ACTIVE_GAME_UDP.bin")
+)
+$fakeBackupDir = Join-Path ([IO.Path]::GetTempPath()) "zapret-test-fakes-$PID"
+
+function Set-TestFake {
+    param([string]$sourcePath)
+    foreach ($activePath in $activeFakePaths) {
+        Copy-Item -LiteralPath $sourcePath -Destination $activePath -Force
+    }
+}
+
+function Backup-TestFakes {
+    if (-not $autoFakeTests) { return }
+    New-Item -ItemType Directory -Path $fakeBackupDir -Force | Out-Null
+    foreach ($activePath in $activeFakePaths) {
+        $backupPath = Join-Path $fakeBackupDir ([IO.Path]::GetFileName($activePath))
+        if (Test-Path -LiteralPath $activePath) {
+            Copy-Item -LiteralPath $activePath -Destination $backupPath -Force
+        }
+    }
+}
+
+function Restore-TestFakes {
+    if (-not $autoFakeTests) { return }
+    foreach ($activePath in $activeFakePaths) {
+        $backupPath = Join-Path $fakeBackupDir ([IO.Path]::GetFileName($activePath))
+        if (Test-Path -LiteralPath $backupPath) {
+            Copy-Item -LiteralPath $backupPath -Destination $activePath -Force
+        } else {
+            Remove-Item -LiteralPath $activePath -Force -ErrorAction SilentlyContinue
+        }
+    }
+    Remove-Item -LiteralPath $fakeBackupDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+function Read-FakeSelection {
+    param([array]$allFakes)
+
+    while ($true) {
+        Write-Host ""
+        Write-Host "Select fakes to test (0 = all):" -ForegroundColor Cyan
+        for ($i = 0; $i -lt $allFakes.Count; $i++) {
+            Write-Host "  [$($i + 1)] $($allFakes[$i].Name)" -ForegroundColor Gray
+        }
+        $selectionInput = (Read-Host "Enter numbers, ranges (e.g. 1,3-5), or 0").Trim()
+        if ($selectionInput -eq '0') { return $allFakes }
+
+        $selectedIndices = @()
+        foreach ($part in ($selectionInput -split '[,\s]+' | Where-Object { $_ })) {
+            if ($part -match '^(\d+)-(\d+)$') {
+                for ($i = [int]$matches[1]; $i -le [int]$matches[2]; $i++) { $selectedIndices += $i }
+            } elseif ($part -match '^\d+$') {
+                $selectedIndices += [int]$part
+            }
+        }
+        $valid = @($selectedIndices | Sort-Object -Unique | Where-Object { $_ -ge 1 -and $_ -le $allFakes.Count })
+        if ($valid.Count -gt 0) {
+            return @($valid | ForEach-Object { $allFakes[$_ - 1] })
+        }
+        Write-Host "No valid fakes selected. Try again." -ForegroundColor Yellow
+    }
+}
 
 $globalResults = @()
 
@@ -422,6 +488,21 @@ function Read-TestType {
         switch ($choice) {
             '1' { return 'standard' }
             '2' { return 'dpi' }
+            default { Write-Host "Incorrect input. Please try again." -ForegroundColor Yellow }
+        }
+    }
+}
+
+function Read-FakeMode {
+    while ($true) {
+        Write-Host ""
+        Write-Host "Select fake testing mode:" -ForegroundColor Cyan
+        Write-Host "  [1] Use current active fakes" -ForegroundColor Gray
+        Write-Host "  [2] Automatically test selected fakes" -ForegroundColor Gray
+        $choice = Read-Host "Enter 1 or 2"
+        switch ($choice) {
+            '1' { return $false }
+            '2' { return $true }
             default { Write-Host "Incorrect input. Please try again." -ForegroundColor Yellow }
         }
     }
@@ -521,6 +602,21 @@ function Read-ConfigSelection {
 while ($true) {
     $globalResults = @()
 $testType = Read-TestType
+$autoFakeTests = Read-FakeMode
+$fakeVariants = @([PSCustomObject]@{ Name = "current"; Source = $null })
+if ($autoFakeTests) {
+    $fakeVariants = @(Get-ChildItem -LiteralPath (Join-Path $rootDir "bin") -File -Filter "*.bin" |
+        Where-Object { $_.BaseName -notlike "ACTIVE_*" } |
+        Sort-Object Name |
+        ForEach-Object { [PSCustomObject]@{ Name = $_.BaseName; Source = $_.FullName } })
+    if ($fakeVariants.Count -eq 0) {
+        Write-Host "[ERROR] No fake files were found in the bin folder." -ForegroundColor Red
+        Wait-AnyKey -message "Press any key to exit..."
+        exit 1
+    }
+    Write-Host "[INFO] Available fake files: $($fakeVariants.Count)" -ForegroundColor Cyan
+    $fakeVariants = @(Read-FakeSelection -allFakes $fakeVariants)
+}
 $mode = Read-ModeSelection
 if ($mode -eq 'select') {
     $selected = Read-ConfigSelection -allFiles $batFiles
@@ -653,6 +749,8 @@ Write-Host "                 Total configs: $($batFiles.Count.ToString().PadLeft
 Write-Host "============================================================" -ForegroundColor Cyan
 
 try {
+    Backup-TestFakes
+
     # Save original ipset status and switch to 'any' for accurate DPI tests
     if (($originalIpsetStatus -ne "any") -and ($testType -eq 'dpi')) {
         Write-Host "[WARNING] Ipset is in '$originalIpsetStatus' mode. Switching to 'any' for accurate DPI tests..." -ForegroundColor Yellow
@@ -663,6 +761,13 @@ try {
     Write-Host "[WARNING] Tests may take several minutes to complete. Please wait..." -ForegroundColor Yellow
 
     $configNum = 0
+    foreach ($fake in $fakeVariants) {
+    if ($autoFakeTests) {
+        Write-Host ""
+        Write-Host "########## Fake: $($fake.Name) ##########" -ForegroundColor Magenta
+        Set-TestFake -sourcePath $fake.Source
+    }
+
     foreach ($file in $batFiles) {
     $configNum++
     Write-Host ""
@@ -850,16 +955,19 @@ try {
 
         }
 
-        $globalResults += @{ Config = $file.Name; Type = 'standard'; Results = $targetResults }
+        $resultConfig = if ($autoFakeTests) { "$($file.Name) [$($fake.Name)]" } else { $file.Name }
+        $globalResults += @{ Config = $resultConfig; Type = 'standard'; Results = $targetResults }
     } else {
         Write-Host "  > Running DPI checkers..." -ForegroundColor DarkGray
         $dpiResults = Invoke-DpiSuite -Targets $dpiTargets -TimeoutSeconds $dpiTimeoutSeconds -RangeBytes $dpiRangeBytes -MaxParallel $dpiMaxParallel
-        $globalResults += @{ Config = $file.Name; Type = 'dpi'; Results = $dpiResults }
+        $resultConfig = if ($autoFakeTests) { "$($file.Name) [$($fake.Name)]" } else { $file.Name }
+        $globalResults += @{ Config = $resultConfig; Type = 'dpi'; Results = $dpiResults }
     }
     
     # Stop
     Stop-Zapret
     if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+}
 }
 
     Write-Host ""
@@ -1007,6 +1115,7 @@ try {
     Remove-Item -Path $ipsetFlagFile -ErrorAction SilentlyContinue
 } finally {
     Stop-Zapret
+    Restore-TestFakes
     Restore-WinwsSnapshot -snapshot $originalWinws
     if ($originalIpsetStatus -ne "any") {
         Write-Host "[INFO] Restoring original ipset mode..." -ForegroundColor DarkGray
