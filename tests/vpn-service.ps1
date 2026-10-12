@@ -21,6 +21,8 @@ function Invoke-TestInstaller {
     $script:processes += $process
     $output = $process.StandardOutput.ReadToEndAsync()
     $errors = $process.StandardError.ReadToEndAsync()
+    try {
+    Wait-InstallerMarker $process $menuMarker
     $process.StandardInput.WriteLine('1')
     $process.StandardInput.Flush()
     Wait-InstallerMarker $process $choiceMarker
@@ -32,6 +34,12 @@ function Invoke-TestInstaller {
     $process.StandardInput.Flush()
     if (!$process.WaitForExit(10000)) { throw 'Installer did not exit from the menu.' }
     return $output.Result + $errors.Result
+    } catch {
+        if (!$process.HasExited) { $process.Kill() }
+        $process.WaitForExit()
+        Write-Host ($output.Result + $errors.Result)
+        throw
+    }
 }
 $fixture = Join-Path $root ('build\vpn-service-' + [Guid]::NewGuid().ToString('N') + '\folder with spaces (test)')
 foreach ($folder in @($fixture, "$fixture\bin", "$fixture\utils", "$fixture\lists")) {
