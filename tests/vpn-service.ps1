@@ -1,6 +1,13 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $processes = @()
+function Send-InstallerInput {
+    param([Diagnostics.Process]$Process, [string]$Value)
+    $bytes = [Text.Encoding]::ASCII.GetBytes($Value + "`r`n")
+    $stream = $Process.StandardInput.BaseStream
+    $stream.Write($bytes, 0, $bytes.Length)
+    $stream.Flush()
+}
 function Wait-InstallerMarker {
     param([Diagnostics.Process]$Process, [string]$Path)
     $timer = [Diagnostics.Stopwatch]::StartNew()
@@ -23,15 +30,12 @@ function Invoke-TestInstaller {
     $errors = $process.StandardError.ReadToEndAsync()
     try {
     Wait-InstallerMarker $process $menuMarker
-    $process.StandardInput.WriteLine('1')
-    $process.StandardInput.Flush()
+    Send-InstallerInput $process '1'
     Wait-InstallerMarker $process $choiceMarker
     [IO.File]::Delete($menuMarker)
-    $process.StandardInput.WriteLine('1')
-    $process.StandardInput.Flush()
+    Send-InstallerInput $process '1'
     Wait-InstallerMarker $process $menuMarker
-    $process.StandardInput.WriteLine('0')
-    $process.StandardInput.Flush()
+    Send-InstallerInput $process '0'
     if (!$process.WaitForExit(10000)) { throw 'Installer did not exit from the menu.' }
     return $output.Result + $errors.Result
     } catch {

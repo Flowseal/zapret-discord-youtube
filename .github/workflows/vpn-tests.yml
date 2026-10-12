@@ -31,7 +31,9 @@ jobs:
         shell: powershell
         run: .\tests\vpn-service.ps1
       - name: Packet filtering
+        if: ${{ !cancelled() }}
         run: python tests/vpn-packets.py
       - name: Native winws and WinDivert
+        if: ${{ !cancelled() }}
         shell: powershell
         run: .\tests\vpn-native.ps1

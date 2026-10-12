@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-if (!$env:GITHUB_ACTIONS) { throw 'This test runs only on a disposable CI runner.' }
+if ($env:GITHUB_ACTIONS -ne 'true') { throw 'This test runs only on a disposable CI runner.' }
 $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $root 'utils\vpn-filter.ps1')
 
