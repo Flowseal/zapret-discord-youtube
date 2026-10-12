@@ -1,0 +1,37 @@
+name: VPN strategy tests
+
+on:
+  pull_request:
+    paths:
+      - 'general (ALT13 VPN).bat'
+      - 'service.bat'
+      - 'utils/vpn-filter.ps1'
+      - 'tests/**'
+      - '.github/workflows/vpn-tests.yml'
+  push:
+    paths:
+      - 'general (ALT13 VPN).bat'
+      - 'service.bat'
+      - 'utils/vpn-filter.ps1'
+      - 'tests/**'
+      - '.github/workflows/vpn-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Filter preparation
+        shell: powershell
+        run: .\tests\vpn-filter.ps1
+      - name: Service installation
+        shell: powershell
+        run: .\tests\vpn-service.ps1
+      - name: Packet filtering
+        run: python tests/vpn-packets.py
+      - name: Native winws and WinDivert
+        shell: powershell
+        run: .\tests\vpn-native.ps1
