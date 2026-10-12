@@ -52,8 +52,8 @@ foreach ($folder in @($fixture, "$fixture\bin", "$fixture\utils", "$fixture\list
 Copy-Item -LiteralPath "$root\service.bat", "$root\general (ALT13 VPN).bat" -Destination $fixture
 $servicePath = Join-Path $fixture 'service.bat'
 $serviceText = [IO.File]::ReadAllText($servicePath) -replace '\r?\n', "`r`n"
-$menuBoundary = "`r`n:menu`r`n" + 'echo ready>"%~dp0test-menu-ready.txt"' + "`r`n"
-$serviceText = $serviceText.Replace("`r`n:menu`r`n", $menuBoundary)
+$menuInput = 'set /p menu_choice='
+$serviceText = $serviceText.Replace($menuInput, 'echo ready>"%~dp0test-menu-ready.txt"' + "`r`n" + $menuInput)
 $serviceText = $serviceText.Replace(':: Choosing file', 'echo ready>"%~dp0test-choice-ready.txt"' + "`r`n:: Choosing file")
 $serviceText = $serviceText -replace '(?m)^([ \t]*)pause[ \t]*\r?$', '$1rem test pause'
 [IO.File]::WriteAllText($servicePath, $serviceText, (New-Object Text.UTF8Encoding($false)))
