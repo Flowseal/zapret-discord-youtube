@@ -4,7 +4,10 @@ chcp 65001 > nul
 :: NOT RECOMMENDED
 
 cd /d "%~dp0"
+call service.bat status_zapret
+call service.bat check_updates
 call service.bat load_game_filter
+call service.bat load_user_lists
 echo:
 
 set "BIN=%~dp0bin\"
@@ -13,7 +16,6 @@ set "LUA=%~dp0lua\"
 cd /d %BIN%
 
 start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-disable=0 ^
---wf-tcp-in=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp-in=443,19294-19344,50000-50100,%GameFilterUDP% ^
 --wf-tcp-out=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp-out=443,19294-19344,50000-50100,%GameFilterUDP% ^
 
 --blob=quic_google:@"%BIN%quic_initial_www_google_com.bin" ^
@@ -22,7 +24,6 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 
 --lua-init=@"%LUA%zapret-lib.lua" ^
 --lua-init=@"%LUA%zapret-antidpi.lua" ^
---lua-init=@"%LUA%zapret-auto.lua" ^
 
 --name="Domain Bypass Quic" ^
 --filter-udp=443 ^
