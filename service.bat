@@ -156,11 +156,11 @@ if not exist "%BIN_PATH%\*.sys" (
 )
 echo:
 
-tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+tasklist /FI "IMAGENAME eq winws2.exe" | find /I "winws2.exe" > nul
 if !errorlevel!==0 (
-    call :PrintGreen "Bypass (winws.exe) is RUNNING."
+    call :PrintGreen "Bypass (winws2.exe) is RUNNING."
 ) else (
-    call :PrintRed "Bypass (winws.exe) is NOT running."
+    call :PrintRed "Bypass (winws2.exe) is NOT running."
 )
 
 pause
@@ -204,9 +204,9 @@ if !errorlevel!==0 (
     echo Service "%SRVCNAME%" is not installed.
 )
 
-tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+tasklist /FI "IMAGENAME eq winws2.exe" | find /I "winws2.exe" > nul
 if !errorlevel!==0 (
-    taskkill /IM winws.exe /F > nul
+    taskkill /IM winws2.exe /F > nul
 )
 
 sc query "WinDivert" >nul 2>&1
@@ -275,67 +275,26 @@ set "capture=0"
 set "mergeargs=0"
 set "BIN=%~dp0bin\"
 set "LISTS=%~dp0lists\"
+set "LUA=%~dp0lua\"
 set QUOTE="
 
 for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
     set "line=%%a"
+    if "!line:~-1!"=="^" set "line=!line:~0,-1!"
     call set "line=%%line:^!=EXCL_MARK%%"
     call set "line=!line!"
 
-    echo !line! | findstr /i "winws.exe" >nul
+    echo !line! | findstr /i "winws2.exe" >nul
     if not errorlevel 1 (
         set "capture=1"
     )
 
     if !capture!==1 (
         if not defined args (
-            set "line=!line:*winws.exe"=!"
+            set "line=!line:*winws2.exe"=!"
+            set "args= --chdir"
         )
-
-        set "temp_args="
-        for %%i in (!line!) do (
-            set "arg=%%i"
-
-            if not "!arg!"=="^" if not "!arg!"=="^^" (
-                if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
-                    set "mergeargs=0"
-                )
-
-                if "!arg:~0,1!" EQU "!QUOTE!" (
-                    set "arg=!arg:~1,-1!"
-
-                    echo !arg! | findstr ":" >nul
-                    if !errorlevel!==0 (
-                        set "arg=\!QUOTE!!arg!\!QUOTE!"
-                    ) else if "!arg:~0,1!"=="@" (
-                        set "arg=\!QUOTE!@%~dp0!arg:~1!\!QUOTE!"
-                    ) else (
-                        set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
-                    )
-                )
-
-                if !mergeargs!==1 (
-                    set "temp_args=!temp_args!,!arg!"
-                ) else if !mergeargs!==3 (
-                    set "temp_args=!temp_args!=!arg!"
-                    set "mergeargs=1"
-                ) else (
-                    set "temp_args=!temp_args! !arg!"
-                )
-
-                if "!arg:~0,2!" EQU "--" (
-                    set "mergeargs=2"
-                ) else if !mergeargs! GEQ 1 (
-                    if !mergeargs!==2 set "mergeargs=1"
-
-                    for %%x in (!args_with_value!) do (
-                        if /i "%%x"=="!arg!" (
-                            set "mergeargs=3"
-                        )
-                    )
-                )
-            )
-        )
+        set "temp_args=!line:%QUOTE%=\%QUOTE%!"
 
         if not "!temp_args!"=="" (
             set "args=!args! !temp_args!"
@@ -353,7 +312,7 @@ set SRVCNAME=zapret
 
 net stop %SRVCNAME% >nul 2>&1
 sc delete %SRVCNAME% >nul 2>&1
-sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto
+sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws2.exe\" !ARGS!" DisplayName= "zapret" start= auto
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
 for %%F in ("!file%choice%!") do (
@@ -597,14 +556,14 @@ if exist "%hostsFile%" (
 )
 
 :: WinDivert conflict
-tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+tasklist /FI "IMAGENAME eq winws2.exe" | find /I "winws2.exe" > nul
 set "winws_running=!errorlevel!"
 
 sc query "WinDivert" | findstr /I "RUNNING STOP_PENDING" > nul
 set "windivert_running=!errorlevel!"
 
 if !winws_running! neq 0 if !windivert_running!==0 (
-    call :PrintYellow "[?] winws.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
+    call :PrintYellow "[?] winws2.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
     
     net stop "WinDivert" >nul 2>&1
     sc delete "WinDivert" >nul 2>&1
