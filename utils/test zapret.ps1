@@ -675,7 +675,7 @@ try {
     
     # Start config
     Write-Host "  > Starting config..." -ForegroundColor Cyan
-    $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/d /s /c `"`"$($file.FullName)`"`"" -WorkingDirectory $targetDir -PassThru -WindowStyle Minimized
+    $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($file.FullName)`"" -WorkingDirectory $targetDir -PassThru -WindowStyle Minimized
     
     # Wait init
     if (-not (Wait-WinwsReady)) {
