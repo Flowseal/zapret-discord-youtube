@@ -4,7 +4,7 @@
 
 **NEW**: Ускорение Telegram Desktop - https://github.com/Flowseal/tg-ws-proxy  
 Альтернатива https://github.com/bol-van/zapret-win-bundle  
-Также вы можете материально поддержать оригинального разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
+Также вы можете материально поддержать оригинального разработчика zapret2 [тут](https://github.com/bol-van/zapret2#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0-donations)
 </div>
 
 > [!CAUTION]
@@ -14,7 +14,7 @@
 > Если вы наткнулись на что-то вне этой страницы гитхаба, что распространяется от моего лица - **ФЕЙК**.
 
 > [!IMPORTANT]
-> Все исполняемые и системные файлы в папке [`bin`](./bin) взяты из [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws) и [zapret/releases](https://github.com/bol-van/zapret/releases). Вы можете это проверить с помощью хэшей/контрольных сумм.
+> Все исполняемые и системные файлы в папке [`bin`](./bin) и скрипты [`lua`](./lua) взяты из [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws) и [zapret2/releases](https://github.com/bol-van/zapret2/releases). Вы можете это проверить с помощью хэшей/контрольных сумм.
 >
 > #### Проверяйте, что запускаете, используя сборки из интернета, и не используйте Яндекс Поиск! Он часто предлагает вредоносы по первым ссылкам, а настоящий репозиторий скрыт.  
 
@@ -116,7 +116,7 @@
 > **Стратегии со временем могут переставать работать.**
 > Определенная стратегия может работать какое-то время, но со временем она может переставать работать из-за обнаружения.
 > В репозитории представлены множество различных стратегий для обхода. Если ни одна из них вам не помогает, то вам необходимо создать новую, взяв за основу одну из представленных здесь и изменив её параметры.
-> Информацию про параметры стратегий вы можете найти [тут](https://github.com/bol-van/zapret/blob/master/docs/readme.md#nfqws).
+> Информацию про параметры стратегий вы можете найти [тут](https://github.com/bol-van/zapret2/blob/master/docs/manual.md#%D0%BF%D0%BE%D0%BB%D0%BD%D1%8B%D0%B9-%D1%81%D0%BF%D0%B8%D1%81%D0%BE%D0%BA-%D0%BE%D0%BF%D1%86%D0%B8%D0%B9).
 
 - Проверьте, чтобы не было ошибок в `service.bat` -> `Run Diagnostics`
 
@@ -219,7 +219,7 @@ sc delete название_из_первого_шага
 
 Вы можете поддержать проект, поставив :star: этому репозиторию (сверху справа этой страницы)
 
-Также вы можете материально поддержать оригинального разработчика zapret [тут](https://github.com/bol-van/zapret?tab=readme-ov-file#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0)
+Также вы можете материально поддержать оригинального разработчика zapret2 [тут](https://github.com/bol-van/zapret2#%D0%BF%D0%BE%D0%B4%D0%B4%D0%B5%D1%80%D0%B6%D0%B0%D1%82%D1%8C-%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%87%D0%B8%D0%BA%D0%B0-donations)
 
 ## ⚖️Лицензирование
 
@@ -229,4 +229,4 @@ sc delete название_из_первого_шага
 
 [![Contributors](https://contrib.rocks/image?repo=Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discord-youtube/graphs/contributors)
 
-💖 Отдельная благодарность разработчику [zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van)
+💖 Отдельная благодарность разработчику [zapret2](https://github.com/bol-van/zapret2) - [bol-van](https://github.com/bol-van)
