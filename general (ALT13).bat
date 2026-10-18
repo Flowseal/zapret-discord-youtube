@@ -47,7 +47,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=2053,2083,2087,2096,8443 ^
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=7:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=7 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --new ^
 
@@ -64,12 +64,12 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=fake:blob=stun2:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=5 ^
+--lua-desync=hostfakesplit:host=mail.ru:tcp_ts=-600000:repeats=5 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5 ^
+--lua-desync=hostfakesplit:host=mail.ru:tcp_ts=-600000:repeats=5 ^
 --new ^
 
 --name="IP Bypass Quic" ^
@@ -87,35 +87,35 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=fake:blob=stun2:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=5 ^
+--lua-desync=hostfakesplit:host=mail.ru:tcp_ts=-600000:repeats=5 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5 ^
+--lua-desync=hostfakesplit:host=mail.ru:tcp_ts=-600000:repeats=5 ^
 --new ^
 
 --name="GameFilter Bypass TCP" ^
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=fake:blob=stun2:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=5 ^
+--lua-desync=hostfakesplit:host=mail.ru:tcp_ts=-600000:repeats=5 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5 ^
+--lua-desync=hostfakesplit:host=mail.ru:tcp_ts=-600000:repeats=5 ^
 --payload=unknown ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000:payload=all ^
---lua-desync=fake:blob=stun2:repeats=5:tcp_ts=-600000:payload=all ^
+--lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5:payload=all ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=5:payload=all ^
 --new ^
 
 --name="GameFilter Bypass UDP" ^
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=all ^
 --lua-desync=fake:blob=ACTIVE_GAME:repeats=10:payload=all

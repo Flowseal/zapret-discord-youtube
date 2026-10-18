@@ -46,7 +46,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=www.google.com:nofake1:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000 ^
 --new ^
 
 --name="Youtube" ^
@@ -54,7 +54,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:ip_id=zero ^
---lua-desync=hostfakesplit:host=www.google.com:nofake1:tcp_ts=-600000:ip_id=zero ^
+--lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:ip_id=zero ^
 --new ^
 
 --name="Domain Bypass TLS" ^
@@ -64,10 +64,10 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=ya.ru:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=ya.ru:nofake1:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=ya.ru:tcp_ts=-600000 ^
 --payload=http_req ^
 --lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=ya.ru:nofake1:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=ya.ru:tcp_ts=-600000 ^
 --new ^
 
 --name="IP Bypass Quic" ^
@@ -86,23 +86,23 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=ya.ru:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=ya.ru:nofake1:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=ya.ru:tcp_ts=-600000 ^
 --payload=http_req ^
 --lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=ya.ru:nofake1:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=ya.ru:tcp_ts=-600000 ^
 --new ^
 
 --name="GameFilter Bypass TCP" ^
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=ya.ru:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=ya.ru:nofake1:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=ya.ru:tcp_ts=-600000 ^
 --payload=http_req ^
 --lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=ya.ru:nofake1:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=ya.ru:tcp_ts=-600000 ^
 --payload=unknown ^
 --lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:payload=all ^
 --new ^
@@ -111,6 +111,6 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=all ^
 --lua-desync=fake:blob=ACTIVE_GAME:repeats=10:payload=all

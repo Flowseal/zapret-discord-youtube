@@ -47,7 +47,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=2053,2083,2087,2096,8443 ^
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --new ^
 
@@ -55,7 +55,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=443 ^
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=8:tcp_ts=-600000:ip_id=zero ^
+--lua-desync=fake:blob=tls_google:tcp_ts=-600000:ip_id=zero:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:ip_id=zero ^
 --new ^
 
@@ -65,11 +65,11 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun2:repeats=8:tcp_ts=-600000 ^
---lua-desync=fake:blob=tls_onetrust:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=8 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
 --new ^
 
@@ -88,11 +88,11 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun2:repeats=8:tcp_ts=-600000 ^
---lua-desync=fake:blob=tls_onetrust:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=8 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
 --new ^
 
@@ -100,17 +100,17 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun2:repeats=8:tcp_ts=-600000 ^
---lua-desync=fake:blob=tls_onetrust:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=8 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
 --payload=unknown ^
---lua-desync=fake:blob=stun2:repeats=8:tcp_ts=-600000:payload=all ^
---lua-desync=fake:blob=tls_onetrust:repeats=8:tcp_ts=-600000:payload=all ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=8:payload=all ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8:payload=all ^
 --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust:payload=all ^
 --new ^
 
@@ -118,6 +118,6 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=all ^
 --lua-desync=fake:blob=ACTIVE_GAME:repeats=10:payload=all

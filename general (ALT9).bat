@@ -44,14 +44,14 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=2053,2083,2087,2096,8443 ^
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
---lua-desync=hostfakesplit:host=www.google.com:repeats=4:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:repeats=4 ^
 --new ^
 
 --name="Youtube" ^
 --filter-tcp=443 ^
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
---lua-desync=hostfakesplit:host=www.google.com:repeats=4:tcp_ts=-600000:ip_id=zero ^
+--lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:ip_id=zero:repeats=4 ^
 --new ^
 
 --name="Domain Bypass TLS" ^
@@ -60,7 +60,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello,http_req ^
---lua-desync=hostfakesplit:host=ozon.ru:repeats=4:tcp_ts=-600000:tcp_md5 ^
+--lua-desync=hostfakesplit:host=ozon.ru:tcp_ts=-600000:tcp_md5:repeats=4 ^
 --new ^
 
 --name="IP Bypass Quic" ^
@@ -78,22 +78,22 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello,http_req ^
---lua-desync=hostfakesplit:host=ozon.ru:repeats=4:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=ozon.ru:tcp_ts=-600000:repeats=4 ^
 --new ^
 
 --name="GameFilter Bypass TCP" ^
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n3 ^
+--out-range=<n3 ^
 --payload=tls_client_hello,http_req ^
---lua-desync=hostfakesplit:host=ozon.ru:repeats=4:tcp_ts=-600000 ^
+--lua-desync=hostfakesplit:host=ozon.ru:tcp_ts=-600000:repeats=4 ^
 --new ^
 
 --name="GameFilter Bypass UDP" ^
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n2 ^
+--out-range=<n2 ^
 --payload=all ^
 --lua-desync=fake:blob=ACTIVE_GAME:repeats=12:payload=all

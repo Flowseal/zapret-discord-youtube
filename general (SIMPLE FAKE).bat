@@ -47,7 +47,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=2053,2083,2087,2096,8443 ^
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
 --new ^
 
 --name="Youtube" ^
@@ -63,9 +63,9 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=6:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=6 ^
 --new ^
 
 --name="IP Bypass Quic" ^
@@ -83,29 +83,29 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=6:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=6 ^
 --new ^
 
 --name="GameFilter Bypass TCP" ^
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=6:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=6 ^
 --payload=unknown ^
---lua-desync=fake:blob=stun2:repeats=6:tcp_ts=-600000:payload=all ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000:payload=all ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=6:payload=all ^
+--lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6:payload=all ^
 --new ^
 
 --name="GameFilter Bypass UDP" ^
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n3 ^
+--out-range=<n3 ^
 --payload=all ^
 --lua-desync=fake:blob=ACTIVE_GAME:repeats=12:payload=all

@@ -47,7 +47,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=2053,2083,2087,2096,8443 ^
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
+--lua-desync=fake:blob=tls_google:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
 --lua-desync=multisplit ^
 --new ^
 
@@ -55,7 +55,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=443 ^
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_seq=1000:tcp_ack=-66000:ip_id=zero ^
+--lua-desync=fake:blob=tls_google:tcp_seq=1000:tcp_ack=-66000:ip_id=zero:repeats=6 ^
 --lua-desync=multisplit:ip_id=zero ^
 --new ^
 
@@ -65,11 +65,11 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
+--lua-desync=fake:blob=stun:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=tls_google:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
 --lua-desync=multisplit ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
 --lua-desync=multisplit ^
 --new ^
 
@@ -88,11 +88,11 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
+--lua-desync=fake:blob=stun:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=tls_google:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
 --lua-desync=multisplit ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
 --lua-desync=multisplit ^
 --new ^
 
@@ -100,17 +100,17 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n3 ^
+--out-range=<n3 ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
+--lua-desync=fake:blob=stun:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=tls_google:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
 --lua-desync=multisplit ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=6:tcp_seq=1000:tcp_ack=-66000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_seq=1000:tcp_ack=-66000:repeats=6 ^
 --lua-desync=multisplit ^
 --payload=unknown ^
---lua-desync=fake:blob=stun:repeats=6:tcp_seq=1000:tcp_ack=-66000:payload=all ^
---lua-desync=fake:blob=tls_google:repeats=6:tcp_seq=1000:tcp_ack=-66000:payload=all ^
+--lua-desync=fake:blob=stun:tcp_seq=1000:tcp_ack=-66000:repeats=6:payload=all ^
+--lua-desync=fake:blob=tls_google:tcp_seq=1000:tcp_ack=-66000:repeats=6:payload=all ^
 --lua-desync=multisplit:payload=all ^
 --new ^
 
@@ -118,6 +118,6 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n2 ^
+--out-range=<n2 ^
 --payload=all ^
 --lua-desync=fake:blob=ACTIVE_GAME:repeats=10:payload=all

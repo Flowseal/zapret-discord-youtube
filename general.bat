@@ -18,9 +18,8 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --wf-tcp-out=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp-out=443,19294-19344,50000-50100,%GameFilterUDP% ^
 
 --blob=tls_google:@"%BIN%tls_clienthello_www_google_com.bin" ^
---blob=tls_sochi_park:@"%BIN%tls_clienthello_sochi_park.bin" ^
+--blob=tls_4pda:@"%BIN%tls_clienthello_4pda_to.bin" ^
 --blob=quic_google:@"%BIN%quic_initial_www_google_com.bin" ^
---blob=stun2:@"%BIN%stun2.bin" ^
 --blob=ACTIVE_DISCORD:@"%BIN%ACTIVE_DISCORD_UDP.bin" ^
 --blob=ACTIVE_GAME:@"%BIN%ACTIVE_GAME_UDP.bin" ^
 
@@ -33,21 +32,20 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=quic_initial ^
---lua-desync=fake:blob=quic_google:repeats=11 ^
+--lua-desync=fake:blob=quic_google:repeats=6 ^
 --new ^
 
 --name="Discord Voice" ^
 --filter-udp=19294-19344,50000-50100 ^
 --filter-l7=discord,stun ^
 --payload=discord_ip_discovery,stun ^
---lua-desync=fake:blob=ACTIVE_DISCORD:repeats=5 ^
+--lua-desync=fake:blob=ACTIVE_DISCORD:repeats=6 ^
 --new ^
 
 --name="Discord Media" ^
 --filter-tcp=2053,2083,2087,2096,8443 ^
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=7:tcp_ts=-600000 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --new ^
 
@@ -55,7 +53,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=443 ^
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
---lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000 ^
+--lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:ip_id=zero ^
 --new ^
 
 --name="Domain Bypass TLS" ^
@@ -63,13 +61,8 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---payload=tls_client_hello ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=fake:blob=stun2:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
---payload=http_req ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
+--payload=tls_client_hello,http_req ^
+--lua-desync=multisplit:pos=1:seqovl=568:seqovl_pattern=tls_4pda ^
 --new ^
 
 --name="IP Bypass Quic" ^
@@ -78,7 +71,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=quic_initial ^
---lua-desync=fake:blob=quic_google:repeats=11 ^
+--lua-desync=fake:blob=quic_google:repeats=6 ^
 --new ^
 
 --name="IP Bypass TLS" ^
@@ -86,36 +79,23 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --ipset="%LISTS%ipset-all.txt" ^
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---payload=tls_client_hello ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=fake:blob=stun2:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
---payload=http_req ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
+--payload=tls_client_hello,http_req ^
+--lua-desync=multisplit:pos=1:seqovl=568:seqovl_pattern=tls_4pda ^
 --new ^
 
 --name="GameFilter Bypass TCP" ^
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
---payload=tls_client_hello ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=fake:blob=stun2:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
---payload=http_req ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000 ^
---lua-desync=hostfakesplit:host=mail.ru:nofake1:repeats=5:tcp_ts=-600000 ^
---payload=unknown ^
---lua-desync=fake:blob=tls_sochi_park:repeats=5:tcp_ts=-600000:payload=all ^
---lua-desync=fake:blob=stun2:repeats=5:tcp_ts=-600000:payload=all ^
+--out-range=<n3 ^
+--payload=all ^
+--lua-desync=multisplit:pos=1:seqovl=568:seqovl_pattern=tls_4pda:payload=all ^
 --new ^
 
 --name="GameFilter Bypass UDP" ^
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n2 ^
 --payload=all ^
---lua-desync=fake:blob=ACTIVE_GAME:repeats=10:payload=all
+--lua-desync=fake:blob=ACTIVE_GAME:repeats=12:payload=all

@@ -27,6 +27,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 
 --lua-init=@"%LUA%zapret-lib.lua" ^
 --lua-init=@"%LUA%zapret-antidpi.lua" ^
+--lua-init="zero256=string.rep(string.char(0),256)" ^
 
 --name="Domain Bypass Quic" ^
 --filter-l7=quic ^
@@ -40,7 +41,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --name="Discord Voice" ^
 --filter-udp=19294-19344,50000-50100 ^
 --filter-l7=discord,stun,unknown ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=discord_ip_discovery ^
 --lua-desync=fake:blob=quic_google:repeats=4 ^
 --lua-desync=fake:blob=ACTIVE_DISCORD:repeats=4 ^
@@ -55,7 +56,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=2053,2083,2087,2096,8443 ^
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --new ^
 
@@ -72,7 +73,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello,http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=4:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=4 ^
 --lua-desync=multisplit:pos=1:seqovl=480:seqovl_pattern=stun2 ^
 --new ^
 
@@ -92,7 +93,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude-domains=fonts.googleapis.com ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello,http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=4:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=4 ^
 --lua-desync=multisplit:pos=1:seqovl=480:seqovl_pattern=stun2 ^
 --new ^
 
@@ -100,21 +101,24 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun2:repeats=8:tcp_ts=-600000 ^
---lua-desync=fake:blob=tls_onetrust:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=8 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:repeats=8:tcp_ts=-600000 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
+--payload=unknown ^
+--lua-desync=fake:blob=zero256:tcp_ts=-600000:repeats=8:payload=all ^
+--lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust:payload=all ^
 --new ^
 
 --name="GameFilter Bypass UDP" ^
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
---out-range=-n4 ^
+--out-range=<n4 ^
 --payload=all ^
 --lua-desync=fake:blob=quic_4pda:repeats=5:payload=all ^
 --lua-desync=fake:blob=ACTIVE_GAME:repeats=5:payload=all
