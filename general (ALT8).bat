@@ -45,14 +45,14 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --filter-tcp=2053,2083,2087,2096,8443 ^
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:tcp_ts_up:repeats=6 ^
 --new ^
 
 --name="Youtube" ^
 --filter-tcp=443 ^
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:ip_id=zero:repeats=6 ^
+--lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:tcp_ts_up:ip_id=zero:repeats=6 ^
 --new ^
 
 --name="Domain Bypass TLS" ^
@@ -61,9 +61,9 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:tcp_ts_up:repeats=6 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_seq=2:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_seq=2:tcp_ack=-66000:tcp_ts_up:repeats=6 ^
 --new ^
 
 --name="IP Bypass Quic" ^
@@ -81,9 +81,9 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:tcp_ts_up:repeats=6 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_seq=2:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_seq=2:tcp_ack=-66000:tcp_ts_up:repeats=6 ^
 --new ^
 
 --name="GameFilter Bypass TCP" ^
@@ -92,11 +92,11 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --out-range=-n3 ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=fake_default_tls:tcp_seq=2:tcp_ack=-66000:tcp_ts_up:repeats=6 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_seq=2:tcp_ack=-66000:repeats=6 ^
+--lua-desync=fake:blob=tls_onetrust:tcp_seq=2:tcp_ack=-66000:tcp_ts_up:repeats=6 ^
 --payload=unknown ^
---lua-desync=fake:blob=tls_onetrust:tcp_seq=2:tcp_ack=-66000:repeats=6:payload=all ^
+--lua-desync=fake:blob=tls_onetrust:tcp_seq=2:tcp_ack=-66000:tcp_ts_up:repeats=6:payload=all ^
 --new ^
 
 --name="GameFilter Bypass UDP" ^
