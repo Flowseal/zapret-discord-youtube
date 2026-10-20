@@ -127,3 +127,4 @@ t-bank-app.ru
 tochka-tech.com
 tochka.com
 vtb.ru
+ftpm.amd.com
