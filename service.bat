@@ -71,7 +71,7 @@ echo.  !CurrentStrategy!
 echo   ----------------------------------------
 echo.
 echo   :: SERVICE
-echo      1. Install Service
+if defined CurrentStrategy (echo      1. Reinstall Service) else echo      1. Install Service
 echo      2. Remove Services
 echo      3. Check Status
 echo.
@@ -144,7 +144,12 @@ chcp 437 > nul
 
 sc query "zapret" >nul 2>&1
 if !errorlevel!==0 (
-    for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do echo Service strategy installed from "%%B"
+    set "InstalledStrategy="
+    for /f "tokens=2*" %%A in ('reg query "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube 2^>nul') do set "InstalledStrategy=%%B"
+    if defined InstalledStrategy (
+        echo Service strategy installed from "!InstalledStrategy!"
+        call :check_service_args "!InstalledStrategy!"
+    )
 )
 
 call :test_service zapret
@@ -266,87 +271,12 @@ if not defined selectedFile (
     goto menu
 )
 
-:: Args that should be followed by value
-set "args_with_value=sni host altorder"
-
-:: Parsing args (mergeargs: 2=start param|3=arg with value|1=params args|0=default)
-set "args="
-set "capture=0"
-set "mergeargs=0"
-set "BIN=%~dp0bin\"
-set "LISTS=%~dp0lists\"
-set QUOTE="
-
-for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
-    set "line=%%a"
-    call set "line=%%line:^!=EXCL_MARK%%"
-    call set "line=!line!"
-
-    echo !line! | findstr /i "winws.exe" >nul
-    if not errorlevel 1 (
-        set "capture=1"
-    )
-
-    if !capture!==1 (
-        if not defined args (
-            set "line=!line:*winws.exe"=!"
-        )
-
-        set "temp_args="
-        for %%i in (!line!) do (
-            set "arg=%%i"
-
-            if not "!arg!"=="^" if not "!arg!"=="^^" (
-                if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
-                    set "mergeargs=0"
-                )
-
-                if "!arg:~0,1!" EQU "!QUOTE!" (
-                    set "arg=!arg:~1,-1!"
-
-                    echo !arg! | findstr ":" >nul
-                    if !errorlevel!==0 (
-                        set "arg=\!QUOTE!!arg!\!QUOTE!"
-                    ) else if "!arg:~0,1!"=="@" (
-                        set "arg=\!QUOTE!@%~dp0!arg:~1!\!QUOTE!"
-                    ) else (
-                        set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
-                    )
-                )
-
-                if !mergeargs!==1 (
-                    set "temp_args=!temp_args!,!arg!"
-                ) else if !mergeargs!==3 (
-                    set "temp_args=!temp_args!=!arg!"
-                    set "mergeargs=1"
-                ) else (
-                    set "temp_args=!temp_args! !arg!"
-                )
-
-                if "!arg:~0,2!" EQU "--" (
-                    set "mergeargs=2"
-                ) else if !mergeargs! GEQ 1 (
-                    if !mergeargs!==2 set "mergeargs=1"
-
-                    for %%x in (!args_with_value!) do (
-                        if /i "%%x"=="!arg!" (
-                            set "mergeargs=3"
-                        )
-                    )
-                )
-            )
-        )
-
-        if not "!temp_args!"=="" (
-            set "args=!args! !temp_args!"
-        )
-    )
-)
+call :parse_strategy_args "!selectedFile!"
 
 :: Creating service with parsed args
 call :tcp_enable
 
-set ARGS=%args%
+set ARGS=%ParsedArgs%
 call set "ARGS=%%ARGS:EXCL_MARK=^!%%"
 echo Final args: !ARGS!
 set SRVCNAME=zapret
@@ -1239,6 +1169,122 @@ exit /b
 
 
 :: Utility functions
+
+:: Reads the winws arguments out of a strategy .bat
+:: in : %~1 - strategy file name, relative to the zapret folder
+:: out: ParsedArgs - argument string, '!' still encoded as EXCL_MARK
+:parse_strategy_args
+setlocal EnableDelayedExpansion
+set "selectedFile=%~dp0%~1"
+:: Args that should be followed by value
+set "args_with_value=sni host altorder"
+
+:: Parsing args (mergeargs: 2=start param|3=arg with value|1=params args|0=default)
+set "args="
+set "capture=0"
+set "mergeargs=0"
+set "BIN=%~dp0bin\"
+set "LISTS=%~dp0lists\"
+set QUOTE="
+
+for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
+    set "line=%%a"
+    call set "line=%%line:^!=EXCL_MARK%%"
+    call set "line=!line!"
+
+    echo !line! | findstr /i "winws.exe" >nul
+    if not errorlevel 1 (
+        set "capture=1"
+    )
+
+    if !capture!==1 (
+        if not defined args (
+            set "line=!line:*winws.exe"=!"
+        )
+
+        set "temp_args="
+        for %%i in (!line!) do (
+            set "arg=%%i"
+
+            if not "!arg!"=="^" if not "!arg!"=="^^" (
+                if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
+                    set "mergeargs=0"
+                )
+
+                if "!arg:~0,1!" EQU "!QUOTE!" (
+                    set "arg=!arg:~1,-1!"
+
+                    echo !arg! | findstr ":" >nul
+                    if !errorlevel!==0 (
+                        set "arg=\!QUOTE!!arg!\!QUOTE!"
+                    ) else if "!arg:~0,1!"=="@" (
+                        set "arg=\!QUOTE!@%~dp0!arg:~1!\!QUOTE!"
+                    ) else (
+                        set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
+                    )
+                )
+
+                if !mergeargs!==1 (
+                    set "temp_args=!temp_args!,!arg!"
+                ) else if !mergeargs!==3 (
+                    set "temp_args=!temp_args!=!arg!"
+                    set "mergeargs=1"
+                ) else (
+                    set "temp_args=!temp_args! !arg!"
+                )
+
+                if "!arg:~0,2!" EQU "--" (
+                    set "mergeargs=2"
+                ) else if !mergeargs! GEQ 1 (
+                    if !mergeargs!==2 set "mergeargs=1"
+
+                    for %%x in (!args_with_value!) do (
+                        if /i "%%x"=="!arg!" (
+                            set "mergeargs=3"
+                        )
+                    )
+                )
+            )
+        )
+
+        if not "!temp_args!"=="" (
+            set "args=!args! !temp_args!"
+        )
+    )
+)
+
+endlocal & set ParsedArgs=%args%
+exit /b
+
+
+:: Compares the arguments of the installed service with the strategy file it came from
+:check_service_args
+if not exist "%~dp0%~1.bat" (
+    call :PrintYellow "[?] Strategy file %~1.bat not found, cannot verify service arguments"
+    exit /b
+)
+
+call :parse_strategy_args "%~1.bat"
+> "%TEMP%\zapret_service_args.txt" echo(%ParsedArgs%
+
+set "ArgsMatch="
+for /f "delims=" %%R in ('powershell -NoProfile -Command ^
+    "$f = Join-Path $env:TEMP 'zapret_service_args.txt';" ^
+    "$want = (Get-Content -Raw -LiteralPath $f) -replace 'EXCL_MARK', '';" ^
+    "$have = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\zapret' -Name ImagePath -ErrorAction SilentlyContinue).ImagePath;" ^
+    "function N($s) { if (-not $s) { return '' }; $s = $s -replace '.*winws\.exe', ''; $s = $s -replace '\s', ''; return $s.Replace([string][char]34, '').Replace('\', '').Replace([string][char]33, '') };" ^
+    "if ((N $want) -eq (N $have)) { 'match' } else { 'differ' }"') do set "ArgsMatch=%%R"
+
+del /f /q "%TEMP%\zapret_service_args.txt" >nul 2>&1
+
+if "%ArgsMatch%"=="match" (
+    call :PrintGreen "Service arguments match %~1.bat"
+) else if "%ArgsMatch%"=="differ" (
+    call :PrintYellow "[?] Service arguments differ from what %~1.bat produces now"
+    call :PrintYellow "    The strategy file or the Game Filter settings changed after the service was installed"
+    call :PrintYellow "    Reinstall the service to apply them"
+)
+exit /b
 
 :clear_discord_cache
 setlocal EnableDelayedExpansion
