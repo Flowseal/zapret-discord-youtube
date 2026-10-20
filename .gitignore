@@ -1,5 +1,6 @@
 /utils/test results
 /utils/game_filter.enabled
+/utils/iface_filter.enabled
 /lists/ipset-exclude-user.txt
 /lists/list-general-user.txt
 /lists/list-exclude-user.txt
