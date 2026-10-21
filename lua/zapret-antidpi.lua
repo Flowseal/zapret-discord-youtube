@@ -589,7 +589,7 @@ end
 -- algorithm is not 100% the same as in nfqws1. multi-segment queries can produce different segment ordering.
 -- standard args : direction, payload, fooling, ip_id, rawsend, reconstruct, ipfrag
 -- arg : pos=<postmarker list> . position marker list. example : "1,host,midsld+1,-10"
--- arg : seqovl=N . decrease seq number of the second segment in the original order by N and fill N bytes with pattern (default - all zero). N must be less than the first split pos.
+-- arg : seqovl=<posmarker> . decrease seq number of the second segment in the original order by N and fill N bytes with pattern (default - all zero). N is resolved marker position and must be less than the first split pos.
 -- arg : seqovl_pattern=<blob> . override pattern
 -- arg : blob=<blob> - use this data instead of reasm_data
 -- arg : optional - skip if blob is absent. use zero pattern if seqovl_pattern blob is absent
@@ -643,7 +643,7 @@ end
 -- nfqws1 : "--dpi-desync=multidisorder". segment ordering is the same as in nfqws1
 -- standard args : direction, payload, fooling, ip_id, rawsend, reconstruct, ipfrag
 -- arg : pos=<postmarker list> . position marker list. example : "1,host,midsld+1,-10"
--- arg : seqovl=N . decrease seq number of the second segment in the original order by N and fill N bytes with pattern (default - all zero). N must be less than the first split pos.
+-- arg : seqovl=<posmarker> . decrease seq number of the second segment in the original order by N and fill N bytes with pattern (default - all zero). N is resolved marker position and must be less than the first split pos.
 -- arg : seqovl_pattern=<blob> . override pattern
 -- arg : optional - use zero pattern if seqovl_pattern blob is absent
 function multidisorder_legacy(ctx, desync)

@@ -918,7 +918,7 @@ end
 -- tcp_seq=N - add N to tcp.th_seq
 -- tcp_ack=N - add N to tcp.th_ack
 -- tcp_ts=N - add N to timestamp value
--- tcp_md5[=hex] - add MD5 header with optional 16-byte data. all zero by default.
+-- tcp_md5[=hex] - add MD5 header with optional 16-byte data. random by default.
 -- tcp_flags_set=<list> - set tcp flags in comma separated list
 -- tcp_flags_unset=<list> - unset tcp flags in comma separated list
 -- tcp_ts_up - move timestamp tcp option to the top if it's present. this allows linux not to accept badack segments without badseq. this is very strange discovery but it works.
@@ -1290,7 +1290,7 @@ function rawsend_payload_segmented(desync, payload, seq, options)
 end
 
 
--- check if desync.outgoing comply with arg.dir or def if it's not present or "out" of they are not present both. dir can be "in","out","any"
+-- check if desync.outgoing complies with arg.dir or def if it's not present or "out" if they are not present both. dir can be "in","out","any"
 function direction_check(desync, def)
 	local dir = desync.arg.dir or def or "out"
 	return desync.outgoing and dir~="in" or not desync.outgoing and dir~="out"
@@ -1314,7 +1314,7 @@ function payload_match_filter(l7payload, l7payload_filter, def)
 	local pl = neg and string.sub(argpl,2) or argpl
 	return neg ~= (in_list(pl, "all") or in_list(pl, l7payload) or in_list(pl, "known") and l7payload~="unknown" and l7payload~="empty")
 end
--- check if desync payload type comply with payload type list in arg.payload
+-- check if desync payload type complies with payload type list in arg.payload
 -- if arg.payload is not present - check for known payload - not empty and not unknown (nfqws1 behavior without "--desync-any-protocol" option)
 -- if arg.payload is prefixed with '~' - it means negation
 function payload_check(desync, def)
@@ -1476,7 +1476,7 @@ end
 -- option : ipfrag_pos_udp - udp frag position. ipv4 : starting from L4 header. ipv6: starting from fragmentable part. must be multiple of 8. default 8
 -- option : ipfrag_pos_tcp - tcp frag position. ipv4 : starting from L4 header. ipv6: starting from fragmentable part. must be multiple of 8. default 32
 -- option : ipfrag_pos_icmp - icmp frag position. ipv4 : starting from L4 header. ipv6: starting from fragmentable part. must be multiple of 8. default 8
--- option : ipfrag_pos - icmp frag position for other L4. ipv4 : starting from L4 header. ipv6: starting from fragmentable part. must be multiple of 8. default 32
+-- option : ipfrag_pos - frag position for other L4. ipv4 : starting from L4 header. ipv6: starting from fragmentable part. must be multiple of 8. default 32
 -- option : ipfrag_next - next protocol field in ipv6 fragment extenstion header of the second fragment. same as first by default.
 function ipfrag2(dis, ipfrag_options)
 	local function frag_idx(exthdr)
@@ -1602,7 +1602,7 @@ function tls_client_hello_mod(tls, options)
 		DLOG("tls_client_hello_mod: could not dissect tls")
 		return
 	end
-	if not tdis.handshake or not tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT] then
+	if not tdis.handshake or not tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT] or not tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT].dis then
 		DLOG("tls_client_hello_mod: handshake not dissected")
 		return
 	end
@@ -1863,7 +1863,7 @@ function dissect_url(url)
 		creds = string.sub(url,p1,pend-1)
 		p1 = pend+1
 	end
-	pstart,pend = string.find(url,"/",p1,true)
+	pstart,pend = string.find(url,"[/?#]",p1)
 	if pend then
 		if pend==pb then
 			uri = string.sub(url,pb)
@@ -2281,21 +2281,32 @@ function quic_tvb(data, offset)
 		return bitand(u32(data,offset),0x3FFFFFFF), 4
 	elseif size==3 then
 		if (offset+7)>#data then return end
-		-- only lua 5.3+ can handle this. others can't store 64-bit integers
-		return bitand(u32(data,offset),0x3FFFFFFF) * 0x100000000 + u32(data,offset+4), 8
+		-- only lua 5.3+ has 64-bit integer type. others can't store 64-bit integers. return raw string if the value cannot fit.
+		local msb = bitand(u32(data,offset),0x3FFFFFFF)
+		-- lua 5.3+ has math.type function, older lua and luajit - don't
+		if math.type==nil and msb>0x1FFFFF then
+			return string.sub(data,offset,offset+7), 8
+		else
+			return msb * 0x100000000 + u32(data,offset+4), 8
+		end
 	end
 end
 -- quic-style tvb reconstruct
 function bquic_tvb(v)
-	if v<0x40 then
-		return bu8(v)
-	elseif v<0x4000 then
-		return bu16(v + 0x4000)
-	elseif v<0x40000000 then
-		return bu32(v + 0x80000000)
-	elseif v<0x4000000000000000 then
-		-- only lua 5.3+ can handle 64-bit int !
-		return bu32(divint(v, 0x100000000) + 0xC0000000) .. bu32(v % 0x100000000)
+	if type(v)=="string" then
+		-- raw string. do not do anything, just return it
+		return v
+	else
+		if v<0x40 then
+			return bu8(v)
+		elseif v<0x4000 then
+			return bu16(v + 0x4000)
+		elseif v<0x40000000 then
+			return bu32(v + 0x80000000)
+		elseif v<0x4000000000000000 then
+			-- only lua 5.3+ can handle 64-bit int !
+			return bu32(divint(v, 0x100000000) + 0xC0000000) .. bu32(v % 0x100000000)
+		end
 	end
 end
 
@@ -2419,7 +2430,7 @@ function tls_dissect_ext(ext)
 			off = off + size
 			left = left - size
 			len, size = quic_tvb(ext.data, off)
-			if not len then return end
+			if type(len)~="number" then return end
 			off = off + size
 			left = left - size
 			if len > left then return end
@@ -2436,93 +2447,102 @@ end
 
 -- dissect client/server hello. leave 'data' as is for others
 function tls_dissect_handshake(handshake, partialOK)
-	if is_tls_hello(handshake.data, 1, partialOK) then
-		local hlen = tls_handshake_len(handshake.data, 1)
-		if hlen > #handshake.data then
-			if not partialOK then return false end
-			hlen = #handshake.data
-		end
-		local typ = tls_handshake_type(handshake.data, 1)
-		handshake.dis = { type = typ , ver = u16(handshake.data, 5), name = tostring(TLS_HANDSHAKE_TYPE_NAMES[typ]) }
-
-		-- random
-		if hlen<38 then return partialOK end
-		handshake.dis.random = string.sub(handshake.data, 7, 38)
-
-		-- session_id
-		if hlen<39 then return partialOK end
-		local len = u8(handshake.data, 39)
-		local left = hlen-39-len
-		if left<0 then return partialOK end
-		handshake.dis.session_id = string.sub(handshake.data, 40, 40+len-1)
-		local off = 40+len
-
-		-- cipher suite(s)
-		if left<2 then return partialOK end
-		if handshake.dis.type==TLS_HANDSHAKE_TYPE_CLIENT then
-			-- client hello - array
-			len = u16(handshake.data, off)
-			if left<(2+len) then return partialOK end
-			handshake.dis.cipher_suites={}
-			for i=1,(len/2) do
-				handshake.dis.cipher_suites[i] = u16(handshake.data, off + i*2)
+	local function tls_dissect_handshake_(handshake, partialOK)
+		handshake.dis = nil
+		if is_tls_hello(handshake.data, 1, partialOK) then
+			local hlen = tls_handshake_len(handshake.data, 1)
+			if hlen > #handshake.data then
+				if not partialOK then return false end
+				hlen = #handshake.data
 			end
-			off = off + 2 + len
-			left = left - 2 - len
-		else
-			-- server hello - single
-			handshake.dis.cipher_suite = u16(handshake.data, off)
+			local typ = tls_handshake_type(handshake.data, 1)
+			handshake.dis = { type = typ , ver = u16(handshake.data, 5), name = tostring(TLS_HANDSHAKE_TYPE_NAMES[typ]) }
+
+			-- random
+			if hlen<38 then return partialOK end
+			handshake.dis.random = string.sub(handshake.data, 7, 38)
+
+			-- session_id
+			if hlen<39 then return partialOK end
+			local len = u8(handshake.data, 39)
+			local left = hlen-39-len
+			if left<0 then return partialOK end
+			handshake.dis.session_id = string.sub(handshake.data, 40, 40+len-1)
+			local off = 40+len
+
+			-- cipher suite(s)
+			if left<2 then return partialOK end
+			if handshake.dis.type==TLS_HANDSHAKE_TYPE_CLIENT then
+				-- client hello - array
+				len = u16(handshake.data, off)
+				if left<(2+len) then return partialOK end
+				handshake.dis.cipher_suites={}
+				for i=1,(len/2) do
+					handshake.dis.cipher_suites[i] = u16(handshake.data, off + i*2)
+				end
+				off = off + 2 + len
+				left = left - 2 - len
+			else
+				-- server hello - single
+				handshake.dis.cipher_suite = u16(handshake.data, off)
+				off = off + 2
+				left = left - 2
+			end
+
+			-- compression method(s)
+			if left<1 then return partialOK end
+			if handshake.dis.type==1 then
+				-- client hello - array
+				len = u8(handshake.data, off)
+				if left<(1+len) then return partialOK end
+				handshake.dis.compression_methods={}
+				for i=1,len do
+					handshake.dis.compression_methods[i] = u8(handshake.data, off + i)
+				end
+				off = off + 1 + len
+				left = left - 1 - len
+			else
+				-- server hello - single
+				handshake.dis.compression_method = u8(handshake.data, off)
+				off = off + 1
+				left = left - 1
+			end
+
+			-- tls extensions
+			if left<2 then return partialOK end
+			local extlen = u16(handshake.data, off)
+			if left<(2+extlen) and not partialOK then return false end
 			off = off + 2
 			left = left - 2
-		end
+			if left>extlen then left=extlen end
 
-		-- compression method(s)
-		if left<1 then return partialOK end
-		if handshake.dis.type==1 then
-			-- client hello - array
-			len = u8(handshake.data, off)
-			if left<(1+len) then return partialOK end
-			handshake.dis.compression_methods={}
-			for i=1,len do
-				handshake.dis.compression_methods[i] = u8(handshake.data, off + i)
-			end
-			off = off + 1 + len
-			left = left - 1 - len
-		else
-			-- server hello - single
-			handshake.dis.compression_method = u8(handshake.data, off)
-			off = off + 1
-			left = left - 1
-		end
-
-		-- tls extensions
-		if left<2 then return partialOK end
-		local extlen = u16(handshake.data, off)
-		if left<(2+extlen) and not partialOK then return end
-		off = off + 2
-		left = left - 2
-		if left>extlen then left=extlen end
-
-		handshake.dis.ext = {}
-		while left>=4 do
-			len = u16(handshake.data, off + 2)
-			if len>(left-4) then
-				if partialOK then
-					break
-				else
-					return
+			handshake.dis.ext = {}
+			while left>=4 do
+				len = u16(handshake.data, off + 2)
+				if len>(left-4) then
+					if partialOK then
+						break
+					else
+						return false
+					end
 				end
+				local typ = u16(handshake.data, off)
+				handshake.dis.ext[#handshake.dis.ext+1] = { type = typ, name = tostring(TLS_HELLO_EXT_NAMES[typ]), data = string.sub(handshake.data, off+4, off+4+len-1) }
+				tls_dissect_ext(handshake.dis.ext[#handshake.dis.ext])
+				left = left - 4 - len
+				off = off + 4 + len
 			end
-			local typ = u16(handshake.data, off)
-			handshake.dis.ext[#handshake.dis.ext+1] = { type = typ, name = tostring(TLS_HELLO_EXT_NAMES[typ]), data = string.sub(handshake.data, off+4, off+4+len-1) }
-			tls_dissect_ext(handshake.dis.ext[#handshake.dis.ext])
-			left = left - 4 - len
-			off = off + 4 + len
-		end
 
-		return true
+			return true
+		end
+		return false
 	end
-	return false
+	local b = tls_dissect_handshake_(handshake,partialOK)
+	if not b then
+		-- clear partially filled dissect if failed
+		handshake.dis = nil
+	end
+	return b
 end
 
 -- convert tls blob tls dissect
