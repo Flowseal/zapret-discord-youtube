@@ -589,7 +589,7 @@ echo:
 set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
 if exist "%hostsFile%" (
     powershell -NoProfile -Command ^
-        "$bad = @('youtube.com','www.youtube.com','m.youtube.com','youtu.be','www.youtu.be', 'yt.be');" ^
+        "$bad = @('youtube.com','www.youtube.com','m.youtube.com','youtu.be','www.youtu.be','yt.be');" ^
         "$hits = Get-Content -LiteralPath '%hostsFile%' |" ^
         "Where-Object { $_ -match '^\s*[^#\s]' } |" ^
         "ForEach-Object {" ^
@@ -599,7 +599,9 @@ if exist "%hostsFile%" (
         "Where-Object { $_ -and ($bad -contains $_.ToLower()) };" ^
         "if ($hits) { exit 0 } else { exit 1 }"
     if !errorlevel!==0 (
-        call :PrintYellow "[?] Your hosts file contains active entries for youtube.com or youtu.be. This may cause problems with YouTube access"
+        call :PrintYellow "[?] Your hosts file contains active entries for youtube.com, youtu.be or yt.be. This may cause problems with YouTube access"
+    ) else (
+        call :PrintGreen "Hosts file check passed"
     )
 )
 
