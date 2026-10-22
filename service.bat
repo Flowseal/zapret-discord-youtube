@@ -588,11 +588,20 @@ echo:
 :: Hosts file check
 set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
 if exist "%hostsFile%" (
-    set "yt_found=0"
-    >nul 2>&1 findstr /I "youtube.com" "%hostsFile%" && set "yt_found=1"
-    >nul 2>&1 findstr /I "youtu.be" "%hostsFile%" && set "yt_found=1"
-    if !yt_found!==1 (
-        call :PrintYellow "[?] Your hosts file contains entries for youtube.com or youtu.be. This may cause problems with YouTube access"
+    powershell -NoProfile -Command ^
+        "$bad = @('youtube.com','www.youtube.com','m.youtube.com','youtu.be','www.youtu.be','yt.be');" ^
+        "$hits = Get-Content -LiteralPath '%hostsFile%' |" ^
+        "Where-Object { $_ -match '^\s*[^#\s]' } |" ^
+        "ForEach-Object {" ^
+        "  $line = ($_ -split '#',2)[0];" ^
+        "  $line -split '\s+' | Select-Object -Skip 1" ^
+        "} |" ^
+        "Where-Object { $_ -and ($bad -contains $_.ToLower()) };" ^
+        "if ($hits) { exit 0 } else { exit 1 }"
+    if !errorlevel!==0 (
+        call :PrintYellow "[?] Your hosts file contains active entries for youtube.com, youtu.be or yt.be. This may cause problems with YouTube access"
+    ) else (
+        call :PrintGreen "Hosts file check passed"
     )
 )
 
