@@ -17,14 +17,7 @@ cd /d %BIN%
 start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-disable=0 ^
 --wf-tcp-out=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp-out=443,19294-19344,50000-50100,%GameFilterUDP% ^
 
---blob=tls_google:@"%BIN%tls_clienthello_www_google_com.bin" ^
---blob=tls_onetrust:@"%BIN%tls_clienthello_max_ru.bin" ^
---blob=tls_4pda:@"%BIN%tls_clienthello_4pda_to.bin" ^
---blob=quic_google:@"%BIN%quic_initial_www_google_com.bin" ^
---blob=stun:@"%BIN%stun.bin" ^
---blob=ACTIVE_DISCORD:@"%BIN%ACTIVE_DISCORD_UDP.bin" ^
---blob=ACTIVE_GAME:@"%BIN%ACTIVE_GAME_UDP.bin" ^
-
+--lua-init=@"%LUA%blobs.lua" ^
 --lua-init=@"%LUA%zapret-lib.lua" ^
 --lua-init=@"%LUA%zapret-antidpi.lua" ^
 
