@@ -60,11 +60,11 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=8 ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
+--lua-desync=multisplit:pos=1:seqovl=661:seqovl_pattern=tls_sferum ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
+--lua-desync=multisplit:pos=1:seqovl=661:seqovl_pattern=tls_sferum ^
 --new ^
 
 --name="IP Bypass Quic" ^
@@ -83,11 +83,11 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=8 ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
+--lua-desync=multisplit:pos=1:seqovl=661:seqovl_pattern=tls_sferum ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
+--lua-desync=multisplit:pos=1:seqovl=661:seqovl_pattern=tls_sferum ^
 --new ^
 
 --name="GameFilter Bypass TCP" ^
@@ -97,15 +97,15 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --out-range=-n4 ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=8 ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
+--lua-desync=multisplit:pos=1:seqovl=661:seqovl_pattern=tls_sferum ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
+--lua-desync=multisplit:pos=1:seqovl=661:seqovl_pattern=tls_sferum ^
 --payload=unknown ^
 --lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=8:payload=all ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8:payload=all ^
---lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_onetrust:payload=all ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8:payload=all ^
+--lua-desync=multisplit:pos=1:seqovl=661:seqovl_pattern=tls_sferum:payload=all ^
 --new ^
 
 --name="GameFilter Bypass UDP" ^

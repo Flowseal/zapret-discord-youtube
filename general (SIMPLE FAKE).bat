@@ -59,7 +59,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=6 ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=6 ^
 --new ^
 
 --name="IP Bypass Quic" ^
@@ -79,7 +79,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=6 ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=6 ^
 --new ^
 
 --name="GameFilter Bypass TCP" ^
@@ -90,7 +90,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=6 ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=6 ^
 --payload=unknown ^
 --lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=6:payload=all ^
 --lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6:payload=all ^

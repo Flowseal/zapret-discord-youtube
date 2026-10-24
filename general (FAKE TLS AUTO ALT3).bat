@@ -62,7 +62,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --new ^
 
@@ -84,7 +84,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --new ^
 
@@ -97,10 +97,10 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-empty=0 --ctrack-
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --payload=http_req ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8 ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
 --payload=unknown ^
---lua-desync=fake:blob=tls_onetrust:tcp_ts=-600000:repeats=8:payload=all ^
+--lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8:payload=all ^
 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:payload=all ^
 --new ^
 
