@@ -32,6 +32,11 @@ if "%~1"=="load_user_lists" (
     exit /b
 )
 
+if "%~1"=="refresh_vpn_exclude" (
+    call :refresh_vpn_exclude
+    exit /b
+)
+
 if "%1"=="admin" (
     call :check_command chcp
     call :check_command find
@@ -126,7 +131,22 @@ if not exist "%LISTS_PATH%list-general-user.txt" (
 if not exist "%LISTS_PATH%list-exclude-user.txt" (
     echo domain.example.abc>"%LISTS_PATH%list-exclude-user.txt"
 )
+if not exist "%LISTS_PATH%ipset-exclude-vpn-user.txt" (
+    echo 203.0.113.113/32>"%LISTS_PATH%ipset-exclude-vpn-user.txt"
+)
 
+exit /b
+
+:: Record current VPN endpoints so strategies do not desync the tunnel.
+:: The lists path must not end in a backslash: cmd treats \" as an escaped quote.
+:refresh_vpn_exclude
+if not exist "%~dp0lists" mkdir "%~dp0lists"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\refresh-vpn-exclude.ps1" -ListsDir "%~dp0lists"
+if errorlevel 1 (
+    echo true>"%~dp0lists\wf-exclude-vpn.txt"
+    if not exist "%~dp0lists\ipset-exclude-vpn.txt" echo 203.0.113.113/32>"%~dp0lists\ipset-exclude-vpn.txt"
+    echo VPN exclude: generator failed, continuing without detected endpoints
+)
 exit /b
 
 
@@ -234,6 +254,7 @@ chcp 437 > nul
 cd /d "%~dp0"
 set "BIN_PATH=%~dp0bin\"
 set "LISTS_PATH=%~dp0lists\"
+call :refresh_vpn_exclude
 
 :: Searching for .bat files in current folder, except files that start with "service"
 echo Pick one of the options:
@@ -564,10 +585,12 @@ if !errorlevel!==0 (
         )
     )
     call :PrintYellow "[?] VPN services found:!VPN_SERVICES!. Some VPNs can conflict with zapret"
-    call :PrintYellow "Make sure that all VPNs are disabled"
+    call :PrintYellow "Their current server addresses are excluded. See lists\vpn-exclude-report.txt"
+    call :PrintYellow "Restart zapret after the VPN connects. Traffic inside a full tunnel is not bypassed."
 ) else (
     call :PrintGreen "VPN check passed"
 )
+call :refresh_vpn_exclude
 echo:
 
 :: DNS
