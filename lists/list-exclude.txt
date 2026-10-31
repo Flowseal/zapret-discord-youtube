@@ -22,6 +22,8 @@ gpg4win.org
 handbrake.fr
 sumatrapdfreader.org
 win-rar.com
+huggingface.co
+hf.co
 mail.ru
 citilink.ru
 yandex.com
