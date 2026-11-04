@@ -27,6 +27,16 @@ if "%~1"=="load_game_filter" (
     exit /b
 )
 
+if "%~1"=="load_iface_filter" (
+    call :iface_filter_status
+    exit /b
+)
+
+if "%~1"=="update_iface_service" (
+    call :iface_service_update
+    exit /b
+)
+
 if "%~1"=="load_user_lists" (
     call :load_user_lists
     exit /b
@@ -60,6 +70,7 @@ cls
 
 call :ipset_switch_status
 call :game_switch_status
+call :iface_filter_status
 call :check_updates_switch_status
 call :get_strategy_name
 
@@ -80,21 +91,22 @@ echo      4. Game Filter         [!GameFilterStatus!]
 echo      5. IPSet Filter        [!IPsetStatus!]
 echo      6. Auto-Update Check   [!CheckUpdatesStatus!]
 echo      7. Replace active fakes
+echo      8. Interface Filter    [!IfaceFilterStatus!]
 echo.
 echo   :: UPDATES
-echo      8. Update IPSet List
-echo      9. Update Hosts File
-echo      10. Check for Updates
+echo      9. Update IPSet List
+echo      10. Update Hosts File
+echo      11. Check for Updates
 echo.
 echo   :: TOOLS
-echo      11. Run Diagnostics
-echo      12. Run Tests
+echo      12. Run Diagnostics
+echo      13. Run Tests
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-12): 
+set /p menu_choice=   Select option (0-13): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -103,11 +115,12 @@ if "%menu_choice%"=="4" goto game_switch
 if "%menu_choice%"=="5" goto ipset_switch
 if "%menu_choice%"=="6" goto check_updates_switch
 if "%menu_choice%"=="7" goto replace_active_fakes
-if "%menu_choice%"=="8" goto ipset_update
-if "%menu_choice%"=="9" goto hosts_update
-if "%menu_choice%"=="10" goto service_check_updates
-if "%menu_choice%"=="11" goto service_diagnostics
-if "%menu_choice%"=="12" goto run_tests
+if "%menu_choice%"=="8" goto iface_switch
+if "%menu_choice%"=="9" goto ipset_update
+if "%menu_choice%"=="10" goto hosts_update
+if "%menu_choice%"=="11" goto service_check_updates
+if "%menu_choice%"=="12" goto service_diagnostics
+if "%menu_choice%"=="13" goto run_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -220,6 +233,8 @@ if !errorlevel!==0 (
 )
 net stop "WinDivert14" >nul 2>&1
 sc delete "WinDivert14" >nul 2>&1
+
+schtasks /delete /f /tn "zapret iface update" >nul 2>&1
 
 pause
 goto menu
@@ -360,6 +375,7 @@ for %%F in ("!file%choice%!") do (
     set "filename=%%~nF"
 )
 reg add "HKLM\System\CurrentControlSet\Services\zapret" /v zapret-discord-youtube /t REG_SZ /d "!filename!" /f
+schtasks /create /f /tn "zapret iface update" /sc onstart /ru SYSTEM /rl HIGHEST /tr "\"%~dp0service.bat\" update_iface_service" >nul
 
 pause
 goto menu
@@ -894,6 +910,115 @@ exit /b
     echo mode=%GameFilterMode%
     echo tcp=%GameFilterTCPRange%
     echo udp=%GameFilterUDPRange%
+)
+exit /b
+
+
+:: INTERFACE FILTER ==================
+:iface_filter_status
+chcp 437 > nul
+
+set "ifaceFlagFile=%~dp0utils\iface_filter.enabled"
+set "IfaceFilter="
+set "IfaceFilterGuid="
+set "IfaceFilterIndex="
+set "IfaceFilterName="
+set "IfaceFilterStatus=all"
+
+if not exist "%ifaceFlagFile%" exit /b
+
+set /p IfaceFilterGuid=<"%ifaceFlagFile%"
+if not defined IfaceFilterGuid exit /b
+
+for /f "tokens=1,* delims=|" %%A in ('powershell -NoProfile -Command "$a = Get-NetAdapter | Where-Object { $_.InterfaceGuid -eq $env:IfaceFilterGuid }; if ($a) { '{0}|{1}' -f $a.ifIndex, $a.Name }"') do (
+    set "IfaceFilterIndex=%%A"
+    set "IfaceFilterName=%%B"
+)
+
+if not defined IfaceFilterIndex (
+    set "IfaceFilterStatus=not found, using all"
+    exit /b
+)
+
+set "IfaceFilter=--wf-iface=%IfaceFilterIndex%"
+set "IfaceFilterStatus=%IfaceFilterName% [%IfaceFilterIndex%]"
+exit /b
+
+
+:iface_switch
+chcp 437 > nul
+cls
+call :iface_filter_status
+
+echo Select interface filter option:
+if not defined IfaceFilterGuid (echo   1. * All interfaces) else echo   1.   All interfaces
+
+set "ifaceCount=1"
+for /f "tokens=1,* delims=|" %%A in ('powershell -NoProfile -Command "Get-NetAdapter | Sort-Object ifIndex | ForEach-Object { '{0}|[{1}] {2} ({3})' -f $_.InterfaceGuid, $_.ifIndex, $_.Name, $_.Status }"') do (
+    set /a ifaceCount+=1
+    set "iface!ifaceCount!=%%A"
+    if /i "%%A"=="!IfaceFilterGuid!" (echo   !ifaceCount!. * %%B) else echo   !ifaceCount!.   %%B
+)
+
+echo.
+echo.  0. Exit
+echo.
+set "IfaceFilterChoice=0"
+set /p "IfaceFilterChoice=Select option (0-!ifaceCount!, default: 0): "
+if "!IfaceFilterChoice!"=="" set "IfaceFilterChoice=0"
+
+if "!IfaceFilterChoice!"=="0" (
+    goto menu
+) else if "!IfaceFilterChoice!"=="1" (
+    set "IfaceFilterGuid="
+) else (
+    set "IfaceFilterCandidate="
+    for %%N in (!IfaceFilterChoice!) do set "IfaceFilterCandidate=!iface%%N!"
+    if not defined IfaceFilterCandidate (
+        call :PrintRed "Invalid choice. Please select a valid option."
+        pause
+        goto iface_switch
+    )
+    set "IfaceFilterGuid=!IfaceFilterCandidate!"
+)
+
+echo.
+call :save_iface_filter_settings
+call :iface_service_update
+call :PrintYellow "Changes applied to the zapret service (if installed)"
+pause
+goto iface_switch
+
+
+:iface_service_update
+sc query "zapret" >nul 2>&1
+if errorlevel 1 exit /b
+
+set "ifaceRetries=0"
+
+:iface_service_update_wait
+call :iface_filter_status
+if not defined IfaceFilterGuid goto iface_service_update_apply
+if defined IfaceFilterIndex goto iface_service_update_apply
+if %ifaceRetries% GEQ 30 goto iface_service_update_apply
+
+set /a ifaceRetries+=1
+timeout /t 2 /nobreak >nul
+goto iface_service_update_wait
+
+:iface_service_update_apply
+powershell -NoProfile -Command "$key = 'HKLM:\System\CurrentControlSet\Services\zapret'; $old = (Get-ItemProperty $key).ImagePath; $new = $old -replace ' --wf-iface[ =]\d+', ''; if ($env:IfaceFilter) { $new = $new -replace '(winws\.exe\x22)', ('$1 ' + ($env:IfaceFilter -replace '=', ' ')) }; if ($new -ne $old) { Set-ItemProperty $key ImagePath $new; Restart-Service zapret -Force }"
+exit /b
+
+
+:save_iface_filter_settings
+if not defined IfaceFilterGuid (
+    if exist "%ifaceFlagFile%" del /f /q "%ifaceFlagFile%"
+    exit /b
+)
+
+>"%ifaceFlagFile%" (
+    echo !IfaceFilterGuid!
 )
 exit /b
 
