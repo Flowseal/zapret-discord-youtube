@@ -1,5 +1,8 @@
 pusher.com
 twitch.tv
+ttvnw.net
+jtvnw.net
+twitchcdn.net
 steampowered.com
 steamcommunity.com
 steamusercontent.com
