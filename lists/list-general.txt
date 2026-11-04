@@ -57,3 +57,6 @@ betterttv.net
 localizeapi.com
 klipy.com
 live-video.net
+soundcloud.cloud
+soundcloud.com
+sndcdn.com
