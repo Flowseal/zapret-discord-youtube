@@ -1,3 +1,15 @@
+8.8.4.4 dns.google
+76.76.2.11 freedns.controld.com
+146.112.41.2 doh.opendns.com
+185.71.138.138 wikimedia-dns.org
+194.169.169.169 dns.surfsharkdns.com
+
+2001:4860:4860::8844 dns.google
+2606:1a40::11 freedns.controld.com
+2620:119:fc::2 doh.opendns.com
+2001:67c:930::1 wikimedia-dns.org
+2a09:a707:169:: dns.surfsharkdns.com
+
 140.82.121.3 github.com
 146.75.22.132 objects.githubusercontent.com
 146.75.22.132 raw.githubusercontent.com
