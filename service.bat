@@ -32,6 +32,11 @@ if "%~1"=="load_user_lists" (
     exit /b
 )
 
+if "%~1"=="prepare_vpn_filter" (
+    call :prepare_vpn_filter "%~2"
+    exit /b
+)
+
 if "%1"=="admin" (
     call :check_command chcp
     call :check_command find
@@ -266,6 +271,15 @@ if not defined selectedFile (
     goto menu
 )
 
+findstr /C:"call service.bat prepare_vpn_filter" "!selectedFile!" >nul
+if not errorlevel 1 (
+    call :prepare_vpn_filter "!selectedFile!"
+    if errorlevel 1 (
+        pause
+        goto menu
+    )
+)
+
 :: Args that should be followed by value
 set "args_with_value=sni host altorder"
 
@@ -282,7 +296,7 @@ for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
     call set "line=%%line:^!=EXCL_MARK%%"
     call set "line=!line!"
 
-    echo !line! | findstr /i "winws.exe" >nul
+    echo !line! | findstr /i /r /c:"^start .*winws[.]exe" >nul
     if not errorlevel 1 (
         set "capture=1"
     )
@@ -1309,3 +1323,8 @@ if "%extracted%"=="0" (
     exit
 )
 exit /b 0
+
+
+:prepare_vpn_filter
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\vpn-filter.ps1" -Strategy "%~f1"
+exit /b
