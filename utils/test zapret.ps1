@@ -960,9 +960,7 @@ try {
         }
     }
     Write-Host ""
-    # $bestConfig stays empty if no config passed a single check
-    $bestLabel = if ($bestConfig) { $bestConfig } else { "n/a" }
-    Write-Host "Best config: $bestLabel" -ForegroundColor Green
+    Write-Host "Best config: $bestConfig" -ForegroundColor Green
     Write-Host ""
 
     # Save to file
@@ -1021,7 +1019,7 @@ try {
         [void]$resultLines.Add($line)
     }
 
-    [void]$resultLines.Add("Best strategy: $bestLabel")
+    [void]$resultLines.Add("Best strategy: $bestConfig")
     $resultLines | Set-Content $resultFile -Encoding UTF8
 
     Write-Host "Results saved to $resultFile" -ForegroundColor Green
