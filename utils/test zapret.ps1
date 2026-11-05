@@ -74,6 +74,22 @@ trap {
     break
 }
 
+function Get-Median {
+    param([double[]]$Values)
+    if ($null -eq $Values -or $Values.Count -eq 0) { return $null }
+    $sorted = $Values.Clone()
+    [Array]::Sort($sorted)
+    $middle = [int][Math]::Floor($sorted.Count / 2)
+    if ($sorted.Count % 2 -eq 1) { return $sorted[$middle] }
+    return ($sorted[$middle - 1] + $sorted[$middle]) / 2
+}
+
+function Format-Time {
+    param([Nullable[double]]$Milliseconds)
+    if ($null -eq $Milliseconds) { return "n/a" }
+    return "{0:0} ms" -f $Milliseconds
+}
+
 function New-OrderedDict { New-Object System.Collections.Specialized.OrderedDictionary }
 function Add-OrSet {
     param($dict, $key, $val)
@@ -696,6 +712,7 @@ try {
             param($t, $curlTimeoutSeconds)
 
             $httpPieces = @()
+            $httpTimes = @()
 
             if ($t.Url) {
                 $tests = @(
@@ -704,7 +721,7 @@ try {
                     @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
                 )
 
-                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "--connect-timeout", ([Math]::Min(2, $curlTimeoutSeconds)), "-o", "NUL", "-w", "%{http_code}", "--show-error")
+                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "--connect-timeout", ([Math]::Min(2, $curlTimeoutSeconds)), "-o", "NUL", "-w", "%{time_namelookup} %{time_total}", "--show-error")
                 foreach ($test in $tests) {
                     try {
                         $curlArgs = $baseArgs + $test.Args
@@ -716,7 +733,7 @@ try {
                                 $_
                             }
                         }
-                        $httpCode = ($output | Out-String).Trim()
+                        $timing = ($output | Out-String).Trim()
                         
                         $dnsHijack = ($stderr -match "Could not resolve host|certificate|SSL certificate problem|self[- ]?signed|certificate verify failed|unable to get local issuer certificate")                        
                         if ($dnsHijack) {
@@ -733,6 +750,11 @@ try {
                         $ok = ($LASTEXITCODE -eq 0)
                         if ($ok) {
                             $httpPieces += "$($test.Label):OK   "
+                            # DNS lookup is excluded: it doesn't depend on the config, and whether
+                            # the name is already in the system DNS cache depends on the test order
+                            if ($timing -match '^(?<dns>[\d.]+) (?<total>[\d.]+)$') {
+                                $httpTimes += ([double]$matches['total'] - [double]$matches['dns']) * 1000
+                            }
                         } else {
                             $httpPieces += "$($test.Label):ERROR"
                         }
@@ -763,6 +785,7 @@ try {
             return (New-Object PSObject -Property @{
                 Name       = $t.Name
                 HttpTokens = $httpPieces
+                HttpTimes  = $httpTimes
                 PingResult = $pingResult
                 IsUrl      = [bool]$t.Url
             })
@@ -871,7 +894,7 @@ try {
         if ($res.Type -eq 'standard') {
             foreach ($targetRes in $res.Results) {
                 $config = $res.Config
-                if (-not $analytics.ContainsKey($config)) { $analytics[$config] = @{ OK = 0; ERROR = 0; UNSUP = 0; PingOK = 0; PingFail = 0 } }
+                if (-not $analytics.ContainsKey($config)) { $analytics[$config] = @{ OK = 0; ERROR = 0; UNSUP = 0; PingOK = 0; PingFail = 0; Times = @() } }
                 if ($targetRes.IsUrl) {
                     foreach ($tok in $targetRes.HttpTokens) {
                         if ($tok -match "OK") { $analytics[$config].OK++ }
@@ -879,6 +902,7 @@ try {
                         elseif ($tok -match "ERROR") { $analytics[$config].ERROR++ }
                         elseif ($tok -match "UNSUP") { $analytics[$config].UNSUP++ }
                     }
+                    foreach ($ms in $targetRes.HttpTimes) { $analytics[$config].Times += $ms }
                 }
                 if ($targetRes.PingResult -ne "Timeout" -and $targetRes.PingResult -ne "n/a") { $analytics[$config].PingOK++ } else { $analytics[$config].PingFail++ }
             }
@@ -896,6 +920,11 @@ try {
         }
     }
 
+    # Median time of successful HTTP checks, $null if none succeeded
+    foreach ($a in $analytics.Values) {
+        if ($a.ContainsKey('Times')) { $a.Time = Get-Median $a.Times }
+    }
+
     Write-Host ""
     Write-Host "=== ANALYTICS ===" -ForegroundColor Cyan
     $maxConfigLen = ($analytics.Keys | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum
@@ -903,8 +932,8 @@ try {
         $a = $analytics[$config]
         $configPadded = $config.PadRight($maxConfigLen)
         if ($a.ContainsKey('PingOK')) {
-            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}" -f `
-                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail
+            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}, Time: {6,7}" -f `
+                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail, (Format-Time $a.Time)
         } else {
             $line = "{0} : OK: {1,3}, FAIL: {2,3}, UNSUP: {3,3}, BLOCKED: {4,3}" -f `
                 $configPadded, $a.OK, $a.FAIL, $a.UNSUPPORTED, $a.LIKELY_BLOCKED
@@ -913,29 +942,27 @@ try {
     }
 
     # Determine best strategy
+    # On equal score the faster config wins. Ping is not compared: winws doesn't
+    # touch ICMP, so ping results don't depend on the config.
     $bestConfig = $null
     $maxScore = 0
-    $maxPing = -1
+    $bestTime = $null
     foreach ($config in $analytics.Keys) {
         $a = $analytics[$config]
         $score = $a.OK
-        $pingScore = 0
-        if ($a.ContainsKey('PingOK')) {
-            $pingScore = $a.PingOK
-        }
         if ($score -gt $maxScore) {
             $maxScore = $score
-            $maxPing = $pingScore
+            $bestTime = $a.Time
             $bestConfig = $config
-        } elseif ($score -eq $maxScore) {
-            if ($pingScore -gt $maxPing) {
-                $maxPing = $pingScore
-                $bestConfig = $config
-            }
+        } elseif (($score -eq $maxScore) -and ($null -ne $a.Time) -and (($null -eq $bestTime) -or ($a.Time -lt $bestTime))) {
+            $bestTime = $a.Time
+            $bestConfig = $config
         }
     }
     Write-Host ""
-    Write-Host "Best config: $bestConfig" -ForegroundColor Green
+    # $bestConfig stays empty if no config passed a single check
+    $bestLabel = if ($bestConfig) { $bestConfig } else { "n/a" }
+    Write-Host "Best config: $bestLabel" -ForegroundColor Green
     Write-Host ""
 
     # Save to file
@@ -985,8 +1012,8 @@ try {
         $a = $analytics[$config]
         $configPadded = $config.PadRight($maxConfigLen)
         if ($a.ContainsKey('PingOK')) {
-            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}" -f `
-                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail
+            $line = "{0} : HTTP OK: {1,3}, ERR: {2,3}, UNSUP: {3,3}, Ping OK: {4,3}, Fail: {5,3}, Time: {6,7}" -f `
+                $configPadded, $a.OK, $a.ERROR, $a.UNSUP, $a.PingOK, $a.PingFail, (Format-Time $a.Time)
         } else {
             $line = "{0} : OK: {1,3}, FAIL: {2,3}, UNSUP: {3,3}, BLOCKED: {4,3}" -f `
                 $configPadded, $a.OK, $a.FAIL, $a.UNSUPPORTED, $a.LIKELY_BLOCKED
@@ -994,7 +1021,7 @@ try {
         [void]$resultLines.Add($line)
     }
 
-    [void]$resultLines.Add("Best strategy: $bestConfig")
+    [void]$resultLines.Add("Best strategy: $bestLabel")
     $resultLines | Set-Content $resultFile -Encoding UTF8
 
     Write-Host "Results saved to $resultFile" -ForegroundColor Green
