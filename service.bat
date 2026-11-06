@@ -1155,6 +1155,7 @@ set "requestUrl=%hostsUrl%?t=%cacheBuster%"
 
 echo Checking hosts file...
 
+if exist "%tempFile%" del /f /q "%tempFile%"
 if exist "%SystemRoot%\System32\curl.exe" (
     curl -L -s -f -o "%tempFile%" "%requestUrl%"
 ) else (
@@ -1164,6 +1165,7 @@ if exist "%SystemRoot%\System32\curl.exe" (
         "$res = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing;" ^
         "if ($res.StatusCode -eq 200) { $res.Content | Out-File -FilePath $out -Encoding UTF8 } else { exit 1 }"
 )
+if !errorlevel! neq 0 del /f /q "%tempFile%" >nul 2>&1
 if not exist "%tempFile%" (
     call :PrintRed "Failed to download hosts file from repository"
     call :PrintYellow "Copy hosts file manually from %hostsUrl%"
