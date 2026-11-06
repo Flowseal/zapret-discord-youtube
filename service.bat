@@ -1,5 +1,6 @@
 @echo off
 set "LOCAL_VERSION=1.10.4"
+set "FIND_EXE=%SystemRoot%\System32\find.exe"
 
 :: External commands
 if "%~1"=="status_zapret" (
@@ -156,7 +157,7 @@ if not exist "%BIN_PATH%\*.sys" (
 )
 echo:
 
-tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+tasklist /FI "IMAGENAME eq winws.exe" | "%FIND_EXE%" /I "winws.exe" > nul
 if !errorlevel!==0 (
     call :PrintGreen "Bypass (winws.exe) is RUNNING."
 ) else (
@@ -204,7 +205,7 @@ if !errorlevel!==0 (
     echo Service "%SRVCNAME%" is not installed.
 )
 
-tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+tasklist /FI "IMAGENAME eq winws.exe" | "%FIND_EXE%" /I "winws.exe" > nul
 if !errorlevel!==0 (
     taskkill /IM winws.exe /F > nul
 )
@@ -462,7 +463,7 @@ if !errorlevel!==0 (
 echo:
 
 :: AdguardSvc.exe
-tasklist /FI "IMAGENAME eq AdguardSvc.exe" | find /I "AdguardSvc.exe" > nul
+tasklist /FI "IMAGENAME eq AdguardSvc.exe" | "%FIND_EXE%" /I "AdguardSvc.exe" > nul
 if !errorlevel!==0 (
     call :PrintRed "[X] Adguard process found. Adguard may cause problems with Discord"
     call :PrintRed "https://github.com/Flowseal/zapret-discord-youtube/issues/417"
@@ -597,7 +598,7 @@ if exist "%hostsFile%" (
 )
 
 :: WinDivert conflict
-tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+tasklist /FI "IMAGENAME eq winws.exe" | "%FIND_EXE%" /I "winws.exe" > nul
 set "winws_running=!errorlevel!"
 
 sc query "WinDivert" | findstr /I "RUNNING STOP_PENDING" > nul
@@ -1046,7 +1047,7 @@ goto replace_active_fakes_prompt
 chcp 437 > nul
 
 set "listFile=%~dp0lists\ipset-all.txt"
-for /f %%i in ('type "%listFile%" 2^>nul ^| find /c /v ""') do set "lineCount=%%i"
+for /f %%i in ('type "%listFile%" 2^>nul ^| "%FIND_EXE%" /c /v ""') do set "lineCount=%%i"
 
 if !lineCount!==0 (
     set "IPsetStatus=any"
@@ -1118,7 +1119,7 @@ set "url=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/
 echo Updating ipset-all...
 
 if exist "%SystemRoot%\System32\curl.exe" (
-    curl --version | find "libcurl/7"
+    curl --version | "%FIND_EXE%" "libcurl/7"
     if !errorlevel!==0 (
         curl --ssl-no-revoke -L -f -o "%listFile%" "%url%"
     ) else (
