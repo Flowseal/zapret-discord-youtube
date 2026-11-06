@@ -1025,15 +1025,22 @@ if not defined source_file (
     goto replace_active_fakes_prompt
 )
 
-del /f /q "!active_file!" >nul 2>&1
-copy /y "!source_file!" "!active_file!" >nul
+set "temp_file=!active_file!.tmp"
+copy /y "!source_file!" "!temp_file!" >nul
 if errorlevel 1 (
+    del /f /q "!temp_file!" >nul 2>&1
     echo Failed to replace the active fake file.
 ) else (
-    echo Active fake file replaced successfully.
-    for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" (
-        if "!fake_type!"=="1" set "current_discord_fake=!fake_name%%N!"
-        if "!fake_type!"=="2" set "current_game_fake=!fake_name%%N!"
+    move /y "!temp_file!" "!active_file!" >nul
+    if errorlevel 1 (
+        del /f /q "!temp_file!" >nul 2>&1
+        echo Failed to replace the active fake file.
+    ) else (
+        echo Active fake file replaced successfully.
+        for /l %%N in (1,1,!fake_count!) do if "%%N"=="!fake_number!" (
+            if "!fake_type!"=="1" set "current_discord_fake=!fake_name%%N!"
+            if "!fake_type!"=="2" set "current_game_fake=!fake_name%%N!"
+        )
     )
 )
 pause
