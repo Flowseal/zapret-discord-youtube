@@ -236,3 +236,7 @@ sc delete название_из_первого_шага
 [![Contributors](https://contrib.rocks/image?repo=Flowseal/zapret-discord-youtube)](https://github.com/Flowseal/zapret-discord-youtube/graphs/contributors)
 
 💖 Отдельная благодарность разработчику [zapret](https://github.com/bol-van/zapret) - [bol-van](https://github.com/bol-van)
+
+## macOS CLI (экспериментально)
+
+Терминальное меню с native utun/BPF, game-filter TCP/UDP и импортом стратегий: [macos-cli](./macos-cli/README.md). Возможны баги; перед использованием прочитайте ограничения.

@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+/vendor/
+/bin/
+/engine/utunws
+/engine/utunwsa
+/engine/utunwsx
+/strategy-validation.log

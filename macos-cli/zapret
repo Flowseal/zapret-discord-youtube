@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+# Resolve the installed /usr/local/bin symlink without GNU readlink -f.
+SELF=$0
+if [ -L "$SELF" ]; then SELF=$(/usr/bin/readlink "$SELF"); fi
+DIR=$(CDPATH= cd -- "$(/usr/bin/dirname -- "$SELF")" && pwd -P)
+exec /usr/bin/python3 -I "$DIR/manager.py" "$@"
