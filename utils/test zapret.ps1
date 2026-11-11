@@ -19,7 +19,7 @@ function Get-IpsetStatus {
 function Wait-WinwsReady {
     $timer = [Diagnostics.Stopwatch]::StartNew()
     while ($timer.ElapsedMilliseconds -lt 5000) {
-        if (Get-Process -Name "winws" -ErrorAction SilentlyContinue) {
+        if (Get-Process -Name "winws2" -ErrorAction SilentlyContinue) {
             Start-Sleep -Milliseconds 300
             return $true
         }
@@ -585,15 +585,15 @@ if (-not $batFiles -or $batFiles.Count -eq 0) {
     exit 1
 }
 
-# Stop winws
+# Stop winws2
 function Stop-Zapret {
-    Get-Process -Name "winws" -ErrorAction SilentlyContinue | Stop-Process -Force
+    Get-Process -Name "winws2" -ErrorAction SilentlyContinue | Stop-Process -Force
 }
 
-# Capture/restore running winws instances to return user ipset/config
+# Capture/restore running winws2 instances to return user ipset/config
 function Get-WinwsSnapshot {
     try {
-        return Get-CimInstance Win32_Process -Filter "Name='winws.exe'" |
+        return Get-CimInstance Win32_Process -Filter "Name='winws2.exe'" |
             Select-Object ProcessId, CommandLine, ExecutablePath
     } catch {
         return @()
@@ -608,7 +608,7 @@ function Restore-WinwsSnapshot {
     $current = @()
     try { $current = (Get-WinwsSnapshot).CommandLine } catch { $current = @() }
 
-    Write-Host "[INFO] Restoring previously running winws instances..." -ForegroundColor DarkGray
+    Write-Host "[INFO] Restoring previously running winws2 instances..." -ForegroundColor DarkGray
     foreach ($p in $snapshot) {
         if (-not $p.ExecutablePath) { continue }
 
@@ -630,14 +630,14 @@ function Restore-WinwsSnapshot {
         }
 
         if (-not $processArgs) {
-            Write-Host "[WARN] Could not read arguments of previous winws instance ($exe); skipping restore." -ForegroundColor Yellow
+            Write-Host "[WARN] Could not read arguments of previous winws2 instance ($exe); skipping restore." -ForegroundColor Yellow
             continue
         }
 
         try {
             Start-Process -FilePath $exe -ArgumentList $processArgs -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null
         } catch {
-            Write-Host "[WARN] Failed to restore previous winws instance ($exe): $_" -ForegroundColor Yellow
+            Write-Host "[WARN] Failed to restore previous winws2 instance ($exe): $_" -ForegroundColor Yellow
         }
     }
 }
@@ -679,7 +679,7 @@ try {
     
     # Wait init
     if (-not (Wait-WinwsReady)) {
-        Write-Host "  > Strategy failed to start (winws process not found). Skipping..." -ForegroundColor Red
+        Write-Host "  > Strategy failed to start (winws2 process not found). Skipping..." -ForegroundColor Red
         if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
         continue
     }

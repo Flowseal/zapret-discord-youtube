@@ -1,7 +1,6 @@
 @echo off
 chcp 65001 > nul
 :: 65001 - UTF-8
-:: NOT RECOMMENDED
 
 cd /d "%~dp0"
 call service.bat status_zapret
@@ -14,10 +13,65 @@ set "BIN=%~dp0bin\"
 set "LISTS=%~dp0lists\"
 cd /d %BIN%
 
-start "zapret: %~n0" /min "%BIN%winws.exe" --wf-tcp=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp=443,19294-19344,50000-50100,%GameFilterUDP% ^
---filter-udp=443 --hostlist="%LISTS%list-general.txt" --hostlist="%LISTS%list-general-user.txt" --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
---filter-udp=19294-19344,50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-fake-discord="%BIN%ACTIVE_DISCORD_UDP.bin" --dpi-desync-fake-stun="%BIN%ACTIVE_DISCORD_UDP.bin" --dpi-desync-repeats=6 --new ^
---filter-l3=ipv4 --filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" --dpi-desync=syndata,multidisorder --new ^
---filter-tcp=%GameFilterTCP% --ipset="%LISTS%ipset-all.txt" --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" --dpi-desync=syndata,multidisorder --dpi-desync-any-protocol=1 --dpi-desync-cutoff=n4 --new ^
---filter-udp=443 --ipset="%LISTS%ipset-all.txt" --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
---filter-udp=%GameFilterUDP% --ipset="%LISTS%ipset-all.txt" --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" --dpi-desync=fake --dpi-desync-repeats=14 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%BIN%ACTIVE_GAME_UDP.bin" --dpi-desync-cutoff=n3
+if not exist "%BIN%winws2.exe" (
+    echo [ERROR] winws2.exe not found in bin\
+    echo Download it from https://github.com/bol-van/zapret2/releases
+    echo and put winws2.exe into the bin folder. See README.md
+    pause
+    exit /b 1
+)
+
+start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp-out=443,19294-19344,50000-50100,%GameFilterUDP% ^
+--lua-init=@"%BIN%lua\zapret-lib.lua" --lua-init=@"%BIN%lua\zapret-antidpi.lua" ^
+--blob=quic_initial_www_google_com:@"%BIN%quic_initial_www_google_com.bin" ^
+--blob=ACTIVE_DISCORD_UDP:@"%BIN%ACTIVE_DISCORD_UDP.bin" ^
+--blob=ACTIVE_GAME_UDP:@"%BIN%ACTIVE_GAME_UDP.bin" ^
+--filter-udp=443 ^
+--hostlist="%LISTS%list-general.txt" ^
+--hostlist="%LISTS%list-general-user.txt" ^
+--hostlist-exclude="%LISTS%list-exclude.txt" ^
+--hostlist-exclude="%LISTS%list-exclude-user.txt" ^
+--ipset-exclude="%LISTS%ipset-exclude.txt" ^
+--ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--payload=quic_initial ^
+  --lua-desync=fake:blob=quic_initial_www_google_com:repeats=6 --new ^
+--filter-udp=19294-19344,50000-50100 ^
+--filter-l7=discord,stun ^
+--payload=discord_ip_discovery,stun ^
+  --lua-desync=fake:blob=ACTIVE_DISCORD_UDP:repeats=6 --new ^
+--filter-l3=ipv4 ^
+--filter-tcp=80,443,2053,2083,2087,2096,8443 ^
+--ipset-exclude="%LISTS%ipset-exclude.txt" ^
+--ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--out-range=-d10 ^
+  --lua-desync=syndata ^
+--payload=tls_client_hello ^
+  --lua-desync=multidisorder_legacy ^
+--payload=http_req ^
+  --lua-desync=multidisorder_legacy --new ^
+--filter-tcp=%GameFilterTCP% ^
+--ipset="%LISTS%ipset-all.txt" ^
+--ipset-exclude="%LISTS%ipset-exclude.txt" ^
+--ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--out-range=-d4 ^
+  --lua-desync=syndata:payload=all ^
+--payload=tls_client_hello ^
+  --lua-desync=multidisorder_legacy:payload=all ^
+--payload=http_req ^
+  --lua-desync=multidisorder_legacy:payload=all ^
+--payload=unknown ^
+  --lua-desync=multidisorder_legacy:payload=all --new ^
+--filter-udp=443 ^
+--ipset="%LISTS%ipset-all.txt" ^
+--hostlist-exclude="%LISTS%list-exclude.txt" ^
+--hostlist-exclude="%LISTS%list-exclude-user.txt" ^
+--ipset-exclude="%LISTS%ipset-exclude.txt" ^
+--ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--payload=quic_initial ^
+  --lua-desync=fake:blob=quic_initial_www_google_com:repeats=6 --new ^
+--filter-udp=%GameFilterUDP% ^
+--ipset="%LISTS%ipset-all.txt" ^
+--ipset-exclude="%LISTS%ipset-exclude.txt" ^
+--ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--payload=all ^
+  --lua-desync=fake:blob=ACTIVE_GAME_UDP:repeats=14:payload=all

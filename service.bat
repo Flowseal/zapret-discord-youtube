@@ -156,11 +156,11 @@ if not exist "%BIN_PATH%\*.sys" (
 )
 echo:
 
-tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+tasklist /FI "IMAGENAME eq winws2.exe" | find /I "winws2.exe" > nul
 if !errorlevel!==0 (
-    call :PrintGreen "Bypass (winws.exe) is RUNNING."
+    call :PrintGreen "Bypass (winws2.exe) is RUNNING."
 ) else (
-    call :PrintRed "Bypass (winws.exe) is NOT running."
+    call :PrintRed "Bypass (winws2.exe) is NOT running."
 )
 
 pause
@@ -204,9 +204,9 @@ if !errorlevel!==0 (
     echo Service "%SRVCNAME%" is not installed.
 )
 
-tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+tasklist /FI "IMAGENAME eq winws2.exe" | find /I "winws2.exe" > nul
 if !errorlevel!==0 (
-    taskkill /IM winws.exe /F > nul
+    taskkill /IM winws2.exe /F > nul
 )
 
 sc query "WinDivert" >nul 2>&1
@@ -266,94 +266,46 @@ if not defined selectedFile (
     goto menu
 )
 
-:: Args that should be followed by value
-set "args_with_value=sni host altorder"
-
-:: Parsing args (mergeargs: 2=start param|3=arg with value|1=params args|0=default)
-set "args="
-set "capture=0"
-set "mergeargs=0"
+:: Parsing args: extract winws2 arguments from the strategy file.
+:: The old token-by-token parser cannot handle zapret2 syntax
+:: (--lua-desync=fake:blob=...:tls_mod=..., --blob=name:@"path"),
+:: so extraction is done by utils\parse_strategy.ps1
 set "BIN=%~dp0bin\"
 set "LISTS=%~dp0lists\"
-set QUOTE="
 
-for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
-    set "line=%%a"
-    call set "line=%%line:^!=EXCL_MARK%%"
-    call set "line=!line!"
+if not exist "%BIN%winws2.exe" (
+    echo [ERROR] winws2.exe not found in bin\
+    echo Download it from https://github.com/bol-van/zapret2/releases and put winws2.exe into the bin folder.
+    pause
+    goto menu
+)
 
-    echo !line! | findstr /i "winws.exe" >nul
-    if not errorlevel 1 (
-        set "capture=1"
-    )
-
-    if !capture!==1 (
-        if not defined args (
-            set "line=!line:*winws.exe"=!"
-        )
-
-        set "temp_args="
-        for %%i in (!line!) do (
-            set "arg=%%i"
-
-            if not "!arg!"=="^" if not "!arg!"=="^^" (
-                if "!arg:~0,2!" EQU "--" if not !mergeargs!==0 (
-                    set "mergeargs=0"
-                )
-
-                if "!arg:~0,1!" EQU "!QUOTE!" (
-                    set "arg=!arg:~1,-1!"
-
-                    echo !arg! | findstr ":" >nul
-                    if !errorlevel!==0 (
-                        set "arg=\!QUOTE!!arg!\!QUOTE!"
-                    ) else if "!arg:~0,1!"=="@" (
-                        set "arg=\!QUOTE!@%~dp0!arg:~1!\!QUOTE!"
-                    ) else (
-                        set "arg=\!QUOTE!%~dp0!arg!\!QUOTE!"
-                    )
-                )
-
-                if !mergeargs!==1 (
-                    set "temp_args=!temp_args!,!arg!"
-                ) else if !mergeargs!==3 (
-                    set "temp_args=!temp_args!=!arg!"
-                    set "mergeargs=1"
-                ) else (
-                    set "temp_args=!temp_args! !arg!"
-                )
-
-                if "!arg:~0,2!" EQU "--" (
-                    set "mergeargs=2"
-                ) else if !mergeargs! GEQ 1 (
-                    if !mergeargs!==2 set "mergeargs=1"
-
-                    for %%x in (!args_with_value!) do (
-                        if /i "%%x"=="!arg!" (
-                            set "mergeargs=3"
-                        )
-                    )
-                )
-            )
-        )
-
-        if not "!temp_args!"=="" (
-            set "args=!args! !temp_args!"
-        )
-    )
+set "ARGS_FILE=%TEMP%\zapret2_args.txt"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\parse_strategy.ps1" -BatFile "!selectedFile!" -OutFile "!ARGS_FILE!"
+if errorlevel 1 (
+    echo [ERROR] Failed to parse strategy file.
+    pause
+    goto menu
+)
+set "args="
+for /f "usebackq delims=" %%A in ("!ARGS_FILE!") do set "args=%%A"
+del /f /q "!ARGS_FILE!" >nul 2>&1
+if not defined args (
+    echo [ERROR] No winws2 arguments found in strategy file.
+    pause
+    goto menu
 )
 
 :: Creating service with parsed args
 call :tcp_enable
 
 set ARGS=%args%
-call set "ARGS=%%ARGS:EXCL_MARK=^!%%"
 echo Final args: !ARGS!
 set SRVCNAME=zapret
 
 net stop %SRVCNAME% >nul 2>&1
 sc delete %SRVCNAME% >nul 2>&1
-sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws.exe\" !ARGS!" DisplayName= "zapret" start= auto
+sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws2.exe\" !ARGS!" DisplayName= "zapret" start= auto
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
 for %%F in ("!file%choice%!") do (
@@ -597,14 +549,14 @@ if exist "%hostsFile%" (
 )
 
 :: WinDivert conflict
-tasklist /FI "IMAGENAME eq winws.exe" | find /I "winws.exe" > nul
+tasklist /FI "IMAGENAME eq winws2.exe" | find /I "winws2.exe" > nul
 set "winws_running=!errorlevel!"
 
 sc query "WinDivert" | findstr /I "RUNNING STOP_PENDING" > nul
 set "windivert_running=!errorlevel!"
 
 if !winws_running! neq 0 if !windivert_running!==0 (
-    call :PrintYellow "[?] winws.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
+    call :PrintYellow "[?] winws2.exe is not running but WinDivert service is active. Attempting to delete WinDivert..."
     
     net stop "WinDivert" >nul 2>&1
     sc delete "WinDivert" >nul 2>&1
