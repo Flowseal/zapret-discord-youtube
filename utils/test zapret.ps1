@@ -4,7 +4,7 @@ $rootDir = Split-Path $PSScriptRoot
 $listsDir = Join-Path $rootDir "lists"
 $utilsDir = Join-Path $rootDir "utils"
 $resultsDir = Join-Path $utilsDir "test results"
-if (-not (Test-Path $resultsDir)) { New-Item -ItemType Directory -Path $resultsDir | Out-Null }
+if (-not (Test-Path -LiteralPath $resultsDir)) { New-Item -ItemType Directory -Path $resultsDir | Out-Null }
 
 # Define functions early
 function Get-IpsetStatus {
@@ -407,7 +407,7 @@ $dpiTargets = @()
 # Config
 $targetDir = $rootDir
 if (-not $targetDir) { $targetDir = Split-Path -Parent $MyInvocation.MyCommand.Path }
-$batFiles = Get-ChildItem -Path $targetDir -Filter "*.bat" | Where-Object { $_.Name -notlike "service*" } | Sort-Object { [Regex]::Replace($_.Name, "(\d+)", { $args[0].Value.PadLeft(8, "0") }) }
+$batFiles = Get-ChildItem -LiteralPath $targetDir -Filter "*.bat" | Where-Object { $_.Name -notlike "service*" } | Sort-Object { [Regex]::Replace($_.Name, "(\d+)", { $args[0].Value.PadLeft(8, "0") }) }
 
 $globalResults = @()
 
@@ -995,7 +995,7 @@ try {
     }
 
     [void]$resultLines.Add("Best strategy: $bestConfig")
-    $resultLines | Set-Content $resultFile -Encoding UTF8
+    $resultLines | Set-Content -LiteralPath $resultFile -Encoding UTF8
 
     Write-Host "Results saved to $resultFile" -ForegroundColor Green
 
