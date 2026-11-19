@@ -89,12 +89,13 @@ echo.
 echo   :: TOOLS
 echo      11. Run Diagnostics
 echo      12. Run Tests
+echo      13. Run Tests - Discord + AION 2
 echo.
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-12): 
+set /p menu_choice=   Select option (0-13): 
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -108,6 +109,7 @@ if "%menu_choice%"=="9" goto hosts_update
 if "%menu_choice%"=="10" goto service_check_updates
 if "%menu_choice%"=="11" goto service_diagnostics
 if "%menu_choice%"=="12" goto run_tests
+if "%menu_choice%"=="13" goto run_aion2_tests
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -1230,6 +1232,18 @@ start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test za
 pause
 goto menu
 
+
+
+:: RUN DISCORD + AION 2 TESTS =============================
+:run_aion2_tests
+chcp 437 >nul
+cls
+echo Starting Discord + AION 2 ALT tests in a separate PowerShell window...
+echo Original Run Tests and IPSet settings are not modified.
+echo.
+start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test aion2.ps1"
+pause
+goto menu
 
 :: Get strategy name
 :get_strategy_name
