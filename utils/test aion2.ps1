@@ -1,18 +1,18 @@
-# Separate Discord + AION 2 ALT diagnostic. Windows PowerShell 5.1.
-# TCP handshake time is NOT in-game ping and cannot prove AION login works.
+# Discord + AION 2 diagnostics (Windows PowerShell 5.1)
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'aion2-checks.ps1')
 $root = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'aion2-checks.ps1')
 $configFile = Join-Path $PSScriptRoot 'targets-aion2.txt'
 $resultDir = Join-Path $PSScriptRoot 'test results'
 $previous = @()
 $cycling = $false
+
 function Snapshot-Winws {
     @(Get-CimInstance Win32_Process -Filter "Name='winws.exe'" |
       Select-Object ProcessId,ExecutablePath,CommandLine)
 }
 function Stop-Winws {
-    Get-Process winws -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Get-Process -Name winws -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Milliseconds 400
 }
 function Restore-Winws($items) {
@@ -26,9 +26,10 @@ function Restore-Winws($items) {
             $args = $line.Substring($exe.Length).Trim()
         }
         if ($args) {
-            try { Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null }
-            catch { Write-Warning "Failed to restore original winws process: $_" }
-        } else { Write-Warning 'Could not parse original winws command line; manual restart required.' }
+            try {
+                Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory (Split-Path $exe -Parent) -WindowStyle Minimized | Out-Null
+            } catch { Write-Warning "Could not restore winws process: $_" }
+        } else { Write-Warning 'Could not parse original winws command line. Manual restart required.' }
     }
 }
 function Tcp-Ms($address,$port,$timeout) {
@@ -47,15 +48,10 @@ function Discord-Check($url) {
         $rc = $LASTEXITCODE
         $code = 0
         [void][int]::TryParse((@($output) -join '').Trim(),[ref]$code)
-        return (($rc -eq 0) -and ($code -ge 200) -and ($code -lt 500))
+        return ($rc -eq 0 -and $code -ge 200 -and $code -lt 500)
     } catch { return $false }
 }
-try {
-    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run service.bat as administrator.' }
-    if (Get-Service zapret -ErrorAction SilentlyContinue) { throw 'Remove installed zapret service before testing ALT files.' }
-    if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) { throw 'curl.exe is not available.' }
-    if (Get-Process Aion2 -ErrorAction SilentlyContinue) { throw 'Close AION 2 before cycling strategies.' }
+function Read-Config {
     $settings = @{}
     if (Test-Path $configFile) {
         foreach ($line in Get-Content $configFile) {
@@ -64,232 +60,128 @@ try {
             }
         }
     }
+    return $settings
+}
+try {
+    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run service.bat as Administrator.' }
+    if (Get-Service -Name zapret -ErrorAction SilentlyContinue) { throw 'Remove installed zapret service before cycling ALT configurations.' }
+    if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) { throw 'curl.exe missing.' }
+    if (Get-Process -Name Aion2 -ErrorAction SilentlyContinue) { throw 'Close AION 2 before cycling ALT configurations.' }
+
+    $settings = Read-Config
     $address = $settings['AION2_HOST']
-    if (-not $address) { $address = (Read-Host 'Confirmed AION 2 server IP or hostname').Trim() }
+    if (-not $address) { $address = (Read-Host 'Enter CONFIRMED AION 2 IP or hostname').Trim() }
     if (-not $address -or $address -notmatch '^[a-zA-Z0-9][a-zA-Z0-9.-]*$' -or $address.Contains('..')) {
-        throw 'AION2_HOST missing or invalid. Do not use an unverified address.'
+        throw 'Invalid AION2_HOST. Find the real endpoint from an active game session first.'
     }
     $port = 13328
     if ($settings['AION2_PORT']) {
-        if (-not [int]::TryParse($settings['AION2_PORT'],[ref]$port) -or $port -lt 1 -or $port -gt 65535) { throw 'Invalid AION2_PORT.' }
+        if (-not [int]::TryParse($settings['AION2_PORT'],[ref]$port) -or $port -lt 1 -or $port -gt 65535) {
+            throw 'Invalid AION2_PORT.'
+        }
     }
     $samples = 8
     if ($settings['TCP_SAMPLES']) {
-        if (-not [int]::TryParse($settings['TCP_SAMPLES'],[ref]$samples) -or $samples -lt 3 -or $samples -gt 100) { throw 'Invalid TCP_SAMPLES (3..100).' }
+        if (-not [int]::TryParse($settings['TCP_SAMPLES'],[ref]$samples) -or $samples -lt 3 -or $samples -gt 100) {
+            throw 'Invalid TCP_SAMPLES (3..100).'
+        }
     }
-    # Validate that the active Game Filter and IPSet can actually target this endpoint.
+
     $ipsetPath = Join-Path $root 'lists\ipset-all.txt'
-    if (-not (Test-Path $ipsetPath)) { throw 'ipset-all.txt not found.' }
+    if (-not (Test-Path $ipsetPath)) { throw 'IPSet file not found.' }
     $ipsetState = Test-AionIPSet -Address $address -Lines @(Get-Content $ipsetPath)
     if ($ipsetState -eq 'none' -or $ipsetState -eq 'excluded') {
-        throw ('AION 2 IP is not in active IPSet (mode=' + $ipsetState + '). Add the confirmed IP or correct subnet first.')
+        throw ('Game IP is not in current IPSet (' + $ipsetState + '). Update IPSet first.')
     }
+
     $gamePath = Join-Path $PSScriptRoot 'game_filter.enabled'
-    if (-not (Test-Path $gamePath)) { throw 'Game Filter is disabled. Enable Game Filter TCP before testing.' }
-    $mode = ''; $gameTcp = '1024-65535'
+    if (-not (Test-Path $gamePath)) { throw 'Enable Game Filter TCP before testing.' }
+    $mode = ''
+    $gameTcp = '1024-65535'
     foreach ($line in Get-Content $gamePath) {
-        if ($line -match '^\s*mode\s*=\s*(.*) -Path $root -Filter 'general*.bat' -File | Sort-Object Name)
-    if (-not $files.Count) { throw 'No general*.bat files found.' }
-    $previous = @(Snapshot-Winws)
-    if (@($previous | Where-Object { -not $_.ExecutablePath -or -not $_.CommandLine }).Count) {
-        throw 'Cannot safely snapshot existing winws. Stop it and retry.'
+        if ($line -match '^\s*mode\s*=\s*(.*)$') { $mode = $matches[1].Trim() }
+        if ($line -match '^\s*tcp\s*=\s*(.*)$') { $gameTcp = $matches[1].Trim() }
     }
+    if ($mode -ne 'tcp' -and $mode -ne 'all') { throw 'Game Filter must include TCP.' }
+    if (-not (Test-AionPortInRange -Port $port -Ranges $gameTcp)) { throw 'Game Filter does not cover the target TCP port.' }
+
+    $files = @(Get-ChildItem -Path $root -Filter 'general*.bat' -File | Sort-Object Name)
+    if ($files.Count -eq 0) { throw 'No general*.bat configurations found.' }
+    $previous = @(Snapshot-Winws)
+    if (@($previous | Where-Object { -not $_.ExecutablePath -or -not $_.CommandLine }).Count -gt 0) {
+        throw 'Could not snapshot existing winws. Stop it manually first.'
+    }
+
     New-Item -ItemType Directory -Path $resultDir -Force | Out-Null
     $cycling = $true
-    $rows = @()
-    $baseline = @()
     $urls = @('https://discord.com','https://gateway.discord.gg','https://cdn.discordapp.com','https://updates.discord.com')
-    $index = 0
-    # Direct baseline: not ranked, but records route and local networking variability.
+    $rows = @()
+
+    Write-Host 'Direct TCP baseline with winws stopped...' -ForegroundColor Cyan
     Stop-Winws
     $baselineTimes = @()
-    for ($k=0; $k -lt $samples; $k++) {
-        $baselineMs = Tcp-Ms $address $port 1800
-        if ($null -ne $baselineMs) { $baselineTimes += [double]$baselineMs }
+    for ($k = 0; $k -lt $samples; $k++) {
+        $ms = Tcp-Ms $address $port 1800
+        if ($null -ne $ms) { $baselineTimes += [double]$ms }
         Start-Sleep -Milliseconds 150
     }
-    $baselineStats = Get-AionStats -Measurements $baselineTimes -Attempts $samples
-    Write-Host ('DIRECT (no zapret): TCP {0}/{1}; avg={2}; P95={3}' -f $baselineStats.Count,$samples,$baselineStats.AvgMs,$baselineStats.P95Ms)
+    $baseline = Get-AionStats -Measurements $baselineTimes -Attempts $samples
+    Write-Host ('Direct TCP: {0}/{1}, P95: {2} ms' -f $baseline.Count,$samples,$baseline.P95Ms)
 
-    Write-Host 'Existing IPSet stays unchanged. AION2 TCP handshake is NOT gameplay ping.' -ForegroundColor Yellow
-    foreach ($file in $files) {
-        $index++
-        Write-Host ('[{0}/{1}] {2}' -f $index,$files.Count,$file.Name) -ForegroundColor Cyan
-        Stop-Winws
-        $cmdArgs = '/c ""' + $file.FullName + '""'
-        $proc = Start-Process cmd.exe -ArgumentList $cmdArgs -WorkingDirectory $root -WindowStyle Minimized -PassThru
-        $running = $false
-        for ($j=0; $j -lt 20; $j++) {
-            Start-Sleep -Milliseconds 250
-            if (Get-Process winws -ErrorAction SilentlyContinue) { $running = $true; break }
-        }
-        $discord = 0
-        $times = @()
-        if ($running) {
-            foreach ($url in $urls) { if (Discord-Check $url) { $discord++ } }
-            for ($j=0; $j -lt $samples; $j++) {
-                $time = Tcp-Ms $address $port 1800
-                if ($null -ne $time) { $times += [double]$time }
-                Start-Sleep -Milliseconds 150
-            }
-        }
-        $average = $null; $p95 = $null
-        if ($times.Count) {
-            $sorted = @($times | Sort-Object)
-            $average = [math]::Round(($times | Measure-Object -Average).Average,1)
-            $p95 = $sorted[[math]::Max(0,[math]::Ceiling($sorted.Count * 0.95)-1)]
-        }
-        $row = [pscustomobject]@{
-            Eligible=($running -and $discord -eq $urls.Count -and $times.Count -eq $samples)
-            Config=$file.Name; WinwsStarted=$running; DiscordOK=$discord; DiscordTotal=$urls.Count
-            AionTcpSuccessPct=[math]::Round(100*$times.Count/$samples,1)
-            AionTcpAvgMs=$average; AionTcpP95Ms=$p95
-            Target=('{0}:{1}' -f $address,$port)
-        }
-        $rows += $row
-        Write-Host ('Discord {0}/4; AION TCP {1}/{2}; avg={3}; p95={4}' -f $discord,$times.Count,$samples,$average,$p95)
-    }
-    $path = Join-Path $resultDir ('aion2-discord-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.csv')
-    $rows | Export-Csv -Path $path -NoTypeInformation -Encoding UTF8
-    $rank = @(Get-AionRank -Rows $rows)
-    $rank | Select-Object -First 15 Config,DiscordOK,AionTcpSuccessPct,AionTcpAvgMs,AionTcpP95Ms | Format-Table -AutoSize | Out-Host
-    $baselinePath = Join-Path $resultDir ('aion2-baseline-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.csv')
-    $baselineStats | Export-Csv -Path $baselinePath -NoTypeInformation -Encoding UTF8
-    Write-Host ('Saved: ' + $path + '; baseline: ' + $baselinePath) -ForegroundColor Green
-    if (-not @($rank | Where-Object { $_.Eligible }).Count) {
-        Write-Host 'No strategy passed ALL Discord checks AND ALL AION TCP attempts; no winner can be declared.' -ForegroundColor Yellow
-    }
-    Write-Host 'Ranking is provisional; not a DPI/gameplay success verdict. Verify login, sustained ping, packet loss, and DPS in game.' -ForegroundColor Yellow
-} catch {
-    Write-Host ('[ERROR] ' + $_.Exception.Message) -ForegroundColor Red
-} finally {
-    if ($cycling) { Stop-Winws; Restore-Winws $previous }
-    [void](Read-Host 'Press Enter to close')
-}
-) { $mode=$matches[1].Trim() }
-        if ($line -match '^\s*tcp\s*=\s*(.*) -Path $root -Filter 'general*.bat' -File | Sort-Object Name)
-    if (-not $files.Count) { throw 'No general*.bat files found.' }
-    $previous = @(Snapshot-Winws)
-    if (@($previous | Where-Object { -not $_.ExecutablePath -or -not $_.CommandLine }).Count) {
-        throw 'Cannot safely snapshot existing winws. Stop it and retry.'
-    }
-    New-Item -ItemType Directory -Path $resultDir -Force | Out-Null
-    $cycling = $true
-    $rows = @()
-    $urls = @('https://discord.com','https://gateway.discord.gg','https://cdn.discordapp.com','https://updates.discord.com')
     $index = 0
-    Write-Host 'Existing IPSet stays unchanged. AION2 TCP handshake is NOT gameplay ping.' -ForegroundColor Yellow
     foreach ($file in $files) {
         $index++
         Write-Host ('[{0}/{1}] {2}' -f $index,$files.Count,$file.Name) -ForegroundColor Cyan
         Stop-Winws
         $cmdArgs = '/c ""' + $file.FullName + '""'
-        $proc = Start-Process cmd.exe -ArgumentList $cmdArgs -WorkingDirectory $root -WindowStyle Minimized -PassThru
+        [void](Start-Process -FilePath cmd.exe -ArgumentList $cmdArgs -WorkingDirectory $root -WindowStyle Minimized -PassThru)
         $running = $false
-        for ($j=0; $j -lt 20; $j++) {
+        for ($j = 0; $j -lt 20; $j++) {
             Start-Sleep -Milliseconds 250
-            if (Get-Process winws -ErrorAction SilentlyContinue) { $running = $true; break }
+            if (Get-Process -Name winws -ErrorAction SilentlyContinue) { $running = $true; break }
         }
         $discord = 0
         $times = @()
         if ($running) {
             foreach ($url in $urls) { if (Discord-Check $url) { $discord++ } }
-            for ($j=0; $j -lt $samples; $j++) {
-                $time = Tcp-Ms $address $port 1800
-                if ($null -ne $time) { $times += [double]$time }
+            for ($j = 0; $j -lt $samples; $j++) {
+                $ms = Tcp-Ms $address $port 1800
+                if ($null -ne $ms) { $times += [double]$ms }
                 Start-Sleep -Milliseconds 150
             }
         }
-        $average = $null; $p95 = $null
-        if ($times.Count) {
-            $sorted = @($times | Sort-Object)
-            $average = [math]::Round(($times | Measure-Object -Average).Average,1)
-            $p95 = $sorted[[math]::Max(0,[math]::Ceiling($sorted.Count * 0.95)-1)]
-        }
+        $stats = Get-AionStats -Measurements $times -Attempts $samples
         $row = [pscustomobject]@{
-            Config=$file.Name; WinwsStarted=$running; DiscordOK=$discord; DiscordTotal=$urls.Count
-            AionTcpSuccessPct=[math]::Round(100*$times.Count/$samples,1)
-            AionTcpAvgMs=$average; AionTcpP95Ms=$p95
-            Target=('{0}:{1}' -f $address,$port)
+            Config = $file.Name
+            WinwsStarted = $running
+            DiscordOK = $discord
+            DiscordTotal = $urls.Count
+            AionTcpSuccessPct = $stats.SuccessPct
+            AionTcpAvgMs = $stats.AvgMs
+            AionTcpP95Ms = $stats.P95Ms
+            Eligible = ($running -and $discord -eq $urls.Count -and $stats.Count -eq $samples)
+            Target = ('{0}:{1}' -f $address,$port)
         }
         $rows += $row
-        Write-Host ('Discord {0}/4; AION TCP {1}/{2}; avg={3}; p95={4}' -f $discord,$times.Count,$samples,$average,$p95)
+        Write-Host ('Discord: {0}/4, game TCP: {1}/{2}, avg={3}, P95={4}' -f $discord,$stats.Count,$samples,$stats.AvgMs,$stats.P95Ms)
     }
-    $path = Join-Path $resultDir ('aion2-discord-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.csv')
-    $rows | Export-Csv -Path $path -NoTypeInformation -Encoding UTF8
-    $rank = @($rows | Sort-Object @{Expression='DiscordOK';Descending=$true},@{Expression='AionTcpSuccessPct';Descending=$true},@{Expression='AionTcpP95Ms';Descending=$false})
-    $rank | Select-Object -First 15 Config,DiscordOK,AionTcpSuccessPct,AionTcpAvgMs,AionTcpP95Ms | Format-Table -AutoSize | Out-Host
-    Write-Host ('Saved: ' + $path) -ForegroundColor Green
-    Write-Host 'Ranking is provisional: verify real in-game connection, ping, loss and DPS.' -ForegroundColor Yellow
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $csvPath = Join-Path $resultDir ('aion2-discord-' + $stamp + '.csv')
+    $baselinePath = Join-Path $resultDir ('aion2-baseline-' + $stamp + '.csv')
+    $rows | Export-Csv -Path $csvPath -Encoding UTF8 -NoTypeInformation
+    $baseline | Export-Csv -Path $baselinePath -Encoding UTF8 -NoTypeInformation
+    $ranked = @(Get-AionRank -Rows $rows)
+    $ranked | Select-Object Config,DiscordOK,AionTcpSuccessPct,AionTcpAvgMs,AionTcpP95Ms,Eligible | Format-Table -AutoSize | Out-Host
+    Write-Host ('Results: ' + $csvPath) -ForegroundColor Green
+    Write-Host 'NOTE: TCP handshake is not an AION gameplay ping or proof of DPI bypass.' -ForegroundColor Yellow
 } catch {
     Write-Host ('[ERROR] ' + $_.Exception.Message) -ForegroundColor Red
+    Write-Host $_.ScriptStackTrace -ForegroundColor Yellow
 } finally {
-    if ($cycling) { Stop-Winws; Restore-Winws $previous }
-    [void](Read-Host 'Press Enter to close')
-}
-) { $gameTcp=$matches[1].Trim() }
-    }
-    if ($mode -ne 'tcp' -and $mode -ne 'all') { throw 'Game Filter must be TCP or TCP+UDP.' }
-    if (-not (Test-AionPortInRange -Port $port -Ranges $gameTcp)) {
-        throw ('TCP port ' + $port + ' is not covered by Game Filter: ' + $gameTcp)
-    }
-    $files = @(Get-ChildItem -Path $root -Filter 'general*.bat' -File | Sort-Object Name)
-    if (-not $files.Count) { throw 'No general*.bat files found.' }
-    $previous = @(Snapshot-Winws)
-    if (@($previous | Where-Object { -not $_.ExecutablePath -or -not $_.CommandLine }).Count) {
-        throw 'Cannot safely snapshot existing winws. Stop it and retry.'
-    }
-    New-Item -ItemType Directory -Path $resultDir -Force | Out-Null
-    $cycling = $true
-    $rows = @()
-    $urls = @('https://discord.com','https://gateway.discord.gg','https://cdn.discordapp.com','https://updates.discord.com')
-    $index = 0
-    Write-Host 'Existing IPSet stays unchanged. AION2 TCP handshake is NOT gameplay ping.' -ForegroundColor Yellow
-    foreach ($file in $files) {
-        $index++
-        Write-Host ('[{0}/{1}] {2}' -f $index,$files.Count,$file.Name) -ForegroundColor Cyan
+    if ($cycling) {
         Stop-Winws
-        $cmdArgs = '/c ""' + $file.FullName + '""'
-        $proc = Start-Process cmd.exe -ArgumentList $cmdArgs -WorkingDirectory $root -WindowStyle Minimized -PassThru
-        $running = $false
-        for ($j=0; $j -lt 20; $j++) {
-            Start-Sleep -Milliseconds 250
-            if (Get-Process winws -ErrorAction SilentlyContinue) { $running = $true; break }
-        }
-        $discord = 0
-        $times = @()
-        if ($running) {
-            foreach ($url in $urls) { if (Discord-Check $url) { $discord++ } }
-            for ($j=0; $j -lt $samples; $j++) {
-                $time = Tcp-Ms $address $port 1800
-                if ($null -ne $time) { $times += [double]$time }
-                Start-Sleep -Milliseconds 150
-            }
-        }
-        $average = $null; $p95 = $null
-        if ($times.Count) {
-            $sorted = @($times | Sort-Object)
-            $average = [math]::Round(($times | Measure-Object -Average).Average,1)
-            $p95 = $sorted[[math]::Max(0,[math]::Ceiling($sorted.Count * 0.95)-1)]
-        }
-        $row = [pscustomobject]@{
-            Config=$file.Name; WinwsStarted=$running; DiscordOK=$discord; DiscordTotal=$urls.Count
-            AionTcpSuccessPct=[math]::Round(100*$times.Count/$samples,1)
-            AionTcpAvgMs=$average; AionTcpP95Ms=$p95
-            Target=('{0}:{1}' -f $address,$port)
-        }
-        $rows += $row
-        Write-Host ('Discord {0}/4; AION TCP {1}/{2}; avg={3}; p95={4}' -f $discord,$times.Count,$samples,$average,$p95)
+        Restore-Winws $previous
     }
-    $path = Join-Path $resultDir ('aion2-discord-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.csv')
-    $rows | Export-Csv -Path $path -NoTypeInformation -Encoding UTF8
-    $rank = @($rows | Sort-Object @{Expression='DiscordOK';Descending=$true},@{Expression='AionTcpSuccessPct';Descending=$true},@{Expression='AionTcpP95Ms';Descending=$false})
-    $rank | Select-Object -First 15 Config,DiscordOK,AionTcpSuccessPct,AionTcpAvgMs,AionTcpP95Ms | Format-Table -AutoSize | Out-Host
-    Write-Host ('Saved: ' + $path) -ForegroundColor Green
-    Write-Host 'Ranking is provisional: verify real in-game connection, ping, loss and DPS.' -ForegroundColor Yellow
-} catch {
-    Write-Host ('[ERROR] ' + $_.Exception.Message) -ForegroundColor Red
-} finally {
-    if ($cycling) { Stop-Winws; Restore-Winws $previous }
     [void](Read-Host 'Press Enter to close')
 }
