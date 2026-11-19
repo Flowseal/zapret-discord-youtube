@@ -60,7 +60,7 @@ for ($n=0; $n -lt 1000; $n++) {
         $mask = 1 -shl (7 - ($bit % 8))
         if (($a[$idx] -band $mask) -ne ($b[$idx] -band $mask)) { $expected=$false; break }
     }
-    $actual = Test-AionIPv4InCidr ([string]::Join('.', $a)) ([string]::Join('.', $b) + '/' + $prefix)
+    $actual = Test-AionIPv4InCidr ($a -join '.') (($b -join '.') + '/' + $prefix)
     Assert-Equal $expected $actual "randomized CIDR iteration $n"
 }
 # Regression: standard ALT tests and default target list exist; new mode does not edit them.
