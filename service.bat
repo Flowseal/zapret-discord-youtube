@@ -1241,7 +1241,7 @@ cls
 echo Starting Discord + AION 2 ALT tests in a separate PowerShell window...
 echo Original Run Tests and IPSet settings are not modified.
 echo.
-start "" powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test aion2.ps1"
+start "AION 2 diagnostics" powershell -NoExit -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\test aion2.ps1"
 pause
 goto menu
 
