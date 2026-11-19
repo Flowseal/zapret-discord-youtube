@@ -14,8 +14,8 @@ function Assert-Equal($expected,$actual,[string]$message) {
 foreach ($file in @('utils\aion2-checks.ps1','utils\test aion2.ps1',$MyInvocation.MyCommand.Path)) {
     $filePath = if ([IO.Path]::IsPathRooted($file)) { $file } else { Join-Path $root $file }
     $tokens = $null; $errors = $null
-    [void][Management.Automation.Language.Parser]::ParseFile($filePath,[ref]$tokens,[ref]$errors)
-    Assert-Equal 0 @($errors).Count "PowerShell parse: $file"
+    [void][System.Management.Automation.Language.Parser]::ParseFile($filePath,[ref]$tokens,[ref]$errors)
+    Assert-Equal 0 $(if ($null -eq $errors) { 0 } else { @($errors).Count }) "PowerShell parse: $file"
 }
 # Example and edge-case tests
 Assert-True (Test-AionIPv4InCidr '193.202.112.122' '193.202.112.0/24') 'inside /24'
