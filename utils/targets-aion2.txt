@@ -1,0 +1,6 @@
+# Confirm AION2_HOST from an actual game connection; no server IP is assumed.
+# While connected: Get-NetTCPConnection -State Established -RemotePort 13328
+# Leave empty to be prompted on each test run.
+AION2_HOST =
+AION2_PORT = 13328
+TCP_SAMPLES = 8

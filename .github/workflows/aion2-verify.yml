@@ -1,0 +1,25 @@
+name: Verify AION 2 diagnostics
+on:
+  push:
+    branches: [ "feature/aion2-discord-alt-tests" ]
+  pull_request:
+    paths:
+      - "service.bat"
+      - "utils/test aion2.ps1"
+      - "utils/aion2-checks.ps1"
+      - "utils/targets-aion2.txt"
+      - "tests/aion2-tests.ps1"
+      - ".github/workflows/aion2-verify.yml"
+  workflow_dispatch:
+
+jobs:
+  powershell-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse and test Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./tests/aion2-tests.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
