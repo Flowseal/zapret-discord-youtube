@@ -6,3 +6,5 @@
 
 .vscode/
 /build/
+/utils/vpn-filters/
+/utils/vpn-adapters.txt
