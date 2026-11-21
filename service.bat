@@ -1113,7 +1113,25 @@ chcp 437 > nul
 cls
 
 set "listFile=%~dp0lists\ipset-all.txt"
+set "backupFile=%listFile%.backup"
 set "url=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/ipset-service.txt"
+
+call :ipset_switch_status
+
+if not "%IPsetStatus%"=="loaded" (
+    call :PrintYellow "[?] IPSet filter is in '%IPsetStatus%' mode"
+    call :PrintYellow "    The update writes the list into ipset-all.txt, so the filter switches back to 'loaded'"
+    if exist "%backupFile%" (
+        call :PrintYellow "    The current ipset-all.txt.backup will no longer match and is dropped on the next mode switch"
+    )
+    echo:
+
+    set "CHOICE="
+    set /p "CHOICE=Update anyway? (Y/N) (default: N) "
+    if "!CHOICE!"=="" set "CHOICE=N"
+    if /i not "!CHOICE!"=="Y" goto menu
+    echo:
+)
 
 echo Updating ipset-all...
 
