@@ -89,12 +89,14 @@ echo.
 echo   :: TOOLS
 echo      11. Run Diagnostics
 echo      12. Run Tests
-echo.
+echo      13. Diagnose Site / Domain
+
 echo   ----------------------------------------
 echo      0. Exit
 echo.
 
-set /p menu_choice=   Select option (0-12): 
+set /p menu_choice= Select option (0-13): 
+
 
 if "%menu_choice%"=="1" goto service_install
 if "%menu_choice%"=="2" goto service_remove
@@ -108,6 +110,7 @@ if "%menu_choice%"=="9" goto hosts_update
 if "%menu_choice%"=="10" goto service_check_updates
 if "%menu_choice%"=="11" goto service_diagnostics
 if "%menu_choice%"=="12" goto run_tests
+if "%menu_choice%"=="13" goto diagnose_site
 if "%menu_choice%"=="0" exit /b
 goto menu
 
@@ -1309,3 +1312,106 @@ if "%extracted%"=="0" (
     exit
 )
 exit /b 0
+
+:: DIAGNOSE SITE =======================
+:diagnose_site
+chcp 437 > nul
+cls
+call :load_user_lists
+set "raw_target="
+echo ========================================
+echo   SITE / DOMAIN DIAGNOSTICS
+echo ========================================
+echo.
+echo Enter a domain or URL to check (e.g. youtube.com or https://discord.com)
+echo Press ENTER or 0 to return to menu.
+echo.
+set /p "raw_target=Domain / URL: "
+if not defined raw_target goto menu
+if "%raw_target%"=="0" goto menu
+
+:: Normalize input (strip protocol, path, port, spaces)
+set "clean_domain="
+for /f "delims=" %%D in ('powershell -NoProfile -Command "$u = '%raw_target%'.Trim(); $u = $u -replace '^[a-zA-Z]+://', ''; $u = $u.Split('/')[0].Split(':')[0].Trim('.').ToLower(); if ($u -match '^[a-z0-9.-]+\.[a-z]{2,}$') { Write-Output $u }"') do set "clean_domain=%%D"
+if not defined clean_domain (
+    echo.
+    call :PrintRed "[X] Invalid domain format: %raw_target%"
+    pause
+    goto diagnose_site
+)
+
+echo.
+echo Checking domain: !clean_domain!
+echo ----------------------------------------
+
+:: 1. Check presence in lists
+set "LISTS_PATH=%~dp0lists\"
+set "in_general=0"
+set "in_exclude=0"
+for %%F in ("list-general.txt" "list-general-user.txt") do (
+    if exist "%LISTS_PATH%%%~F" (
+        findstr /I /X /C:"!clean_domain!" "%LISTS_PATH%%%~F" >nul 2>&1 && set "in_general=1"
+    )
+)
+for %%F in ("list-exclude.txt" "list-exclude-user.txt") do (
+    if exist "%LISTS_PATH%%%~F" (
+        findstr /I /X /C:"!clean_domain!" "%LISTS_PATH%%%~F" >nul 2>&1 && set "in_exclude=1"
+    )
+)
+
+if "!in_exclude!"=="1" (
+    call :PrintYellow "[!] Domain is listed in EXCLUDE lists (bypass is disabled for it)"
+) else if "!in_general!"=="1" (
+    call :PrintGreen "[OK] Domain is already present in general bypass lists"
+) else (
+    call :PrintYellow "[?] Domain is NOT in general bypass lists"
+)
+
+:: 2. System DNS check
+set "dns_ip="
+for /f "delims=" %%I in ('powershell -NoProfile -Command "try { $r = Resolve-DnsName -Name '!clean_domain!' -Type A -ErrorAction Stop | Where-Object { $_.IPAddress } | Select-Object -First 1 -ExpandProperty IPAddress; Write-Output $r } catch { }"') do set "dns_ip=%%I"
+
+if not defined dns_ip (
+    call :PrintRed "[X] DNS resolution failed (ISP may be blocking DNS or domain does not exist)"
+) else if "!dns_ip!"=="127.0.0.1" (
+    call :PrintRed "[X] DNS returned loopback stub (!dns_ip!) - ISP DNS hijacking detected"
+) else if "!dns_ip!"=="0.0.0.0" (
+    call :PrintRed "[X] DNS returned null route (!dns_ip!) - ISP DNS hijacking detected"
+) else (
+    call :PrintGreen "[OK] DNS resolved to !dns_ip!"
+)
+
+:: 3. HTTPS / TLS reachability check
+set "http_code=000"
+if exist "%SystemRoot%\System32\curl.exe" (
+    for /f "delims=" %%C in ('curl.exe -I -s -o nul -w "%%{http_code}" --connect-timeout 5 --max-time 8 "https://!clean_domain!" 2^>nul') do set "http_code=%%C"
+) else (
+    for /f "delims=" %%C in ('powershell -NoProfile -Command "try { $r = Invoke-WebRequest -Uri 'https://!clean_domain!' -Method Head -TimeoutSec 6 -UseBasicParsing; Write-Output $r.StatusCode } catch { Write-Output '000' }"') do set "http_code=%%C"
+)
+
+if "!http_code!"=="000" (
+    call :PrintRed "[X] HTTPS connection failed or timed out (likely DPI / SNI block)"
+) else (
+    call :PrintGreen "[OK] HTTPS connection succeeded (HTTP status: !http_code!)"
+)
+
+echo ----------------------------------------
+
+:: 4. Offer to add to list-general-user.txt if unreachable and not already listed
+if "!http_code!"=="000" if "!in_general!"=="0" if "!in_exclude!"=="0" (
+    echo.
+    set "add_choice="
+    set /p "add_choice=Add !clean_domain! to lists\list-general-user.txt? (Y/N, default: N): "
+    if /i "!add_choice!"=="Y" (
+        >>"%LISTS_PATH%list-general-user.txt" echo !clean_domain!
+        call :PrintGreen "[OK] Added !clean_domain! to lists\list-general-user.txt"
+        call :PrintYellow "Restart zapret (or reinstall service) to apply the updated list."
+    )
+)
+echo.
+pause
+goto diagnose_site
+
+echo.
+pause
+goto diagnose_site
