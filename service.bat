@@ -1409,7 +1409,10 @@ if "!http_code!"=="000" if "!in_general!"=="0" if "!in_exclude!"=="0" (
     )
 )
 echo.
-pause
+echo Press 0 to return to menu, or any other key to check another domain...
+choice /c 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ /n > nul 2>&1
+if errorlevel 2 goto diagnose_site
+if errorlevel 1 goto menu
 goto diagnose_site
 
 echo.
