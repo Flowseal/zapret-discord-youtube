@@ -22,24 +22,32 @@ $script:AutoPickPendingClose = $false
 $script:AutoPickButtons = @()
 $script:AutoPickProgress = $null
 $script:AutoPickResultLabel = $null
+$script:PowerButton = $null
+$script:PowerButtonState = 'idle'
+$script:PowerButtonHover = $false
+$script:LastAutoPickLogMessage = ''
+$script:EventLog = $null
+$script:ContentHost = $null
 $script:LastRunningState = $null
 $script:Status = $null
 $script:Pages = @{}
 $script:NavButtons = @{}
 
 $script:Palette = @{
-    Background = [System.Drawing.ColorTranslator]::FromHtml('#0B1020')
-    Sidebar    = [System.Drawing.ColorTranslator]::FromHtml('#0D1424')
-    Card       = [System.Drawing.ColorTranslator]::FromHtml('#121B2C')
-    CardAlt    = [System.Drawing.ColorTranslator]::FromHtml('#172235')
-    Border     = [System.Drawing.ColorTranslator]::FromHtml('#26344B')
-    Text       = [System.Drawing.ColorTranslator]::FromHtml('#E7EDF7')
-    Muted      = [System.Drawing.ColorTranslator]::FromHtml('#98A6BC')
-    Accent     = [System.Drawing.ColorTranslator]::FromHtml('#8B7CFF')
-    AccentHover= [System.Drawing.ColorTranslator]::FromHtml('#7666F2')
-    Green      = [System.Drawing.ColorTranslator]::FromHtml('#43D9A1')
-    Red        = [System.Drawing.ColorTranslator]::FromHtml('#FF7188')
-    Amber      = [System.Drawing.ColorTranslator]::FromHtml('#F0BC59')
+    Background = [System.Drawing.ColorTranslator]::FromHtml('#111215')
+    Sidebar    = [System.Drawing.ColorTranslator]::FromHtml('#15171B')
+    Card       = [System.Drawing.ColorTranslator]::FromHtml('#191B20')
+    CardAlt    = [System.Drawing.ColorTranslator]::FromHtml('#22252B')
+    Border     = [System.Drawing.ColorTranslator]::FromHtml('#30343B')
+    Text       = [System.Drawing.ColorTranslator]::FromHtml('#F1F2F4')
+    Muted      = [System.Drawing.ColorTranslator]::FromHtml('#90959E')
+    Accent     = [System.Drawing.ColorTranslator]::FromHtml('#8B6CFF')
+    AccentHover= [System.Drawing.ColorTranslator]::FromHtml('#9A82FF')
+    Blue       = [System.Drawing.ColorTranslator]::FromHtml('#3269B4')
+    BlueSoft   = [System.Drawing.ColorTranslator]::FromHtml('#1A2B46')
+    Green      = [System.Drawing.ColorTranslator]::FromHtml('#22D075')
+    Red        = [System.Drawing.ColorTranslator]::FromHtml('#FF6675')
+    Amber      = [System.Drawing.ColorTranslator]::FromHtml('#E6B857')
 }
 
 function Test-Administrator {
@@ -84,6 +92,35 @@ function Get-Color {
     return [System.Drawing.ColorTranslator]::FromHtml($Name)
 }
 
+function New-UiRoundedPath {
+    param([int]$Width, [int]$Height, [int]$Radius = 12)
+    $width = [Math]::Max(2, $Width)
+    $height = [Math]::Max(2, $Height)
+    $diameter = [Math]::Min(($Radius * 2), [Math]::Min($width, $height))
+    $path = [System.Drawing.Drawing2D.GraphicsPath]::new()
+    if ($diameter -lt 2) {
+        $path.AddRectangle([System.Drawing.Rectangle]::new(0, 0, $width, $height))
+        return $path
+    }
+    $path.AddArc(0, 0, $diameter, $diameter, 180, 90)
+    $path.AddArc(($width - $diameter), 0, $diameter, $diameter, 270, 90)
+    $path.AddArc(($width - $diameter), ($height - $diameter), $diameter, $diameter, 0, 90)
+    $path.AddArc(0, ($height - $diameter), $diameter, $diameter, 90, 90)
+    $path.CloseFigure()
+    return $path
+}
+
+function Set-UiRoundedRegion {
+    param([object]$Control, [int]$Radius = 12)
+    if (-not $Control -or $Control.Width -lt 2 -or $Control.Height -lt 2) { return }
+    $path = New-UiRoundedPath -Width $Control.Width -Height $Control.Height -Radius $Radius
+    $region = [System.Drawing.Region]::new($path)
+    $oldRegion = $Control.Region
+    $Control.Region = $region
+    if ($oldRegion) { $oldRegion.Dispose() }
+    $path.Dispose()
+}
+
 function Add-UiPanel {
     param(
         [object]$Parent,
@@ -98,7 +135,23 @@ function Add-UiPanel {
     $panel.Location = [System.Drawing.Point]::new($X, $Y)
     $panel.Size = [System.Drawing.Size]::new($Width, $Height)
     $panel.BackColor = Get-Color $Color
-    if ($Border) { $panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle }
+    if ($Border) {
+        $panel.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+        Set-UiRoundedRegion -Control $panel -Radius 12
+        $panel.Add_SizeChanged({
+            param($sender, $eventArgs)
+            Set-UiRoundedRegion -Control $sender -Radius 12
+        })
+        $panel.Add_Paint({
+            param($sender, $eventArgs)
+            $eventArgs.Graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $path = New-UiRoundedPath -Width ([Math]::Max(2, $sender.ClientSize.Width - 1)) -Height ([Math]::Max(2, $sender.ClientSize.Height - 1)) -Radius 12
+            $pen = [System.Drawing.Pen]::new($script:Palette.Border, 1)
+            $eventArgs.Graphics.DrawPath($pen, $path)
+            $pen.Dispose()
+            $path.Dispose()
+        })
+    }
     [void]$Parent.Controls.Add($panel)
     return $panel
 }
@@ -150,26 +203,33 @@ function Add-UiButton {
     $button.FlatAppearance.BorderSize = 0
     $button.UseVisualStyleBackColor = $false
     $button.Cursor = [System.Windows.Forms.Cursors]::Hand
+    $button.Add_SizeChanged({
+        param($sender, $eventArgs)
+        Set-UiRoundedRegion -Control $sender -Radius 8
+    })
     if ($Variant -eq 'primary') {
         $button.BackColor = $script:Palette.Accent
         $button.ForeColor = [System.Drawing.Color]::White
         $button.FlatAppearance.MouseOverBackColor = $script:Palette.AccentHover
         $button.FlatAppearance.MouseDownBackColor = $script:Palette.AccentHover
     } elseif ($Variant -eq 'danger') {
-        $button.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#3A1E2A')
+        $button.BackColor = [System.Drawing.ColorTranslator]::FromHtml('#332127')
         $button.ForeColor = $script:Palette.Red
-        $button.FlatAppearance.MouseOverBackColor = [System.Drawing.ColorTranslator]::FromHtml('#482231')
+        $button.FlatAppearance.MouseOverBackColor = [System.Drawing.ColorTranslator]::FromHtml('#432931')
     } elseif ($Variant -eq 'nav') {
         $button.BackColor = $script:Palette.Sidebar
         $button.ForeColor = $script:Palette.Muted
-        $button.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-        $button.Padding = [System.Windows.Forms.Padding]::new(14, 0, 0, 0)
+        $button.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+        $button.Padding = [System.Windows.Forms.Padding]::new(8, 0, 8, 0)
         $button.FlatAppearance.MouseOverBackColor = $script:Palette.CardAlt
     } else {
         $button.BackColor = $script:Palette.CardAlt
         $button.ForeColor = $script:Palette.Text
-        $button.FlatAppearance.MouseOverBackColor = [System.Drawing.ColorTranslator]::FromHtml('#20304A')
+        $button.FlatAppearance.BorderSize = 1
+        $button.FlatAppearance.BorderColor = $script:Palette.Border
+        $button.FlatAppearance.MouseOverBackColor = [System.Drawing.ColorTranslator]::FromHtml('#292D34')
     }
+    Set-UiRoundedRegion -Control $button -Radius 8
     [void]$Parent.Controls.Add($button)
     return $button
 }
@@ -199,6 +259,94 @@ function Add-UiTextBox {
     $box.Font = [System.Drawing.Font]::new('Segoe UI', 9.5, [System.Drawing.FontStyle]::Regular)
     [void]$Parent.Controls.Add($box)
     return $box
+}
+
+function New-PowerButton {
+    param([object]$Parent, [int]$X, [int]$Y, [int]$Diameter = 220)
+    $control = New-Object System.Windows.Forms.Panel
+    $control.Location = [System.Drawing.Point]::new($X, $Y)
+    $control.Size = [System.Drawing.Size]::new($Diameter, $Diameter)
+    $control.BackColor = $script:Palette.Background
+    Set-UiRoundedRegion -Control $control -Radius ([int]($Diameter / 2))
+    $control.Cursor = [System.Windows.Forms.Cursors]::Hand
+    $control.TabStop = $true
+    $control.AccessibleName = 'Запустить или остановить Zapret'
+    $control.AccessibleRole = [System.Windows.Forms.AccessibleRole]::PushButton
+    $control.Add_SizeChanged({
+        param($sender, $eventArgs)
+        Set-UiRoundedRegion -Control $sender -Radius ([int]($sender.Width / 2))
+    })
+    $control.Add_Paint({
+        param($sender, $eventArgs)
+        $graphics = $eventArgs.Graphics
+        $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $width = $sender.ClientSize.Width
+        $height = $sender.ClientSize.Height
+        $size = [Math]::Min($width, $height)
+        $outerRect = [System.Drawing.RectangleF]::new(8, 8, ($size - 16), ($size - 16))
+        $outerColor = [System.Drawing.ColorTranslator]::FromHtml('#172747')
+        if ($script:PowerButtonHover) { $outerColor = [System.Drawing.ColorTranslator]::FromHtml('#1D3157') }
+        $outerBrush = [System.Drawing.SolidBrush]::new($outerColor)
+        $graphics.FillEllipse($outerBrush, $outerRect)
+        $outerBrush.Dispose()
+        $ringPen = [System.Drawing.Pen]::new($script:Palette.Blue, 2)
+        $graphics.DrawEllipse($ringPen, $outerRect)
+        $ringPen.Dispose()
+
+        $innerRect = [System.Drawing.RectangleF]::new(16, 16, ($size - 32), ($size - 32))
+        $innerBrush = [System.Drawing.SolidBrush]::new([System.Drawing.ColorTranslator]::FromHtml('#15151D'))
+        $graphics.FillEllipse($innerBrush, $innerRect)
+        $innerBrush.Dispose()
+        $innerPen = [System.Drawing.Pen]::new([System.Drawing.ColorTranslator]::FromHtml('#252630'), 1)
+        $graphics.DrawEllipse($innerPen, $innerRect)
+        $innerPen.Dispose()
+
+        $centerX = [single]($size / 2)
+        $iconY = [single]($size * 0.38)
+        $iconColor = $script:Palette.Accent
+        if ($script:PowerButtonState -eq 'active') { $iconColor = $script:Palette.Green }
+        elseif ($script:PowerButtonState -eq 'launch') { $iconColor = $script:Palette.Amber }
+        $iconPen = [System.Drawing.Pen]::new($iconColor, 4)
+        $iconPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+        $iconPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+        $iconRadius = [single]($size * 0.13)
+        $graphics.DrawArc($iconPen, ($centerX - $iconRadius), ($iconY - $iconRadius), ($iconRadius * 2), ($iconRadius * 2), 315, 270)
+        $graphics.DrawLine($iconPen, $centerX, ($iconY - ($iconRadius * 1.35)), $centerX, ($iconY + 1))
+        $iconPen.Dispose()
+
+        $caption = 'ЗАПУСТИТЬ'
+        $hint = 'Нажмите, чтобы включить'
+        if ($script:PowerButtonState -eq 'active') { $caption = 'ОСТАНОВИТЬ'; $hint = 'Zapret работает' }
+        elseif ($script:PowerButtonState -eq 'launch') { $caption = 'ОТМЕНИТЬ'; $hint = 'Запуск выполняется' }
+        $format = [System.Drawing.StringFormat]::new()
+        $format.Alignment = [System.Drawing.StringAlignment]::Center
+        $format.LineAlignment = [System.Drawing.StringAlignment]::Center
+        $captionFont = [System.Drawing.Font]::new('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+        $hintFont = [System.Drawing.Font]::new('Segoe UI', 8, [System.Drawing.FontStyle]::Regular)
+        $captionBrush = [System.Drawing.SolidBrush]::new($script:Palette.Text)
+        $hintBrush = [System.Drawing.SolidBrush]::new($script:Palette.Muted)
+        $graphics.DrawString($caption, $captionFont, $captionBrush, [System.Drawing.RectangleF]::new(16, ($size * 0.60), ($size - 32), 22), $format)
+        $graphics.DrawString($hint, $hintFont, $hintBrush, [System.Drawing.RectangleF]::new(18, ($size * 0.72), ($size - 36), 22), $format)
+        $captionFont.Dispose()
+        $hintFont.Dispose()
+        $captionBrush.Dispose()
+        $hintBrush.Dispose()
+        $format.Dispose()
+    })
+    $control.Add_MouseEnter({
+        $script:PowerButtonHover = $true
+        if ($script:PowerButton) { $script:PowerButton.Invalidate() }
+    })
+    $control.Add_MouseLeave({
+        $script:PowerButtonHover = $false
+        if ($script:PowerButton) { $script:PowerButton.Invalidate() }
+    })
+    $control.Add_Click({
+        if ($script:PowerButtonState -eq 'active' -or $script:PowerButtonState -eq 'launch') { Stop-CurrentStrategy }
+        else { Start-SelectedStrategy }
+    })
+    [void]$Parent.Controls.Add($control)
+    return $control
 }
 
 function Get-StrategyTitle {
@@ -509,11 +657,35 @@ function Load-SettingsIntoUi {
     $script:AutoUpdateCheck.Checked = Test-Path -LiteralPath (Join-Path $script:Root 'utils\check_updates.enabled')
 }
 
+function Write-UiLog {
+    param([string]$Message, [string]$Color = 'Text')
+    if (-not $script:EventLog) { return }
+    $box = $script:EventLog
+    $line = '[' + (Get-Date -Format 'HH:mm:ss') + ']  ' + $Message
+    $box.SelectionStart = $box.TextLength
+    $box.SelectionLength = 0
+    $box.SelectionColor = Get-Color $Color
+    $box.AppendText($line + [Environment]::NewLine)
+    $box.SelectionColor = $script:Palette.Text
+    $box.ScrollToCaret()
+    if ($box.TextLength -gt 50000) {
+        $cut = $box.Text.IndexOf([Environment]::NewLine, 6000)
+        if ($cut -gt 0) {
+            $box.Select(0, $cut + [Environment]::NewLine.Length)
+            $box.SelectedText = ''
+        }
+    }
+}
+
 function Add-Activity {
     param([string]$Text)
-    if ($script:ActivityLabel) {
-        $script:ActivityLabel.Text = (Get-Date -Format 'HH:mm:ss') + '  ·  ' + $Text
-    }
+    $timestamp = Get-Date -Format 'HH:mm:ss'
+    if ($script:ActivityLabel) { $script:ActivityLabel.Text = $timestamp + '  ·  ' + $Text }
+    $color = 'Text'
+    if ($Text -match '(?i)ошиб|не удалось|не найден|не найдена|не наш|error') { $color = 'Red' }
+    elseif ($Text -match '(?i)подбор|отмен|ожидан') { $color = 'Amber' }
+    elseif ($Text -match '(?i)запущ|работает|заверш|выбрана|сохран|готов') { $color = 'Green' }
+    Write-UiLog -Message $Text -Color $color
 }
 
 function Set-ActivePage {
@@ -522,10 +694,13 @@ function Set-ActivePage {
     foreach ($key in $script:NavButtons.Keys) {
         if ($key -eq $Name) {
             $script:NavButtons[$key].BackColor = $script:Palette.CardAlt
-            $script:NavButtons[$key].ForeColor = $script:Palette.Text
+            $script:NavButtons[$key].ForeColor = $script:Palette.Accent
+            $script:NavButtons[$key].FlatAppearance.BorderSize = 1
+            $script:NavButtons[$key].FlatAppearance.BorderColor = $script:Palette.Border
         } else {
-            $script:NavButtons[$key].BackColor = $script:Palette.Sidebar
+            $script:NavButtons[$key].BackColor = $script:Palette.Background
             $script:NavButtons[$key].ForeColor = $script:Palette.Muted
+            $script:NavButtons[$key].FlatAppearance.BorderSize = 0
         }
     }
     $titles = @{
@@ -544,13 +719,12 @@ function Set-StrategyIndex {
     $script:SyncingStrategy = $true
     try {
         $script:SelectedStrategy = $script:Strategies[$Index]
-        if ($script:HomeStrategyCombo.SelectedIndex -ne $Index) { $script:HomeStrategyCombo.SelectedIndex = $Index }
-        if ($script:StrategyList.SelectedIndex -ne $Index) { $script:StrategyList.SelectedIndex = $Index }
+        if ($script:StrategyList -and $script:StrategyList.SelectedIndex -ne $Index) { $script:StrategyList.SelectedIndex = $Index }
         $script:StrategyDetailTitle.Text = $script:SelectedStrategy.Title
         $script:StrategyDetailFamily.Text = $script:SelectedStrategy.Family
         $script:StrategyDetailDescription.Text = $script:SelectedStrategy.Description
         $script:StrategyDetailSummary.Text = $script:SelectedStrategy.Summary
-        $script:HomeStrategyDescription.Text = $script:SelectedStrategy.Description
+        if ($script:HomeCurrentStrategyLabel) { $script:HomeCurrentStrategyLabel.Text = $script:SelectedStrategy.Title }
         $script:ChosenStrategyLabel.Text = 'Выбрано: ' + $script:SelectedStrategy.Title
     } finally {
         $script:SyncingStrategy = $false
@@ -574,39 +748,42 @@ function Refresh-StatusUi {
     if ($status.Running) {
         $script:HomeStatusLabel.Text = 'Работает'
         $script:HomeStatusLabel.ForeColor = $script:Palette.Green
-        $script:HomeStatusDot.BackColor = $script:Palette.Green
-        $script:HomeStatusDetail.Text = ('winws.exe из этой папки: {0}; {1}' -f $status.ProcessCount, $serviceNote)
-        $script:TopStatusLabel.Text = 'АКТИВНО'
+        $script:HomeStatusDot.ForeColor = $script:Palette.Green
+        $script:HomeStatusDetail.Text = ('Процессов winws.exe: {0}' -f $status.ProcessCount)
+        $script:TopStatusLabel.Text = '●  ЗАПРЕТ АКТИВЕН'
         $script:TopStatusLabel.ForeColor = $script:Palette.Green
-        $script:StopButton.Enabled = $true
-        $script:StartButton.Enabled = $false
+        $script:PowerButtonState = 'active'
     } elseif ($launchPending) {
         $script:HomeStatusLabel.Text = 'Запуск…'
         $script:HomeStatusLabel.ForeColor = $script:Palette.Amber
-        $script:HomeStatusDot.BackColor = $script:Palette.Amber
-        $script:HomeStatusDetail.Text = 'Выполняется исходный BAT-файл; ожидание запуска winws.exe.'
-        $script:TopStatusLabel.Text = 'ЗАПУСК'
+        $script:HomeStatusDot.ForeColor = $script:Palette.Amber
+        $script:HomeStatusDetail.Text = 'Ожидание запуска выбранной стратегии'
+        $script:TopStatusLabel.Text = '●  ЗАПУСК'
         $script:TopStatusLabel.ForeColor = $script:Palette.Amber
-        $script:StopButton.Enabled = $true
-        $script:StartButton.Enabled = $false
+        $script:PowerButtonState = 'launch'
     } else {
         $script:HomeStatusLabel.Text = 'Не запущено'
         $script:HomeStatusLabel.ForeColor = $script:Palette.Muted
-        $script:HomeStatusDot.BackColor = $script:Palette.Border
-        $script:HomeStatusDetail.Text = $serviceNote
-        $script:TopStatusLabel.Text = 'ОЖИДАНИЕ'
+        $script:HomeStatusDot.ForeColor = $script:Palette.Muted
+        $script:HomeStatusDetail.Text = 'Можно запустить выбранную стратегию'
+        $script:TopStatusLabel.Text = '●  ГОТОВ'
         $script:TopStatusLabel.ForeColor = $script:Palette.Muted
-        $script:StopButton.Enabled = $false
-        $script:StartButton.Enabled = $true
+        $script:PowerButtonState = 'idle'
+    }
+    if ($script:HomeServiceLabel) {
+        $script:HomeServiceLabel.Text = $serviceNote
+        if ($status.Service.Exists -and -not $status.Service.IsOurs) { $script:HomeServiceLabel.ForeColor = $script:Palette.Amber }
+        elseif ($status.Service.IsOurs) { $script:HomeServiceLabel.ForeColor = $script:Palette.Text }
+        else { $script:HomeServiceLabel.ForeColor = $script:Palette.Muted }
     }
 
     $autoPickBusy = $false
     if ($script:AutoPickWorker) {
         try { $autoPickBusy = $script:AutoPickWorker.IsBusy } catch { $autoPickBusy = $false }
     }
-    if ($autoPickBusy) {
-        $script:StartButton.Enabled = $false
-        $script:StopButton.Enabled = $false
+    if ($script:PowerButton) {
+        $script:PowerButton.Enabled = -not $autoPickBusy
+        $script:PowerButton.Invalidate()
     }
 
     if ($status.Service.Exists -and -not $status.Service.IsOurs) {
@@ -997,9 +1174,7 @@ function Invoke-AutoPickWork {
 function Set-AutoPickControls {
     param([bool]$Busy)
     $enabled = -not $Busy
-    if ($script:StartButton) { $script:StartButton.Enabled = $enabled }
-    if ($script:StopButton) { $script:StopButton.Enabled = $enabled }
-    if ($script:HomeStrategyCombo) { $script:HomeStrategyCombo.Enabled = $enabled }
+    if ($script:PowerButton) { $script:PowerButton.Enabled = $enabled }
     if ($script:StrategyList) { $script:StrategyList.Enabled = $enabled }
     if ($script:RunChosenButton) { $script:RunChosenButton.Enabled = $enabled }
     foreach ($button in $script:AutoPickButtons) {
@@ -1137,6 +1312,7 @@ function Start-AutoPick {
         $script:AutoPickWorker.CancelAsync()
         $script:ActivityLabel.Text = 'ОТМЕНА АВТОПОДБОРА…'
         $script:ActivityDetailsLabel.Text = 'Завершается текущая проверка и останавливается тестовый winws.exe.'
+        Add-Activity 'Запрошена отмена автоподбора'
         return
     }
     if ($script:LaunchProcess) {
@@ -1198,6 +1374,8 @@ function Start-AutoPick {
     Set-AutoPickControls -Busy $true
     $script:ActivityLabel.Text = 'АВТОПОДБОР СТРАТЕГИЙ'
     $script:ActivityDetailsLabel.Text = 'Подготовка проверки… Нажмите «Отменить подбор», чтобы безопасно остановить процесс.'
+    $script:LastAutoPickLogMessage = ''
+    Add-Activity 'Начат автоподбор стратегий'
 
     $payload = [pscustomobject]@{
         Root = $script:Root
@@ -1219,6 +1397,10 @@ function Start-AutoPick {
         if ($eventArgs.UserState) {
             $script:ActivityLabel.Text = $eventArgs.UserState.Message
             $script:ActivityDetailsLabel.Text = $eventArgs.UserState.Details
+            if ($script:LastAutoPickLogMessage -ne $eventArgs.UserState.Message) {
+                Write-UiLog -Message $eventArgs.UserState.Message -Color 'Muted'
+                $script:LastAutoPickLogMessage = $eventArgs.UserState.Message
+            }
         }
     })
     $script:AutoPickWorker.add_RunWorkerCompleted({
@@ -1236,6 +1418,7 @@ function Start-AutoPick {
             $script:ActivityLabel.Text = 'АВТОПОДБОР ОСТАНОВЛЕН'
             $script:ActivityDetailsLabel.Text = $errorText
             if ($script:AutoPickResultLabel) { $script:AutoPickResultLabel.Text = 'Подбор прерван: ' + $errorText }
+            Add-Activity ('Автоподбор остановлен: ' + $errorText)
             Show-Notice ('Автоподбор остановлен: ' + $errorText) 'Ошибка автоподбора' ([System.Windows.Forms.MessageBoxIcon]::Error)
             return
         }
@@ -1243,6 +1426,7 @@ function Start-AutoPick {
         if (-not $result -or $result.Results.Count -eq 0) {
             $script:ActivityLabel.Text = 'АВТОПОДБОР ОТМЕНЁН'
             $script:ActivityDetailsLabel.Text = 'Не завершена проверка ни одной стратегии.'
+            Add-Activity 'Автоподбор не завершил ни одной проверки'
             return
         }
         $ranked = @($result.Results | Sort-Object -Property @{ Expression = 'Score'; Descending = $true }, @{ Expression = 'MinimumServiceScore'; Descending = $true }, @{ Expression = 'TotalOk'; Descending = $true }, @{ Expression = 'Order'; Descending = $false })
@@ -1260,14 +1444,17 @@ function Start-AutoPick {
             $script:ActivityLabel.Text = 'АВТОПОДБОР ЗАВЕРШЁН'
             $script:ActivityDetailsLabel.Text = ('Выбрана {0}: Discord {1}/{2}, YouTube {3}/{4}. Стратегия не запущена.' -f $best.Title, $best.DiscordOk, $best.DiscordTotal, $best.YouTubeOk, $best.YouTubeTotal)
             if ($script:AutoPickResultLabel) { $script:AutoPickResultLabel.Text = $script:ActivityDetailsLabel.Text + ' Тест не гарантирует работу видео/голоса.' }
+            Add-Activity ('Автоподбор завершён; выбрана стратегия ' + $best.Title)
         } elseif ($result.Cancelled) {
             $script:ActivityLabel.Text = 'АВТОПОДБОР ОТМЕНЁН'
             $script:ActivityDetailsLabel.Text = ('Проверено стратегий: {0}/{1}. Выбор не изменён.' -f $ranked.Count, $result.StrategyCount)
             if ($script:AutoPickResultLabel) { $script:AutoPickResultLabel.Text = $script:ActivityDetailsLabel.Text }
+            Add-Activity ('Автоподбор отменён после проверки ' + $ranked.Count + ' стратегий')
         } else {
             $script:ActivityLabel.Text = 'РАБОЧАЯ СТРАТЕГИЯ НЕ НАЙДЕНА'
             $script:ActivityDetailsLabel.Text = 'Ни один тестовый адрес не ответил. Проверьте интернет и попробуйте ручной запуск.'
             if ($script:AutoPickResultLabel) { $script:AutoPickResultLabel.Text = $script:ActivityDetailsLabel.Text + ' Текущий выбор не изменён.' }
+            Add-Activity 'Автоподбор: рабочая стратегия не найдена'
         }
         $script:AutoPickProgress.Value = 100
         Show-AutoPickResultsDialog -Results $ranked -SelectedPath $selectedPath -WasCancelled ([bool]$result.Cancelled)
@@ -1321,8 +1508,10 @@ function Start-SelectedStrategy {
         $script:LaunchProcess = Start-Process -FilePath $env:ComSpec -ArgumentList $arguments -WorkingDirectory $script:Root -WindowStyle Hidden -PassThru
         $script:HomeStatusLabel.Text = 'Запуск…'
         $script:HomeStatusLabel.ForeColor = $script:Palette.Amber
-        $script:HomeStatusDot.BackColor = $script:Palette.Amber
-        $script:TopStatusLabel.Text = 'ЗАПУСК'
+        $script:HomeStatusDot.ForeColor = $script:Palette.Amber
+        $script:PowerButtonState = 'launch'
+        if ($script:PowerButton) { $script:PowerButton.Invalidate() }
+        $script:TopStatusLabel.Text = '●  ЗАПУСК'
         $script:TopStatusLabel.ForeColor = $script:Palette.Amber
         Add-Activity ('Запущена стратегия ' + $script:SelectedStrategy.Title)
         $script:ActivityDetailsLabel.Text = 'Стратегия запускается через исходный файл ' + [System.IO.Path]::GetFileName($script:SelectedStrategy.Path) + '. Проверка статуса выполняется автоматически.'
@@ -1457,49 +1646,44 @@ $form = New-Object System.Windows.Forms.Form
 $script:MainForm = $form
 $form.Text = 'Zapret Manager'
 $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-$form.Size = [System.Drawing.Size]::new(1160, 760)
-$form.MinimumSize = [System.Drawing.Size]::new(1160, 700)
+$form.Size = [System.Drawing.Size]::new(1120, 800)
+$form.MinimumSize = [System.Drawing.Size]::new(1000, 720)
 $form.BackColor = $script:Palette.Background
 $form.ForeColor = $script:Palette.Text
 $form.Font = [System.Drawing.Font]::new('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
 $form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
 
-$sidebar = Add-UiPanel $form 0 0 224 $form.ClientSize.Height 'Sidebar'
-$sidebar.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left
-$sidebar.AutoScroll = $true
-$brandMark = Add-UiPanel $sidebar 18 24 42 42 'Accent'
-$brandMarkLabel = Add-UiLabel $brandMark 'Z' 0 0 42 42 'Text' 19 -Bold -Align ([System.Drawing.ContentAlignment]::MiddleCenter)
+$topBar = Add-UiPanel $form 0 0 $form.ClientSize.Width 64 'Background'
+$script:TopBar = $topBar
+$brandMark = Add-UiPanel $topBar 20 13 36 36 'Accent'
+Set-UiRoundedRegion -Control $brandMark -Radius 10
+$brandMarkLabel = Add-UiLabel $brandMark 'Z' 0 0 36 36 'Text' 16 -Bold -Align ([System.Drawing.ContentAlignment]::MiddleCenter)
 $brandMarkLabel.ForeColor = [System.Drawing.Color]::White
-[void](Add-UiLabel $sidebar 'ZAPRET' 72 24 130 24 'Text' 15 -Bold)
-[void](Add-UiLabel $sidebar 'CONTROL CENTER' 73 47 132 18 'Muted' 8 -Bold)
+[void](Add-UiLabel $topBar 'ZAPRET' 68 9 112 23 'Text' 13 -Bold)
+[void](Add-UiLabel $topBar 'CONTROL CENTER' 69 31 126 16 'Muted' 7 -Bold)
+$script:PageTitleLabel = Add-UiLabel $topBar 'Главная' 205 16 150 32 'Text' 11 -Bold
+$headerRule = Add-UiPanel $topBar 0 63 $topBar.ClientSize.Width 1 'Border'
+$headerRule.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
 
-$script:NavButtons.home = Add-UiButton $sidebar '01   Главная' 14 118 196 44 'nav'
-$script:NavButtons.strategies = Add-UiButton $sidebar '02   Стратегии' 14 168 196 44 'nav'
-$script:NavButtons.settings = Add-UiButton $sidebar '03   Настройки' 14 218 196 44 'nav'
-$script:NavButtons.tools = Add-UiButton $sidebar '04   Службы и помощь' 14 268 196 44 'nav'
+$script:NavButtons.home = Add-UiButton $topBar 'Главная' 0 12 100 40 'nav'
+$script:NavButtons.strategies = Add-UiButton $topBar 'Стратегии' 0 12 108 40 'nav'
+$script:NavButtons.settings = Add-UiButton $topBar 'Настройки' 0 12 106 40 'nav'
+$script:NavButtons.tools = Add-UiButton $topBar 'Службы' 0 12 96 40 'nav'
 $script:NavButtons.home.Add_Click({ Set-ActivePage 'home' })
 $script:NavButtons.strategies.Add_Click({ Set-ActivePage 'strategies' })
 $script:NavButtons.settings.Add_Click({ Set-ActivePage 'settings' })
 $script:NavButtons.tools.Add_Click({ Set-ActivePage 'tools' })
-$sidebarLine = Add-UiPanel $sidebar 18 581 188 1 'Border'
-[void](Add-UiLabel $sidebar 'ЛОКАЛЬНОЕ ПРИЛОЖЕНИЕ' 18 594 186 20 'Muted' 8 -Bold)
-[void](Add-UiLabel $sidebar 'Использует стратегии и файлы zapret из папки этого репозитория.' 18 619 185 52 'Muted' 9)
-[void](Add-UiLabel $sidebar 'Требуются права администратора.' 18 684 186 34 'Amber' 8)
+$script:TopStatusPill = Add-UiPanel $topBar 0 15 138 34 'CardAlt' -Border
+$script:TopStatusLabel = Add-UiLabel $script:TopStatusPill '●  ГОТОВ' 0 0 138 34 'Muted' 8 -Bold -Align ([System.Drawing.ContentAlignment]::MiddleCenter)
 
-$topBar = Add-UiPanel $form 224 0 ($form.ClientSize.Width - 224) 78 'Background'
-$topBar.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
-$script:PageTitleLabel = Add-UiLabel $topBar 'Главная' 24 13 500 30 'Text' 18 -Bold
-[void](Add-UiLabel $topBar 'ЛОКАЛЬНЫЙ КОНТРОЛЛЕР ZAPRET' 25 45 400 18 'Muted' 8 -Bold)
-$topStatusPill = Add-UiPanel $topBar 790 20 116 34 'CardAlt'
-$script:TopStatusLabel = Add-UiLabel $topStatusPill 'ОЖИДАНИЕ' 0 0 116 34 'Muted' 8 -Bold -Align ([System.Drawing.ContentAlignment]::MiddleCenter)
-$topStatusPill.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
-
-$contentHost = Add-UiPanel $form 248 98 ($form.ClientSize.Width - 260) ($form.ClientSize.Height - 98) 'Background'
+$contentWidth = [Math]::Min(960, ($form.ClientSize.Width - 48))
+$contentHost = Add-UiPanel $form ([Math]::Max(24, [int](($form.ClientSize.Width - $contentWidth) / 2))) 76 $contentWidth ($form.ClientSize.Height - 92) 'Background'
+$script:ContentHost = $contentHost
 $contentHost.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 
 function New-Page {
     param([string]$Name)
-    $page = Add-UiPanel $contentHost 0 0 $contentHost.ClientSize.Width $contentHost.ClientSize.Height 'Background'
+    $page = Add-UiPanel $script:ContentHost 0 0 $script:ContentHost.ClientSize.Width $script:ContentHost.ClientSize.Height 'Background'
     $page.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
     $page.AutoScroll = $true
     $script:Pages[$Name] = $page
@@ -1507,59 +1691,78 @@ function New-Page {
 }
 
 $homePage = New-Page 'home'
+$script:HomePage = $homePage
 $strategyPage = New-Page 'strategies'
 $settingsPage = New-Page 'settings'
 $toolsPage = New-Page 'tools'
 
-# Главная
-[void](Add-UiLabel $homePage 'Контроль подключения' 0 0 720 34 'Text' 22 -Bold)
-[void](Add-UiLabel $homePage 'Выберите стратегию вручную или запустите автоподбор для Discord и YouTube.' 1 38 820 24 'Muted' 10)
-$statusCard = Add-UiPanel $homePage 0 74 844 120 'Card' -Border
-[void](Add-UiLabel $statusCard 'СОСТОЯНИЕ ZAPRET' 20 13 240 20 'Muted' 8 -Bold)
-$script:HomeStatusDot = Add-UiPanel $statusCard 21 43 10 10 'Border'
-$script:HomeStatusLabel = Add-UiLabel $statusCard 'Не запущено' 40 34 260 30 'Muted' 16 -Bold
-$script:HomeStatusDetail = Add-UiLabel $statusCard 'Проверка процессов…' 40 66 640 30 'Muted' 9
-$refreshButton = Add-UiButton $statusCard 'Обновить' 698 40 124 38 'secondary'
-$refreshButton.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
-$refreshButton.Add_Click({ Refresh-StatusUi; Add-Activity 'Статус обновлён' })
+# Главная — центральное действие, живой статус и журнал событий.
+$script:HomeTitleLabel = Add-UiLabel $homePage 'Контроль подключения' 0 8 960 34 'Text' 22 -Bold -Align ([System.Drawing.ContentAlignment]::MiddleCenter)
+$script:HomeSubtitleLabel = Add-UiLabel $homePage 'Запускайте и настраивайте стратегии zapret для Discord и YouTube' 0 43 960 22 'Muted' 9 -Align ([System.Drawing.ContentAlignment]::MiddleCenter)
+$script:PowerButton = New-PowerButton $homePage 0 82 220
+$script:HomeAutoPickButton = Add-UiButton $homePage 'Автоподбор стратегий' 0 0 180 36 'secondary'
 
-$launchCard = Add-UiPanel $homePage 0 210 844 237 'Card' -Border
-[void](Add-UiLabel $launchCard 'БЫСТРЫЙ ЗАПУСК' 20 14 250 20 'Muted' 8 -Bold)
-[void](Add-UiLabel $launchCard 'Стратегия' 20 44 240 22 'Text' 10 -Bold)
-$script:HomeStrategyCombo = Add-UiComboBox $launchCard 20 70 332 36
-foreach ($strategy in $script:Strategies) { [void]$script:HomeStrategyCombo.Items.Add($strategy.Title) }
-$script:HomeStrategyDescription = Add-UiLabel $launchCard '' 378 67 420 58 'Muted' 9
-[void](Add-UiLabel $launchCard 'Автоподбор временно проверит каждую стратегию и выберет лучшую по доступности сайтов.' 20 119 785 22 'Muted' 8)
-$script:StartButton = Add-UiButton $launchCard '▶  Запустить' 20 157 158 44 'primary'
-$script:StopButton = Add-UiButton $launchCard '■  Остановить' 190 157 158 44 'danger'
-$settingsShortcut = Add-UiButton $launchCard 'Настройки' 360 157 132 44 'secondary'
-$script:HomeAutoPickButton = Add-UiButton $launchCard 'Автоподбор' 506 157 164 44 'secondary'
-$script:StartButton.Add_Click({ Start-SelectedStrategy })
-$script:StopButton.Add_Click({ Stop-CurrentStrategy })
-$settingsShortcut.Add_Click({ Set-ActivePage 'settings' })
-$script:HomeAutoPickButton.Add_Click({ Start-AutoPick })
+$script:HomeMetricsTitle = Add-UiLabel $homePage 'СОСТОЯНИЕ СИСТЕМЫ' 0 0 245 20 'Muted' 8 -Bold
+$script:HomeStatusDot = Add-UiLabel $homePage '●' 0 0 16 20 'Muted' 9 -Bold
+$script:HomeStatusLabel = Add-UiLabel $homePage 'Проверка…' 0 0 220 24 'Text' 14 -Bold
+$script:HomeStatusDetail = Add-UiLabel $homePage 'Проверка процессов zapret' 0 0 250 24 'Muted' 8
+$script:HomeMetricDivider = Add-UiPanel $homePage 0 0 250 1 'Border'
+$script:HomeStrategyCaption = Add-UiLabel $homePage 'ВЫБРАННАЯ СТРАТЕГИЯ' 0 0 250 18 'Muted' 8 -Bold
+$script:HomeCurrentStrategyLabel = Add-UiLabel $homePage 'Стандартная' 0 0 250 24 'Text' 11 -Bold
+$script:HomeServiceLabel = Add-UiLabel $homePage 'Служба zapret: проверка…' 0 0 260 42 'Muted' 8
+
 $script:AutoPickProgress = New-Object System.Windows.Forms.ProgressBar
-$script:AutoPickProgress.Location = [System.Drawing.Point]::new(20, 211)
-$script:AutoPickProgress.Size = [System.Drawing.Size]::new(804, 10)
+$script:AutoPickProgress.Location = [System.Drawing.Point]::new(0, 350)
+$script:AutoPickProgress.Size = [System.Drawing.Size]::new(960, 5)
 $script:AutoPickProgress.Minimum = 0
 $script:AutoPickProgress.Maximum = 100
 $script:AutoPickProgress.Value = 0
 $script:AutoPickProgress.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+$script:AutoPickProgress.ForeColor = $script:Palette.Accent
 $script:AutoPickProgress.Visible = $false
-[void]$launchCard.Controls.Add($script:AutoPickProgress)
+[void]$homePage.Controls.Add($script:AutoPickProgress)
+$script:HomeDivider = Add-UiPanel $homePage 0 363 960 1 'Border'
 
-$infoCard = Add-UiPanel $homePage 0 450 844 126 'Card' -Border
-[void](Add-UiLabel $infoCard 'ВАЖНО' 20 13 140 18 'Amber' 8 -Bold)
-[void](Add-UiLabel $infoCard 'Работа зависит от провайдера и текущей сети. Если выбранная стратегия не подходит — остановите её и проверьте другую.' 20 38 795 35 'Text' 9)
-[void](Add-UiLabel $infoCard 'WinDivert — системный драйвер из комплекта zapret. Запускайте только проверенную сборку и учитывайте предупреждения антивируса.' 20 79 795 36 'Muted' 9)
-
-$script:ActivityLabel = Add-UiLabel $homePage 'ОЖИДАНИЕ' 0 584 844 18 'Muted' 8 -Bold
-$script:ActivityDetailsLabel = Add-UiLabel $homePage 'Для старта нужна распакованная папка сборки с bin\winws.exe и исходными general*.bat.' 0 603 844 18 'Muted' 8
+$script:HomeLogTitle = Add-UiLabel $homePage 'Журнал событий' 0 376 170 22 'Text' 12 -Bold
+$script:ActivityLabel = Add-UiLabel $homePage 'ОЖИДАНИЕ' 176 377 485 20 'Muted' 8 -Bold
+$script:HomeCopyLogButton = Add-UiButton $homePage 'Копировать' 0 371 112 32 'secondary'
+$script:HomeClearLogButton = Add-UiButton $homePage 'Очистить' 0 371 92 32 'secondary'
+$script:HomeCopyLogButton.Add_Click({
+    if (-not [string]::IsNullOrWhiteSpace($script:EventLog.Text)) {
+        try { [System.Windows.Forms.Clipboard]::SetText($script:EventLog.Text); Add-Activity 'Журнал скопирован в буфер обмена' }
+        catch { Show-Notice ('Не удалось скопировать журнал: ' + $_.Exception.Message) 'Буфер обмена' ([System.Windows.Forms.MessageBoxIcon]::Warning) }
+    }
+})
+$script:HomeClearLogButton.Add_Click({
+    $script:EventLog.Clear()
+    Add-Activity 'Журнал очищен'
+})
+$script:ActivityDetailsLabel = Add-UiLabel $homePage 'События запуска, остановки и автоподбора будут отображаться здесь.' 0 400 960 18 'Muted' 8
+$script:EventLogPanel = Add-UiPanel $homePage 0 423 960 220 'Card' -Border
+$script:EventLog = New-Object System.Windows.Forms.RichTextBox
+$script:EventLog.Location = [System.Drawing.Point]::new(14, 12)
+$script:EventLog.Size = [System.Drawing.Size]::new(932, 196)
+$script:EventLog.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$script:EventLog.ReadOnly = $true
+$script:EventLog.DetectUrls = $false
+$script:EventLog.HideSelection = $false
+$script:EventLog.Multiline = $true
+$script:EventLog.WordWrap = $true
+$script:EventLog.ScrollBars = [System.Windows.Forms.RichTextBoxScrollBars]::Vertical
+$script:EventLog.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$script:EventLog.BackColor = $script:Palette.Card
+$script:EventLog.ForeColor = $script:Palette.Text
+$script:EventLog.Font = [System.Drawing.Font]::new('Consolas', 9, [System.Drawing.FontStyle]::Regular)
+[void]$script:EventLogPanel.Controls.Add($script:EventLog)
+$script:HomeFooterLabel = Add-UiLabel $homePage '●  ZAPRET MANAGER  ·  ЛОКАЛЬНОЕ УПРАВЛЕНИЕ' 0 0 960 18 'Muted' 7 -Align ([System.Drawing.ContentAlignment]::MiddleRight)
+$script:AutoPickButtons = @($script:HomeAutoPickButton)
+$script:HomeAutoPickButton.Add_Click({ Start-AutoPick })
 
 # Стратегии
-[void](Add-UiLabel $strategyPage 'Набор стратегий' 0 0 720 34 'Text' 22 -Bold)
-[void](Add-UiLabel $strategyPage 'Автоподбор сравнивает ответы Discord и YouTube; результаты зависят от провайдера и текущей сети.' 1 38 840 24 'Muted' 9)
+$script:StrategyPageTitle = Add-UiLabel $strategyPage 'Набор стратегий' 0 0 720 34 'Text' 22 -Bold
+$script:StrategyPageSubtitle = Add-UiLabel $strategyPage 'Автоподбор сравнивает ответы Discord и YouTube; результаты зависят от провайдера и текущей сети.' 1 38 840 24 'Muted' 9
 $strategyListCard = Add-UiPanel $strategyPage 0 74 328 518 'Card' -Border
+$script:StrategyListCard = $strategyListCard
 [void](Add-UiLabel $strategyListCard 'ДОСТУПНЫЕ ВАРИАНТЫ' 16 14 285 20 'Muted' 8 -Bold)
 $script:StrategyList = New-Object System.Windows.Forms.ListBox
 $script:StrategyList.Location = [System.Drawing.Point]::new(14, 43)
@@ -1573,6 +1776,7 @@ foreach ($strategy in $script:Strategies) { [void]$script:StrategyList.Items.Add
 [void]$strategyListCard.Controls.Add($script:StrategyList)
 
 $strategyDetailsCard = Add-UiPanel $strategyPage 348 74 496 518 'Card' -Border
+$script:StrategyDetailsCard = $strategyDetailsCard
 $script:StrategyDetailFamily = Add-UiLabel $strategyDetailsCard 'СТРАТЕГИЯ' 20 18 450 20 'Accent' 8 -Bold
 $script:StrategyDetailTitle = Add-UiLabel $strategyDetailsCard 'Стандартная' 20 43 450 38 'Text' 21 -Bold
 $script:StrategyDetailDescription = Add-UiLabel $strategyDetailsCard '' 20 91 450 72 'Muted' 9
@@ -1593,16 +1797,12 @@ $script:StrategyList.Add_SelectedIndexChanged({
         Set-StrategyIndex $script:StrategyList.SelectedIndex
     }
 })
-$script:HomeStrategyCombo.Add_SelectedIndexChanged({
-    if (-not $script:SyncingStrategy -and $script:HomeStrategyCombo.SelectedIndex -ge 0) {
-        Set-StrategyIndex $script:HomeStrategyCombo.SelectedIndex
-    }
-})
 
 # Настройки
-[void](Add-UiLabel $settingsPage 'Настройки фильтров' 0 0 720 34 'Text' 22 -Bold)
-[void](Add-UiLabel $settingsPage 'Изменения сохраняются рядом с исходными списками и применяются при следующем запуске.' 1 38 840 24 'Muted' 9)
+$script:SettingsPageTitle = Add-UiLabel $settingsPage 'Настройки фильтров' 0 0 720 34 'Text' 22 -Bold
+$script:SettingsPageSubtitle = Add-UiLabel $settingsPage 'Изменения сохраняются рядом с исходными списками и применяются при следующем запуске.' 1 38 840 24 'Muted' 9
 $gameCard = Add-UiPanel $settingsPage 0 74 844 197 'Card' -Border
+$script:GameCard = $gameCard
 [void](Add-UiLabel $gameCard 'Фильтр для игр и UDP/TCP-портов' 18 13 600 24 'Text' 12 -Bold)
 [void](Add-UiLabel $gameCard 'По умолчанию выключен. Включайте только если нужно обработать трафик игры.' 19 40 795 22 'Muted' 8)
 [void](Add-UiLabel $gameCard 'Режим' 20 73 240 18 'Muted' 8 -Bold)
@@ -1615,6 +1815,7 @@ $script:UdpRangeBox = Add-UiTextBox $gameCard 550 94 244 34
 [void](Add-UiLabel $gameCard 'Пример: 1024-65535 или 443,5000-5100. После сохранения перезапустите стратегию.' 20 146 790 20 'Muted' 8)
 
 $ipSetCard = Add-UiPanel $settingsPage 0 287 844 137 'Card' -Border
+$script:IpSetCard = $ipSetCard
 [void](Add-UiLabel $ipSetCard 'IPSet Filter' 18 12 350 24 'Text' 12 -Bold)
 [void](Add-UiLabel $ipSetCard 'Выберите, какие IP-адреса попадут под фильтры стратегий.' 19 39 770 20 'Muted' 8)
 $script:IpSetModeCombo = Add-UiComboBox $ipSetCard 20 72 332 34
@@ -1623,6 +1824,7 @@ $script:IpSetCurrentLabel = Add-UiLabel $ipSetCard '' 374 75 430 25 'Muted' 8
 [void](Add-UiLabel $ipSetCard '«Любой IP» может затронуть сайты и приложения вне списка.' 20 108 780 18 'Amber' 8)
 
 $updateCard = Add-UiPanel $settingsPage 0 440 844 83 'Card' -Border
+$script:UpdateCard = $updateCard
 $script:AutoUpdateCheck = New-Object System.Windows.Forms.CheckBox
 $script:AutoUpdateCheck.Text = 'Разрешить фоновую проверку обновлений при запуске стратегии'
 $script:AutoUpdateCheck.Location = [System.Drawing.Point]::new(18, 13)
@@ -1634,12 +1836,14 @@ $script:AutoUpdateCheck.Font = [System.Drawing.Font]::new('Segoe UI', 9, [System
 [void](Add-UiLabel $updateCard 'Переключатель меняет наличие utils\check_updates.enabled.' 20 43 790 20 'Muted' 8)
 $script:SaveSettingsButton = Add-UiButton $settingsPage 'Сохранить настройки' 0 547 204 46 'primary'
 $settingsNote = Add-UiLabel $settingsPage 'Настройки не перезапускают winws.exe автоматически.' 220 550 600 40 'Muted' 9
+$script:SettingsNote = $settingsNote
 $script:SaveSettingsButton.Add_Click({ Save-SettingsFromUi })
 
 # Службы и помощь
-[void](Add-UiLabel $toolsPage 'Службы и диагностика' 0 0 720 34 'Text' 22 -Bold)
-[void](Add-UiLabel $toolsPage 'Для расширенного управления используется оригинальный service.bat из сборки.' 1 38 840 24 'Muted' 9)
+$script:ToolsPageTitle = Add-UiLabel $toolsPage 'Службы и диагностика' 0 0 720 34 'Text' 22 -Bold
+$script:ToolsPageSubtitle = Add-UiLabel $toolsPage 'Для расширенного управления используется оригинальный service.bat из сборки.' 1 38 840 24 'Muted' 9
 $serviceCard = Add-UiPanel $toolsPage 0 74 844 158 'Card' -Border
+$script:ServiceCard = $serviceCard
 [void](Add-UiLabel $serviceCard 'СЛУЖБА АВТОЗАПУСКА' 18 14 300 20 'Muted' 8 -Bold)
 $script:ServiceSummaryLabel = Add-UiLabel $serviceCard 'Проверка статуса…' 20 43 795 48 'Text' 9
 $openServiceButton = Add-UiButton $serviceCard 'Открыть service.bat' 20 101 210 40 'primary'
@@ -1648,6 +1852,7 @@ $openServiceButton.Add_Click({ Open-ServiceMenu })
 $serviceRefreshButton.Add_Click({ Refresh-StatusUi; Add-Activity 'Статус службы обновлён' })
 
 $toolsCard = Add-UiPanel $toolsPage 0 249 844 152 'Card' -Border
+$script:ToolsCard = $toolsCard
 [void](Add-UiLabel $toolsCard 'ПАПКА И ДИАГНОСТИКА' 18 14 360 20 'Muted' 8 -Bold)
 [void](Add-UiLabel $toolsCard 'service.bat содержит установку/удаление службы, диагностику, тестирование стратегий и дополнительные инструменты.' 20 42 795 35 'Text' 9)
 $openFolderButton = Add-UiButton $toolsCard 'Открыть папку сборки' 20 91 220 40 'secondary'
@@ -1656,15 +1861,112 @@ $openFolderButton.Add_Click({ Open-ZapretFolder })
 $openDiagnosticsButton.Add_Click({ Open-ServiceMenu })
 
 $safetyCard = Add-UiPanel $toolsPage 0 418 844 150 'Card' -Border
+$script:SafetyCard = $safetyCard
 [void](Add-UiLabel $safetyCard 'ПЕРЕД ИСПОЛЬЗОВАНИЕМ' 18 14 360 20 'Amber' 8 -Bold)
 [void](Add-UiLabel $safetyCard '• Запуск требует прав администратора и использует WinDivert из папки bin.' 20 43 795 22 'Text' 9)
 [void](Add-UiLabel $safetyCard '• Не запускайте одновременно несколько средств, использующих WinDivert.' 20 72 795 22 'Text' 9)
 [void](Add-UiLabel $safetyCard '• Приложение не скачивает и не обновляет исполняемые файлы; стратегии берутся из этой сборки.' 20 101 795 28 'Muted' 9)
 
+function Update-HomeLayout {
+    if (-not $script:HomePage) { return }
+    $width = $script:HomePage.ClientSize.Width
+    $height = $script:HomePage.ClientSize.Height
+    if ($width -lt 1 -or $height -lt 1) { return }
+
+    $diameter = [Math]::Min(220, [Math]::Max(190, [int]($width * 0.23)))
+    $powerX = [int](($width * 0.47) - ($diameter / 2))
+    $script:PowerButton.Location = [System.Drawing.Point]::new($powerX, 82)
+    $script:PowerButton.Size = [System.Drawing.Size]::new($diameter, $diameter)
+    $script:HomeAutoPickButton.Location = [System.Drawing.Point]::new(($powerX + [int](($diameter - $script:HomeAutoPickButton.Width) / 2)), 311)
+
+    $metricsX = [Math]::Min(($width - 270), [int]($width * 0.72))
+    $script:HomeMetricsTitle.Location = [System.Drawing.Point]::new($metricsX, 126)
+    $script:HomeStatusDot.Location = [System.Drawing.Point]::new($metricsX, 156)
+    $script:HomeStatusLabel.Location = [System.Drawing.Point]::new(($metricsX + 20), 153)
+    $script:HomeStatusDetail.Location = [System.Drawing.Point]::new($metricsX, 181)
+    $script:HomeStatusDetail.Size = [System.Drawing.Size]::new(255, 22)
+    $script:HomeMetricDivider.Location = [System.Drawing.Point]::new($metricsX, 211)
+    $script:HomeMetricDivider.Size = [System.Drawing.Size]::new(250, 1)
+    $script:HomeStrategyCaption.Location = [System.Drawing.Point]::new($metricsX, 222)
+    $script:HomeCurrentStrategyLabel.Location = [System.Drawing.Point]::new($metricsX, 242)
+    $script:HomeServiceLabel.Location = [System.Drawing.Point]::new($metricsX, 273)
+    $script:HomeServiceLabel.Size = [System.Drawing.Size]::new(260, 42)
+
+    $script:AutoPickProgress.Location = [System.Drawing.Point]::new(0, 348)
+    $script:AutoPickProgress.Size = [System.Drawing.Size]::new($width, 5)
+    $script:HomeDivider.Location = [System.Drawing.Point]::new(0, 363)
+    $script:HomeDivider.Size = [System.Drawing.Size]::new($width, 1)
+    $script:HomeLogTitle.Location = [System.Drawing.Point]::new(0, 376)
+    $script:ActivityLabel.Location = [System.Drawing.Point]::new(176, 377)
+    $script:ActivityLabel.Size = [System.Drawing.Size]::new([Math]::Max(120, ($width - 400)), 20)
+    $script:HomeCopyLogButton.Location = [System.Drawing.Point]::new(($width - 202), 371)
+    $script:HomeClearLogButton.Location = [System.Drawing.Point]::new(($width - 94), 371)
+    $script:ActivityDetailsLabel.Location = [System.Drawing.Point]::new(0, 405)
+    $script:ActivityDetailsLabel.Size = [System.Drawing.Size]::new($width, 16)
+    $logHeight = [Math]::Max(140, ($height - 455))
+    $script:EventLogPanel.Location = [System.Drawing.Point]::new(0, 423)
+    $script:EventLogPanel.Size = [System.Drawing.Size]::new($width, $logHeight)
+    $script:HomeFooterLabel.Location = [System.Drawing.Point]::new(0, ($height - 24))
+    $script:HomeFooterLabel.Size = [System.Drawing.Size]::new($width, 18)
+}
+
+function Update-AppLayout {
+    if (-not $script:MainForm -or -not $script:ContentHost) { return }
+    $clientWidth = $script:MainForm.ClientSize.Width
+    $clientHeight = $script:MainForm.ClientSize.Height
+    $script:TopBar.Size = [System.Drawing.Size]::new($clientWidth, 64)
+
+    $pillWidth = 138
+    $pillX = [Math]::Max(12, ($clientWidth - 20 - $pillWidth))
+    $script:TopStatusPill.Location = [System.Drawing.Point]::new($pillX, 15)
+    $navWidths = @{ home = 100; strategies = 108; settings = 106; tools = 96 }
+    $navGap = 8
+    $navTotal = ($navWidths.home + $navWidths.strategies + $navWidths.settings + $navWidths.tools + (3 * $navGap))
+    $navX = [Math]::Max(360, ($pillX - 14 - $navTotal))
+    foreach ($key in @('home', 'strategies', 'settings', 'tools')) {
+        $button = $script:NavButtons[$key]
+        $button.Location = [System.Drawing.Point]::new($navX, 12)
+        $button.Size = [System.Drawing.Size]::new($navWidths[$key], 40)
+        $navX += $navWidths[$key] + $navGap
+    }
+
+    $contentWidth = [Math]::Max(720, [Math]::Min(960, ($clientWidth - 48)))
+    $contentWidth = [Math]::Min($contentWidth, ($clientWidth - 24))
+    $contentX = [int](($clientWidth - $contentWidth) / 2)
+    $contentHeight = [Math]::Max(560, ($clientHeight - 92))
+    $script:ContentHost.Location = [System.Drawing.Point]::new($contentX, 76)
+    $script:ContentHost.Size = [System.Drawing.Size]::new($contentWidth, $contentHeight)
+
+    $pageOffset = [Math]::Max(0, [int](($contentWidth - 844) / 2))
+    $script:StrategyPageTitle.Location = [System.Drawing.Point]::new($pageOffset, 0)
+    $script:StrategyPageSubtitle.Location = [System.Drawing.Point]::new($pageOffset + 1, 38)
+    $script:StrategyListCard.Location = [System.Drawing.Point]::new($pageOffset, 74)
+    $script:StrategyDetailsCard.Location = [System.Drawing.Point]::new($pageOffset + 348, 74)
+
+    $script:SettingsPageTitle.Location = [System.Drawing.Point]::new($pageOffset, 0)
+    $script:SettingsPageSubtitle.Location = [System.Drawing.Point]::new($pageOffset + 1, 38)
+    $script:GameCard.Location = [System.Drawing.Point]::new($pageOffset, 74)
+    $script:IpSetCard.Location = [System.Drawing.Point]::new($pageOffset, 287)
+    $script:UpdateCard.Location = [System.Drawing.Point]::new($pageOffset, 440)
+    $script:SaveSettingsButton.Location = [System.Drawing.Point]::new($pageOffset, 547)
+    $script:SettingsNote.Location = [System.Drawing.Point]::new($pageOffset + 220, 550)
+
+    $script:ToolsPageTitle.Location = [System.Drawing.Point]::new($pageOffset, 0)
+    $script:ToolsPageSubtitle.Location = [System.Drawing.Point]::new($pageOffset + 1, 38)
+    $script:ServiceCard.Location = [System.Drawing.Point]::new($pageOffset, 74)
+    $script:ToolsCard.Location = [System.Drawing.Point]::new($pageOffset, 249)
+    $script:SafetyCard.Location = [System.Drawing.Point]::new($pageOffset, 418)
+    Update-HomeLayout
+}
+
 # Инициализация и мониторинг
+Update-AppLayout
+$form.Add_SizeChanged({ Update-AppLayout })
 Set-StrategyIndex 0
 Load-SettingsIntoUi
 Set-ActivePage 'home'
+Add-Activity 'Zapret Manager готов к работе'
+Add-Activity ('Доступно стратегий: ' + $script:Strategies.Count)
 Refresh-StatusUi
 
 $timer = New-Object System.Windows.Forms.Timer
