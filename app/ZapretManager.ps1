@@ -17,6 +17,11 @@ $script:Strategies = @()
 $script:SyncingStrategy = $false
 $script:LaunchProcess = $null
 $script:LaunchLogPath = $null
+$script:AutoPickWorker = $null
+$script:AutoPickPendingClose = $false
+$script:AutoPickButtons = @()
+$script:AutoPickProgress = $null
+$script:AutoPickResultLabel = $null
 $script:LastRunningState = $null
 $script:Status = $null
 $script:Pages = @{}
@@ -595,6 +600,15 @@ function Refresh-StatusUi {
         $script:StartButton.Enabled = $true
     }
 
+    $autoPickBusy = $false
+    if ($script:AutoPickWorker) {
+        try { $autoPickBusy = $script:AutoPickWorker.IsBusy } catch { $autoPickBusy = $false }
+    }
+    if ($autoPickBusy) {
+        $script:StartButton.Enabled = $false
+        $script:StopButton.Enabled = $false
+    }
+
     if ($status.Service.Exists -and -not $status.Service.IsOurs) {
         $script:ServiceSummaryLabel.Text = 'Обнаружена служба zapret, путь которой отличается от этой папки. Менеджер не будет её останавливать или менять.'
         $script:ServiceSummaryLabel.ForeColor = $script:Palette.Amber
@@ -606,7 +620,7 @@ function Refresh-StatusUi {
         $script:ServiceSummaryLabel.ForeColor = $script:Palette.Muted
     }
 
-    if ($null -ne $script:LastRunningState -and $script:LastRunningState -ne $status.Running) {
+    if (-not $autoPickBusy -and $null -ne $script:LastRunningState -and $script:LastRunningState -ne $status.Running) {
         if ($status.Running) { Add-Activity 'Обнаружен запущенный winws.exe' }
         else { Add-Activity 'winws.exe остановлен' }
     }
@@ -620,6 +634,645 @@ function Read-LaunchLogTail {
         $lines = @(Get-Content -LiteralPath $Path -Tail 12 -Encoding UTF8 -ErrorAction SilentlyContinue)
         return $lines
     } catch { return @() }
+}
+
+function Get-AutoPickTargets {
+    $targets = New-Object System.Collections.Generic.List[object]
+    $seen = @{}
+    $targetFile = Join-Path $script:Root 'utils\targets.txt'
+    if (Test-Path -LiteralPath $targetFile) {
+        try {
+            foreach ($line in [System.IO.File]::ReadAllLines($targetFile)) {
+                if ($line -notmatch '^\s*(?<name>[A-Za-z0-9_]+)\s*=\s*"(?<url>https?://[^"]+)"\s*$') { continue }
+                $name = $Matches['name']
+                $url = $Matches['url']
+                $serviceName = ''
+                if ($name -match '(?i)discord') { $serviceName = 'Discord' }
+                elseif ($name -match '(?i)youtube|youtu|googlevideo') { $serviceName = 'YouTube' }
+                if (-not $serviceName) { continue }
+                try { $uri = [System.Uri]::new($url) } catch { continue }
+                $key = $serviceName + '|' + $uri.AbsoluteUri.TrimEnd('/')
+                if (-not $seen.ContainsKey($key)) {
+                    [void]$targets.Add([pscustomobject]@{ Name = $name; Url = $uri.AbsoluteUri; Service = $serviceName })
+                    $seen[$key] = $true
+                }
+            }
+        } catch { }
+    }
+
+    $defaults = @(
+        [pscustomobject]@{ Name = 'Discord Main'; Url = 'https://discord.com'; Service = 'Discord' },
+        [pscustomobject]@{ Name = 'Discord Gateway'; Url = 'https://gateway.discord.gg'; Service = 'Discord' },
+        [pscustomobject]@{ Name = 'Discord CDN'; Url = 'https://cdn.discordapp.com'; Service = 'Discord' },
+        [pscustomobject]@{ Name = 'Discord Updates'; Url = 'https://updates.discord.com'; Service = 'Discord' },
+        [pscustomobject]@{ Name = 'YouTube Web'; Url = 'https://www.youtube.com'; Service = 'YouTube' },
+        [pscustomobject]@{ Name = 'YouTube Short'; Url = 'https://youtu.be'; Service = 'YouTube' },
+        [pscustomobject]@{ Name = 'YouTube Images'; Url = 'https://i.ytimg.com'; Service = 'YouTube' },
+        [pscustomobject]@{ Name = 'YouTube Video CDN'; Url = 'https://redirector.googlevideo.com'; Service = 'YouTube' }
+    )
+    foreach ($serviceName in @('Discord', 'YouTube')) {
+        $serviceTargetCount = @($targets | Where-Object { $_.Service -eq $serviceName }).Count
+        if ($serviceTargetCount -eq 0) {
+            foreach ($target in $defaults | Where-Object { $_.Service -eq $serviceName }) {
+                [void]$targets.Add($target)
+            }
+        }
+    }
+
+    $limited = New-Object System.Collections.Generic.List[object]
+    foreach ($serviceName in @('Discord', 'YouTube')) {
+        $serviceTargets = @($targets | Where-Object { $_.Service -eq $serviceName })
+        $preferred = New-Object System.Collections.Generic.List[object]
+        if ($serviceName -eq 'Discord') { $patterns = @('main|web', 'gateway|cdn') }
+        else { $patterns = @('web|main', 'video|redirect|googlevideo|cdn|image') }
+        foreach ($pattern in $patterns) {
+            $match = @($serviceTargets | Where-Object { $_.Name -match $pattern } | Select-Object -First 1)
+            if ($match.Count -gt 0) {
+                $alreadyAdded = @($preferred | Where-Object { $_.Url -eq $match[0].Url })
+                if ($alreadyAdded.Count -eq 0) { [void]$preferred.Add($match[0]) }
+            }
+        }
+        foreach ($target in $serviceTargets) {
+            if ($preferred.Count -ge 2) { break }
+            $alreadyAdded = @($preferred | Where-Object { $_.Url -eq $target.Url })
+            if ($alreadyAdded.Count -eq 0) { [void]$preferred.Add($target) }
+        }
+        foreach ($target in @($preferred | Select-Object -First 2)) { [void]$limited.Add($target) }
+    }
+    return @($limited.ToArray())
+}
+
+function Get-AutoPickWinwsProcesses {
+    param([string]$ExpectedPath)
+    $expected = [System.IO.Path]::GetFullPath($ExpectedPath)
+    $all = @(Get-CimInstance -ClassName Win32_Process -Filter "Name='winws.exe'" -ErrorAction Stop)
+    $matching = New-Object System.Collections.Generic.List[object]
+    foreach ($process in $all) {
+        if ([string]::IsNullOrWhiteSpace([string]$process.ExecutablePath)) { continue }
+        try {
+            $path = [System.IO.Path]::GetFullPath([string]$process.ExecutablePath)
+            if ([string]::Equals($path, $expected, [System.StringComparison]::OrdinalIgnoreCase)) {
+                [void]$matching.Add($process)
+            }
+        } catch { }
+    }
+    return @($matching.ToArray())
+}
+
+function Get-AutoPickForeignWinwsProcesses {
+    param([string]$ExpectedPath)
+    $expected = [System.IO.Path]::GetFullPath($ExpectedPath)
+    $all = @(Get-CimInstance -ClassName Win32_Process -Filter "Name='winws.exe'" -ErrorAction Stop)
+    $foreign = New-Object System.Collections.Generic.List[object]
+    foreach ($process in $all) {
+        if ([string]::IsNullOrWhiteSpace([string]$process.ExecutablePath)) {
+            [void]$foreign.Add($process)
+            continue
+        }
+        try {
+            $path = [System.IO.Path]::GetFullPath([string]$process.ExecutablePath)
+            if (-not [string]::Equals($path, $expected, [System.StringComparison]::OrdinalIgnoreCase)) {
+                [void]$foreign.Add($process)
+            }
+        } catch { [void]$foreign.Add($process) }
+    }
+    return @($foreign.ToArray())
+}
+
+function Test-AutoPickZapretServiceRunning {
+    $service = Get-Service -Name 'zapret' -ErrorAction SilentlyContinue
+    return [bool]($service -and $service.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped)
+}
+
+function Stop-AutoPickWinwsProcesses {
+    param([int[]]$ProcessIds, [string]$ExpectedPath, [int]$TimeoutSeconds = 4)
+    $ids = @($ProcessIds | Where-Object { $_ -gt 0 } | Select-Object -Unique)
+    if ($ids.Count -eq 0) { return @() }
+    foreach ($id in $ids) {
+        try {
+            $process = Get-CimInstance -ClassName Win32_Process -Filter ("ProcessId={0}" -f [int]$id) -ErrorAction Stop
+            if ($process -and $process.Name -ieq 'winws.exe' -and -not [string]::IsNullOrWhiteSpace([string]$process.ExecutablePath)) {
+                $path = [System.IO.Path]::GetFullPath([string]$process.ExecutablePath)
+                if ([string]::Equals($path, [System.IO.Path]::GetFullPath($ExpectedPath), [System.StringComparison]::OrdinalIgnoreCase)) {
+                    Stop-Process -Id ([int]$id) -Force -ErrorAction SilentlyContinue
+                }
+            }
+        } catch { }
+    }
+
+    $watch = [System.Diagnostics.Stopwatch]::StartNew()
+    do {
+        $remaining = @(Get-AutoPickWinwsProcesses -ExpectedPath $ExpectedPath | Where-Object { $ids -contains [int]$_.ProcessId })
+        if ($remaining.Count -eq 0) { return @() }
+        Start-Sleep -Milliseconds 200
+    } while ($watch.Elapsed.TotalSeconds -lt $TimeoutSeconds)
+    return @($remaining | ForEach-Object { [int]$_.ProcessId })
+}
+
+function Invoke-AutoPickHttpProbe {
+    param(
+        [object]$Target,
+        [string]$CurlPath,
+        [string]$TempDirectory,
+        [System.ComponentModel.BackgroundWorker]$Worker
+    )
+    $token = [guid]::NewGuid().ToString('N')
+    $outputPath = Join-Path $TempDirectory ($token + '.out')
+    $errorPath = Join-Path $TempDirectory ($token + '.err')
+    $process = $null
+    try {
+        $arguments = @('-I', '-sS', '--max-time', '3', '--connect-timeout', '2', '-o', 'NUL', '-w', '%{http_code}', [string]$Target.Url)
+        $process = Start-Process -FilePath $CurlPath -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $outputPath -RedirectStandardError $errorPath
+        $watch = [System.Diagnostics.Stopwatch]::StartNew()
+        while (-not $process.HasExited -and $watch.Elapsed.TotalSeconds -lt 5) {
+            if ($Worker.CancellationPending) {
+                Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                return [pscustomobject]@{ Name = $Target.Name; Service = $Target.Service; Url = $Target.Url; Ok = $false; HttpCode = 'CANCELLED'; Cancelled = $true }
+            }
+            Start-Sleep -Milliseconds 100
+        }
+        if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            return [pscustomobject]@{ Name = $Target.Name; Service = $Target.Service; Url = $Target.Url; Ok = $false; HttpCode = 'TIMEOUT'; Cancelled = $false }
+        }
+        $process.Refresh()
+        $httpCode = ''
+        if (Test-Path -LiteralPath $outputPath) { $httpCode = [System.IO.File]::ReadAllText($outputPath).Trim() }
+        $ok = ($process.ExitCode -eq 0 -and $httpCode -match '^\d{3}$')
+        $status = if ($ok) { 'HTTP ' + $httpCode } else { 'Нет ответа' }
+        return [pscustomobject]@{ Name = $Target.Name; Service = $Target.Service; Url = $Target.Url; Ok = $ok; HttpCode = $status; Cancelled = $false }
+    } catch {
+        return [pscustomobject]@{ Name = $Target.Name; Service = $Target.Service; Url = $Target.Url; Ok = $false; HttpCode = 'Ошибка проверки'; Cancelled = $false }
+    } finally {
+        if ($process) {
+            try { if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue } } catch { }
+            try { $process.Dispose() } catch { }
+        }
+        Remove-Item -LiteralPath $outputPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $errorPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Invoke-AutoPickWork {
+    param($Worker, $EventArgs, $Payload)
+    $results = New-Object System.Collections.Generic.List[object]
+    $trackedIds = [System.Collections.Generic.HashSet[int]]::new()
+    $testDirectory = Join-Path $env:TEMP ('ZapretManager-AutoPick-' + [guid]::NewGuid().ToString('N'))
+    $originalNoUpdate = [System.Environment]::GetEnvironmentVariable('NO_UPDATE_CHECK', 'Process')
+    $cancelled = $false
+    $workerException = $null
+    $cmdProcess = $null
+
+    try {
+        [System.Environment]::SetEnvironmentVariable('NO_UPDATE_CHECK', '1', 'Process')
+        [void][System.IO.Directory]::CreateDirectory($testDirectory)
+        $initialProcesses = @(Get-AutoPickWinwsProcesses -ExpectedPath $Payload.ExpectedWinws)
+        if ($initialProcesses.Count -gt 0) { throw 'В этой папке уже запущен winws.exe. Остановите его и повторите автоподбор.' }
+        $strategyCount = $Payload.Strategies.Count
+        $targetCount = $Payload.Targets.Count
+
+        for ($i = 0; $i -lt $strategyCount; $i++) {
+            if ($Worker.CancellationPending) { $cancelled = $true; break }
+            $strategy = $Payload.Strategies[$i]
+            $cmdProcess = $null
+            $candidateIds = @()
+            $candidateStarted = $false
+            $startupError = ''
+            $probes = New-Object System.Collections.Generic.List[object]
+            $basePercent = [int][Math]::Floor(($i * 100.0) / $strategyCount)
+            $Worker.ReportProgress($basePercent, [pscustomobject]@{
+                Message = ('[{0}/{1}] Запуск: {2}' -f ($i + 1), $strategyCount, $strategy.Title)
+                Details = 'Подготовка тестовой стратегии…'
+            })
+
+            $foreign = @(Get-AutoPickForeignWinwsProcesses -ExpectedPath $Payload.ExpectedWinws)
+            if ($foreign.Count -gt 0) { throw 'Во время автоподбора обнаружен winws.exe из другой папки. Проверка остановлена для безопасности.' }
+            $service = Get-Service -Name 'zapret' -ErrorAction SilentlyContinue
+            if ($service -and $service.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+                throw 'Во время автоподбора запущена или останавливается служба zapret. Проверка остановлена; служба не изменялась.'
+            }
+            $alreadyRunning = @(Get-AutoPickWinwsProcesses -ExpectedPath $Payload.ExpectedWinws)
+            if ($alreadyRunning.Count -gt 0) { throw 'Перед запуском очередной стратегии найден работающий winws.exe. Проверка остановлена.' }
+
+            try {
+                if (-not (Test-Path -LiteralPath $strategy.Path)) {
+                    $startupError = 'Файл стратегии не найден.'
+                } else {
+                    $logPath = Join-Path $testDirectory ('strategy-{0}.log' -f ($i + 1))
+                    [System.IO.File]::WriteAllText($logPath, '', [System.Text.UTF8Encoding]::new($false))
+                    $quotedBatch = '"' + $strategy.Path + '"'
+                    $quotedLog = '"' + $logPath + '"'
+                    $arguments = '/d /s /c "' + $quotedBatch + ' > ' + $quotedLog + ' 2>&1"'
+                    $cmdPath = if ($env:ComSpec) { $env:ComSpec } else { Join-Path $env:WINDIR 'System32\cmd.exe' }
+                    $cmdProcess = Start-Process -FilePath $cmdPath -ArgumentList $arguments -WorkingDirectory $Payload.Root -WindowStyle Hidden -PassThru
+                    $startWatch = [System.Diagnostics.Stopwatch]::StartNew()
+                    for ($waitIndex = 0; $waitIndex -lt 60; $waitIndex++) {
+                        if ($Worker.CancellationPending) { $cancelled = $true; break }
+                        $observed = @(Get-AutoPickWinwsProcesses -ExpectedPath $Payload.ExpectedWinws)
+                        foreach ($process in $observed) {
+                            $processId = [int]$process.ProcessId
+                            if (-not $trackedIds.Contains($processId)) { [void]$trackedIds.Add($processId) }
+                            if ($candidateIds -notcontains $processId) { $candidateIds += $processId }
+                        }
+                        if ($candidateIds.Count -gt 0) { $candidateStarted = $true; break }
+                        if ($cmdProcess.HasExited -and $startWatch.Elapsed.TotalSeconds -ge 2) { break }
+                        Start-Sleep -Milliseconds 200
+                    }
+                    if (-not $candidateStarted -and -not $cancelled) { $startupError = 'winws.exe не появился в течение 12 секунд.' }
+                }
+
+                if ($candidateStarted -and -not $cancelled) {
+                    for ($j = 0; $j -lt $targetCount; $j++) {
+                        if ($Worker.CancellationPending) { $cancelled = $true; break }
+                        $target = $Payload.Targets[$j]
+                        $percent = [int][Math]::Min(99, [Math]::Floor((($i + (($j + 1) / [double]$targetCount)) * 100.0) / $strategyCount))
+                        $Worker.ReportProgress($percent, [pscustomobject]@{
+                            Message = ('[{0}/{1}] Проверка: {2}' -f ($i + 1), $strategyCount, $strategy.Title)
+                            Details = ('{0} — {1}' -f $target.Service, $target.Name)
+                        })
+                        $probe = Invoke-AutoPickHttpProbe -Target $target -CurlPath $Payload.CurlPath -TempDirectory $testDirectory -Worker $Worker
+                        if ($probe.Cancelled) { $cancelled = $true; break }
+                        [void]$probes.Add($probe)
+                    }
+                }
+            } finally {
+                if ($cmdProcess) {
+                    try { if (-not $cmdProcess.HasExited) { Stop-Process -Id $cmdProcess.Id -Force -ErrorAction SilentlyContinue } } catch { }
+                    if (Test-AutoPickZapretServiceRunning) {
+                        throw 'Во время автоподбора запущена служба zapret. Для безопасности менеджер не останавливал её процессы; проверьте состояние вручную.'
+                    }
+                    $currentProcesses = @(Get-AutoPickWinwsProcesses -ExpectedPath $Payload.ExpectedWinws)
+                    $currentIds = @($currentProcesses | ForEach-Object { [int]$_.ProcessId })
+                    foreach ($processId in $currentIds) {
+                        if (-not $trackedIds.Contains($processId)) { [void]$trackedIds.Add($processId) }
+                    }
+                    $remainingIds = @(Stop-AutoPickWinwsProcesses -ProcessIds $currentIds -ExpectedPath $Payload.ExpectedWinws)
+                    if ($remainingIds.Count -gt 0) {
+                        throw ('Не удалось остановить тестовый winws.exe (PID {0}). Автоподбор прерван.' -f ($remainingIds -join ', '))
+                    }
+                    foreach ($processId in $currentIds) { [void]$trackedIds.Remove([int]$processId) }
+                    foreach ($processId in $candidateIds) { [void]$trackedIds.Remove([int]$processId) }
+                    try { $cmdProcess.Dispose() } catch { }
+                    $cmdProcess = $null
+                }
+            }
+
+            if ($cancelled) { break }
+            $discordTotal = @($Payload.Targets | Where-Object { $_.Service -eq 'Discord' }).Count
+            $youtubeTotal = @($Payload.Targets | Where-Object { $_.Service -eq 'YouTube' }).Count
+            $discordProbes = @($probes | Where-Object { $_.Service -eq 'Discord' })
+            $youtubeProbes = @($probes | Where-Object { $_.Service -eq 'YouTube' })
+            $discordOk = @($discordProbes | Where-Object { $_.Ok }).Count
+            $youtubeOk = @($youtubeProbes | Where-Object { $_.Ok }).Count
+            $discordScore = if ($discordTotal -gt 0) { [double]$discordOk / [double]$discordTotal } else { 0.0 }
+            $youtubeScore = if ($youtubeTotal -gt 0) { [double]$youtubeOk / [double]$youtubeTotal } else { 0.0 }
+            $score = ($discordScore + $youtubeScore) / 2.0
+            $startupOk = ($candidateStarted -and [string]::IsNullOrWhiteSpace($startupError))
+            $totalOk = $discordOk + $youtubeOk
+            if (-not $startupOk) { $statusText = 'winws.exe не запустился' }
+            elseif ($totalOk -eq $targetCount) { $statusText = 'Все адреса ответили' }
+            elseif ($totalOk -gt 0) { $statusText = 'Частичный доступ' }
+            else { $statusText = 'Нет HTTP-ответов' }
+            [void]$results.Add([pscustomobject]@{
+                Title = $strategy.Title
+                Path = $strategy.Path
+                Order = [int]$strategy.Order
+                DiscordOk = $discordOk
+                DiscordTotal = $discordTotal
+                YouTubeOk = $youtubeOk
+                YouTubeTotal = $youtubeTotal
+                TotalOk = $totalOk
+                Score = [double]$score
+                MinimumServiceScore = [double][Math]::Min($discordScore, $youtubeScore)
+                StartupOk = [bool]$startupOk
+                StartupError = $startupError
+                Status = $statusText
+                Probes = @($probes.ToArray())
+            })
+            $donePercent = [int][Math]::Min(99, [Math]::Floor((($i + 1) * 100.0) / $strategyCount))
+            $Worker.ReportProgress($donePercent, [pscustomobject]@{
+                Message = ('Завершена проверка: {0}' -f $strategy.Title)
+                Details = ('Discord {0}/{1} · YouTube {2}/{3}' -f $discordOk, $discordTotal, $youtubeOk, $youtubeTotal)
+            })
+        }
+        if ($Worker.CancellationPending) { $cancelled = $true }
+    } catch {
+        $workerException = $_.Exception
+    } finally {
+        if ($cmdProcess) {
+            try { if (-not $cmdProcess.HasExited) { Stop-Process -Id $cmdProcess.Id -Force -ErrorAction SilentlyContinue } } catch { }
+        }
+        try {
+            $leftoverIds = @($trackedIds)
+            if ($cmdProcess) {
+                $leftoverProcesses = @(Get-AutoPickWinwsProcesses -ExpectedPath $Payload.ExpectedWinws)
+                $leftoverIds += @($leftoverProcesses | ForEach-Object { [int]$_.ProcessId })
+            }
+            $leftoverIds = @($leftoverIds | Where-Object { $_ -gt 0 } | Select-Object -Unique)
+            if (Test-AutoPickZapretServiceRunning) {
+                if ($leftoverIds.Count -gt 0 -and -not $workerException) {
+                    $workerException = [System.InvalidOperationException]::new('Служба zapret была запущена во время автоподбора. Её процессы не останавливались; проверьте состояние вручную.')
+                }
+            } elseif ($leftoverIds.Count -gt 0) {
+                $remainingIds = @(Stop-AutoPickWinwsProcesses -ProcessIds $leftoverIds -ExpectedPath $Payload.ExpectedWinws)
+                if ($remainingIds.Count -gt 0 -and -not $workerException) {
+                    $workerException = [System.InvalidOperationException]::new(('Не удалось завершить тестовый winws.exe (PID {0}).' -f ($remainingIds -join ', ')))
+                }
+            }
+        } catch {
+            if (-not $workerException) { $workerException = $_.Exception }
+        }
+        [System.Environment]::SetEnvironmentVariable('NO_UPDATE_CHECK', $originalNoUpdate, 'Process')
+        Remove-Item -LiteralPath $testDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    if ($workerException) { throw $workerException }
+    $EventArgs.Result = [pscustomobject]@{
+        Results = @($results.ToArray())
+        Cancelled = [bool]$cancelled
+        StrategyCount = $Payload.Strategies.Count
+    }
+}
+
+function Set-AutoPickControls {
+    param([bool]$Busy)
+    $enabled = -not $Busy
+    if ($script:StartButton) { $script:StartButton.Enabled = $enabled }
+    if ($script:StopButton) { $script:StopButton.Enabled = $enabled }
+    if ($script:HomeStrategyCombo) { $script:HomeStrategyCombo.Enabled = $enabled }
+    if ($script:StrategyList) { $script:StrategyList.Enabled = $enabled }
+    if ($script:RunChosenButton) { $script:RunChosenButton.Enabled = $enabled }
+    foreach ($button in $script:AutoPickButtons) {
+        if ($null -eq $button) { continue }
+        $button.Enabled = $true
+        if ($Busy) { $button.Text = 'Отменить подбор' }
+        else { $button.Text = 'Автоподбор' }
+    }
+    foreach ($key in @('settings', 'tools')) {
+        if ($script:NavButtons.ContainsKey($key)) { $script:NavButtons[$key].Enabled = $enabled }
+    }
+    if ($script:SaveSettingsButton) { $script:SaveSettingsButton.Enabled = $enabled }
+    if ($script:AutoPickProgress) { $script:AutoPickProgress.Visible = $Busy }
+}
+
+function Show-AutoPickResultsDialog {
+    param([array]$Results, [string]$SelectedPath = '', [bool]$WasCancelled = $false)
+    if (-not $Results -or $Results.Count -eq 0) {
+        Show-Notice 'Не удалось завершить проверку ни одной стратегии.' 'Автоподбор отменён' ([System.Windows.Forms.MessageBoxIcon]::Warning)
+        return
+    }
+
+    $dialog = New-Object System.Windows.Forms.Form
+    $dialog.Text = 'Результаты автоподбора'
+    $dialog.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterParent
+    $dialog.Size = [System.Drawing.Size]::new(850, 590)
+    $dialog.MinimumSize = [System.Drawing.Size]::new(850, 590)
+    $dialog.BackColor = $script:Palette.Background
+    $dialog.ForeColor = $script:Palette.Text
+    $dialog.Font = [System.Drawing.Font]::new('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
+    $dialog.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
+
+    $heading = if ($WasCancelled) { 'Проверка прервана. Результаты ниже относятся только к уже завершённым тестам.' }
+        else { 'Стратегии отсортированы по доступности веб-адресов Discord и YouTube в этой сети.' }
+    [void](Add-UiLabel $dialog $heading 18 14 795 28 'Text' 10 -Bold)
+    [void](Add-UiLabel $dialog 'Проверялся HTTP-ответ через curl. Это ориентир, а не гарантия работы видео, голосовой связи или приложений.' 18 43 795 38 'Muted' 8)
+
+    $listView = New-Object System.Windows.Forms.ListView
+    $listView.Location = [System.Drawing.Point]::new(18, 88)
+    $listView.Size = [System.Drawing.Size]::new(798, 390)
+    $listView.View = [System.Windows.Forms.View]::Details
+    $listView.FullRowSelect = $true
+    $listView.GridLines = $true
+    $listView.HideSelection = $false
+    $listView.MultiSelect = $false
+    $listView.BackColor = $script:Palette.Card
+    $listView.ForeColor = $script:Palette.Text
+    $listView.Font = [System.Drawing.Font]::new('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
+    [void]$listView.Columns.Add('№', 42)
+    [void]$listView.Columns.Add('Стратегия', 255)
+    [void]$listView.Columns.Add('Discord', 105)
+    [void]$listView.Columns.Add('YouTube', 105)
+    [void]$listView.Columns.Add('Общий балл', 105)
+    [void]$listView.Columns.Add('Результат', 165)
+
+    $rowNumber = 0
+    $defaultSelectedItem = $null
+    foreach ($result in $Results) {
+        $rowNumber++
+        $item = [System.Windows.Forms.ListViewItem]::new([string]$rowNumber)
+        [void]$item.SubItems.Add([string]$result.Title)
+        [void]$item.SubItems.Add(('{0}/{1}' -f $result.DiscordOk, $result.DiscordTotal))
+        [void]$item.SubItems.Add(('{0}/{1}' -f $result.YouTubeOk, $result.YouTubeTotal))
+        [void]$item.SubItems.Add(('{0:P0}' -f $result.Score))
+        [void]$item.SubItems.Add([string]$result.Status)
+        $item.Tag = $result
+        [void]$listView.Items.Add($item)
+        if ($SelectedPath -and [string]::Equals([string]$result.Path, $SelectedPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $defaultSelectedItem = $item
+        }
+    }
+    [void]$dialog.Controls.Add($listView)
+
+    $useButton = Add-UiButton $dialog 'Использовать выбранную' 18 492 210 42 'secondary'
+    $launchButton = Add-UiButton $dialog 'Запустить выбранную' 240 492 210 42 'primary'
+    $closeButton = Add-UiButton $dialog 'Закрыть' 694 492 122 42 'secondary'
+    $useButton.Enabled = $false
+    $launchButton.Enabled = $false
+    $closeButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    $dialog.CancelButton = $closeButton
+
+    $listView.Add_SelectedIndexChanged({
+        if ($script:AutoPickDialogList.SelectedItems.Count -eq 0) {
+            $script:AutoPickDialogUseButton.Enabled = $false
+            $script:AutoPickDialogLaunchButton.Enabled = $false
+            return
+        }
+        $entry = $script:AutoPickDialogList.SelectedItems[0].Tag
+        $script:AutoPickDialogUseButton.Enabled = $true
+        $script:AutoPickDialogLaunchButton.Enabled = ($entry.TotalOk -gt 0)
+        for ($strategyIndex = 0; $strategyIndex -lt $script:Strategies.Count; $strategyIndex++) {
+            if ([string]::Equals([string]$script:Strategies[$strategyIndex].Path, [string]$entry.Path, [System.StringComparison]::OrdinalIgnoreCase)) {
+                Set-StrategyIndex $strategyIndex
+                break
+            }
+        }
+    })
+    $useButton.Add_Click({
+        if ($script:AutoPickDialogList.SelectedItems.Count -gt 0) {
+            $script:AutoPickDialog.Tag = 'select'
+            $script:AutoPickDialog.Close()
+        }
+    })
+    $launchButton.Add_Click({
+        if ($script:AutoPickDialogList.SelectedItems.Count -gt 0 -and $script:AutoPickDialogList.SelectedItems[0].Tag.TotalOk -gt 0) {
+            $script:AutoPickDialog.Tag = 'launch'
+            $script:AutoPickDialog.Close()
+        }
+    })
+    $closeButton.Add_Click({ $script:AutoPickDialog.Close() })
+
+    $script:AutoPickDialog = $dialog
+    $script:AutoPickDialogList = $listView
+    $script:AutoPickDialogUseButton = $useButton
+    $script:AutoPickDialogLaunchButton = $launchButton
+    if ($defaultSelectedItem) {
+        $defaultSelectedItem.Selected = $true
+        $defaultSelectedItem.Focused = $true
+        $defaultSelectedItem.EnsureVisible()
+        $useButton.Enabled = $true
+        $launchButton.Enabled = ($defaultSelectedItem.Tag.TotalOk -gt 0)
+    }
+    [void]$dialog.ShowDialog($script:MainForm)
+    $action = [string]$dialog.Tag
+    $dialog.Dispose()
+    $script:AutoPickDialog = $null
+    $script:AutoPickDialogList = $null
+    $script:AutoPickDialogUseButton = $null
+    $script:AutoPickDialogLaunchButton = $null
+    if ($action -eq 'launch') { Start-SelectedStrategy }
+}
+
+function Start-AutoPick {
+    if ($script:AutoPickWorker -and $script:AutoPickWorker.IsBusy) {
+        $script:AutoPickWorker.CancelAsync()
+        $script:ActivityLabel.Text = 'ОТМЕНА АВТОПОДБОРА…'
+        $script:ActivityDetailsLabel.Text = 'Завершается текущая проверка и останавливается тестовый winws.exe.'
+        return
+    }
+    if ($script:LaunchProcess) {
+        try {
+            if (-not $script:LaunchProcess.HasExited) {
+                Show-Notice 'Дождитесь завершения запуска стратегии, затем повторите автоподбор.' 'Запуск выполняется' ([System.Windows.Forms.MessageBoxIcon]::Information)
+                return
+            }
+            $script:LaunchProcess.Dispose()
+            $script:LaunchProcess = $null
+        } catch { $script:LaunchProcess = $null }
+    }
+
+    $status = Get-CurrentStatus
+    if ($status.Running) {
+        Show-Notice 'Перед автоподбором остановите текущую стратегию из этой папки. Менеджер не будет прерывать её автоматически.' 'Сначала остановите zapret' ([System.Windows.Forms.MessageBoxIcon]::Warning)
+        return
+    }
+    $foreignProcesses = @(Get-ForeignWinwsProcesses)
+    if ($foreignProcesses.Count -gt 0) {
+        Show-Notice ('Найдены winws.exe из других папок (PID: ' + ($foreignProcesses.ProcessId -join ', ') + '). Закройте их через программу, которая их запустила, затем повторите подбор.') 'Обнаружен другой экземпляр' ([System.Windows.Forms.MessageBoxIcon]::Warning)
+        return
+    }
+    $zapretService = Get-Service -Name 'zapret' -ErrorAction SilentlyContinue
+    if ($zapretService -and $zapretService.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+        Show-Notice 'Служба zapret работает или меняет состояние. Автоподбор не останавливает и не изменяет службы; дождитесь её остановки и повторите подбор.' 'Служба zapret активна' ([System.Windows.Forms.MessageBoxIcon]::Warning)
+        return
+    }
+    $requiredFiles = @('bin\winws.exe', 'bin\WinDivert.dll', 'bin\WinDivert64.sys')
+    $missingFiles = @($requiredFiles | Where-Object { -not (Test-Path -LiteralPath (Join-Path $script:Root $_)) })
+    if ($missingFiles.Count -gt 0) {
+        Show-Notice ('В сборке не найдены файлы: ' + ($missingFiles -join ', ') + '.') 'Не найдены файлы zapret' ([System.Windows.Forms.MessageBoxIcon]::Error)
+        return
+    }
+    $curlCommand = Get-Command -Name 'curl.exe' -ErrorAction SilentlyContinue
+    if (-not $curlCommand -or [string]::IsNullOrWhiteSpace([string]$curlCommand.Source)) {
+        Show-Notice 'Для автоподбора нужен встроенный curl.exe из Windows 10/11. Обновите Windows или используйте ручную проверку.' 'curl.exe не найден' ([System.Windows.Forms.MessageBoxIcon]::Error)
+        return
+    }
+    $targets = @(Get-AutoPickTargets)
+    if ($targets.Count -eq 0) {
+        Show-Notice 'Не удалось подготовить адреса для проверки Discord и YouTube.' 'Нет тестовых адресов' ([System.Windows.Forms.MessageBoxIcon]::Error)
+        return
+    }
+
+    $discordCount = @($targets | Where-Object { $_.Service -eq 'Discord' }).Count
+    $youtubeCount = @($targets | Where-Object { $_.Service -eq 'YouTube' }).Count
+    $confirmationText = ('Автоподбор последовательно проверит {0} стратегий по HTTP-ответам от {1} адресов Discord и {2} адресов YouTube. Тест займёт несколько минут.' -f $script:Strategies.Count, $discordCount, $youtubeCount) + "`r`n`r`nКаждый исходный BAT запускается на короткое время, затем менеджер останавливает только winws.exe из этой сборки. Установленные службы он не устанавливает, не удаляет и не останавливает. Запуск BAT может включить TCP timestamps, если они выключены, и создать отсутствующие пользовательские файлы списков — так же, как при обычном запуске стратегии." + "`r`n`r`nВ конце подходящая стратегия будет выбрана, но не запущена автоматически. Продолжить?"
+    $answer = [System.Windows.Forms.MessageBox]::Show(
+        $confirmationText,
+        'Запустить автоподбор стратегий?',
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Information
+    )
+    if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+
+    Set-ActivePage 'home'
+    $script:AutoPickProgress.Value = 0
+    Set-AutoPickControls -Busy $true
+    $script:ActivityLabel.Text = 'АВТОПОДБОР СТРАТЕГИЙ'
+    $script:ActivityDetailsLabel.Text = 'Подготовка проверки… Нажмите «Отменить подбор», чтобы безопасно остановить процесс.'
+
+    $payload = [pscustomobject]@{
+        Root = $script:Root
+        ExpectedWinws = $script:ExpectedWinws
+        CurlPath = [string]$curlCommand.Source
+        Strategies = @($script:Strategies | ForEach-Object { [pscustomobject]@{ Title = $_.Title; Path = $_.Path; Order = $_.Order } })
+        Targets = $targets
+    }
+    $script:AutoPickWorker = New-Object System.ComponentModel.BackgroundWorker
+    $script:AutoPickWorker.WorkerReportsProgress = $true
+    $script:AutoPickWorker.WorkerSupportsCancellation = $true
+    $script:AutoPickWorker.add_DoWork({
+        param($sender, $eventArgs)
+        Invoke-AutoPickWork -Worker $sender -EventArgs $eventArgs -Payload $eventArgs.Argument
+    })
+    $script:AutoPickWorker.add_ProgressChanged({
+        param($sender, $eventArgs)
+        $script:AutoPickProgress.Value = [Math]::Max(0, [Math]::Min(100, $eventArgs.ProgressPercentage))
+        if ($eventArgs.UserState) {
+            $script:ActivityLabel.Text = $eventArgs.UserState.Message
+            $script:ActivityDetailsLabel.Text = $eventArgs.UserState.Details
+        }
+    })
+    $script:AutoPickWorker.add_RunWorkerCompleted({
+        param($sender, $eventArgs)
+        Set-AutoPickControls -Busy $false
+        $script:AutoPickWorker = $null
+        Refresh-StatusUi
+        if ($script:AutoPickPendingClose) {
+            $script:AutoPickPendingClose = $false
+            $script:MainForm.Close()
+            return
+        }
+        if ($eventArgs.Error) {
+            $errorText = $eventArgs.Error.Message
+            $script:ActivityLabel.Text = 'АВТОПОДБОР ОСТАНОВЛЕН'
+            $script:ActivityDetailsLabel.Text = $errorText
+            if ($script:AutoPickResultLabel) { $script:AutoPickResultLabel.Text = 'Подбор прерван: ' + $errorText }
+            Show-Notice ('Автоподбор остановлен: ' + $errorText) 'Ошибка автоподбора' ([System.Windows.Forms.MessageBoxIcon]::Error)
+            return
+        }
+        $result = $eventArgs.Result
+        if (-not $result -or $result.Results.Count -eq 0) {
+            $script:ActivityLabel.Text = 'АВТОПОДБОР ОТМЕНЁН'
+            $script:ActivityDetailsLabel.Text = 'Не завершена проверка ни одной стратегии.'
+            return
+        }
+        $ranked = @($result.Results | Sort-Object -Property @{ Expression = 'Score'; Descending = $true }, @{ Expression = 'MinimumServiceScore'; Descending = $true }, @{ Expression = 'TotalOk'; Descending = $true }, @{ Expression = 'Order'; Descending = $false })
+        $selectedPath = ''
+        $hasWorkingStrategy = (@($ranked | Where-Object { $_.TotalOk -gt 0 }).Count -gt 0)
+        if (-not $result.Cancelled -and $hasWorkingStrategy) {
+            $best = $ranked[0]
+            $selectedPath = [string]$best.Path
+            for ($strategyIndex = 0; $strategyIndex -lt $script:Strategies.Count; $strategyIndex++) {
+                if ([string]::Equals([string]$script:Strategies[$strategyIndex].Path, $selectedPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    Set-StrategyIndex $strategyIndex
+                    break
+                }
+            }
+            $script:ActivityLabel.Text = 'АВТОПОДБОР ЗАВЕРШЁН'
+            $script:ActivityDetailsLabel.Text = ('Выбрана {0}: Discord {1}/{2}, YouTube {3}/{4}. Стратегия не запущена.' -f $best.Title, $best.DiscordOk, $best.DiscordTotal, $best.YouTubeOk, $best.YouTubeTotal)
+            if ($script:AutoPickResultLabel) { $script:AutoPickResultLabel.Text = $script:ActivityDetailsLabel.Text + ' Тест не гарантирует работу видео/голоса.' }
+        } elseif ($result.Cancelled) {
+            $script:ActivityLabel.Text = 'АВТОПОДБОР ОТМЕНЁН'
+            $script:ActivityDetailsLabel.Text = ('Проверено стратегий: {0}/{1}. Выбор не изменён.' -f $ranked.Count, $result.StrategyCount)
+            if ($script:AutoPickResultLabel) { $script:AutoPickResultLabel.Text = $script:ActivityDetailsLabel.Text }
+        } else {
+            $script:ActivityLabel.Text = 'РАБОЧАЯ СТРАТЕГИЯ НЕ НАЙДЕНА'
+            $script:ActivityDetailsLabel.Text = 'Ни один тестовый адрес не ответил. Проверьте интернет и попробуйте ручной запуск.'
+            if ($script:AutoPickResultLabel) { $script:AutoPickResultLabel.Text = $script:ActivityDetailsLabel.Text + ' Текущий выбор не изменён.' }
+        }
+        $script:AutoPickProgress.Value = 100
+        Show-AutoPickResultsDialog -Results $ranked -SelectedPath $selectedPath -WasCancelled ([bool]$result.Cancelled)
+    })
+    $script:AutoPickWorker.RunWorkerAsync($payload)
 }
 
 function Start-SelectedStrategy {
@@ -801,6 +1454,7 @@ if ($script:Strategies.Count -eq 0) {
 }
 
 $form = New-Object System.Windows.Forms.Form
+$script:MainForm = $form
 $form.Text = 'Zapret Manager'
 $form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
 $form.Size = [System.Drawing.Size]::new(1160, 760)
@@ -859,7 +1513,7 @@ $toolsPage = New-Page 'tools'
 
 # Главная
 [void](Add-UiLabel $homePage 'Контроль подключения' 0 0 720 34 'Text' 22 -Bold)
-[void](Add-UiLabel $homePage 'Выберите стратегию из поставки, запустите её и проверьте статус.' 1 38 820 24 'Muted' 10)
+[void](Add-UiLabel $homePage 'Выберите стратегию вручную или запустите автоподбор для Discord и YouTube.' 1 38 820 24 'Muted' 10)
 $statusCard = Add-UiPanel $homePage 0 74 844 120 'Card' -Border
 [void](Add-UiLabel $statusCard 'СОСТОЯНИЕ ZAPRET' 20 13 240 20 'Muted' 8 -Bold)
 $script:HomeStatusDot = Add-UiPanel $statusCard 21 43 10 10 'Border'
@@ -875,13 +1529,24 @@ $launchCard = Add-UiPanel $homePage 0 210 844 237 'Card' -Border
 $script:HomeStrategyCombo = Add-UiComboBox $launchCard 20 70 332 36
 foreach ($strategy in $script:Strategies) { [void]$script:HomeStrategyCombo.Items.Add($strategy.Title) }
 $script:HomeStrategyDescription = Add-UiLabel $launchCard '' 378 67 420 58 'Muted' 9
-[void](Add-UiLabel $launchCard 'Менеджер запускает выбранный general*.bat без изменения его параметров.' 20 119 785 22 'Muted' 8)
+[void](Add-UiLabel $launchCard 'Автоподбор временно проверит каждую стратегию и выберет лучшую по доступности сайтов.' 20 119 785 22 'Muted' 8)
 $script:StartButton = Add-UiButton $launchCard '▶  Запустить' 20 157 158 44 'primary'
 $script:StopButton = Add-UiButton $launchCard '■  Остановить' 190 157 158 44 'danger'
 $settingsShortcut = Add-UiButton $launchCard 'Настройки' 360 157 132 44 'secondary'
+$script:HomeAutoPickButton = Add-UiButton $launchCard 'Автоподбор' 506 157 164 44 'secondary'
 $script:StartButton.Add_Click({ Start-SelectedStrategy })
 $script:StopButton.Add_Click({ Stop-CurrentStrategy })
 $settingsShortcut.Add_Click({ Set-ActivePage 'settings' })
+$script:HomeAutoPickButton.Add_Click({ Start-AutoPick })
+$script:AutoPickProgress = New-Object System.Windows.Forms.ProgressBar
+$script:AutoPickProgress.Location = [System.Drawing.Point]::new(20, 211)
+$script:AutoPickProgress.Size = [System.Drawing.Size]::new(804, 10)
+$script:AutoPickProgress.Minimum = 0
+$script:AutoPickProgress.Maximum = 100
+$script:AutoPickProgress.Value = 0
+$script:AutoPickProgress.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+$script:AutoPickProgress.Visible = $false
+[void]$launchCard.Controls.Add($script:AutoPickProgress)
 
 $infoCard = Add-UiPanel $homePage 0 450 844 126 'Card' -Border
 [void](Add-UiLabel $infoCard 'ВАЖНО' 20 13 140 18 'Amber' 8 -Bold)
@@ -893,7 +1558,7 @@ $script:ActivityDetailsLabel = Add-UiLabel $homePage 'Для старта нуж
 
 # Стратегии
 [void](Add-UiLabel $strategyPage 'Набор стратегий' 0 0 720 34 'Text' 22 -Bold)
-[void](Add-UiLabel $strategyPage 'Это готовые BAT-файлы из репозитория; приложение не генерирует и не подменяет параметры.' 1 38 840 24 'Muted' 9)
+[void](Add-UiLabel $strategyPage 'Автоподбор сравнивает ответы Discord и YouTube; результаты зависят от провайдера и текущей сети.' 1 38 840 24 'Muted' 9)
 $strategyListCard = Add-UiPanel $strategyPage 0 74 328 518 'Card' -Border
 [void](Add-UiLabel $strategyListCard 'ДОСТУПНЫЕ ВАРИАНТЫ' 16 14 285 20 'Muted' 8 -Bold)
 $script:StrategyList = New-Object System.Windows.Forms.ListBox
@@ -916,9 +1581,13 @@ $script:StrategyDetailSummary = Add-UiLabel $strategyDetailsCard '' 20 205 450 7
 [void](Add-UiLabel $strategyDetailsCard 'Источник: текущая папка репозитория' 20 305 450 20 'Muted' 8)
 $script:ChosenStrategyLabel = Add-UiLabel $strategyDetailsCard 'Выбрано: —' 20 346 450 22 'Muted' 9
 $chooseStrategyButton = Add-UiButton $strategyDetailsCard 'Выбрать стратегию' 20 387 210 44 'secondary'
-$runChosenButton = Add-UiButton $strategyDetailsCard 'Запустить' 244 387 210 44 'primary'
+$script:RunChosenButton = Add-UiButton $strategyDetailsCard 'Запустить' 244 387 210 44 'primary'
+$script:StrategyAutoPickButton = Add-UiButton $strategyDetailsCard 'Автоподбор' 20 443 210 42 'secondary'
+$script:AutoPickResultLabel = Add-UiLabel $strategyDetailsCard 'Автоподбор сравнит HTTP-доступность Discord и YouTube. Выбор будет предложен без автоматического запуска.' 244 442 210 68 'Muted' 8
+$script:AutoPickButtons = @($script:HomeAutoPickButton, $script:StrategyAutoPickButton)
 $chooseStrategyButton.Add_Click({ Set-ActivePage 'home'; Add-Activity ('Выбрана стратегия ' + $script:SelectedStrategy.Title) })
-$runChosenButton.Add_Click({ Start-SelectedStrategy })
+$script:RunChosenButton.Add_Click({ Start-SelectedStrategy })
+$script:StrategyAutoPickButton.Add_Click({ Start-AutoPick })
 $script:StrategyList.Add_SelectedIndexChanged({
     if (-not $script:SyncingStrategy -and $script:StrategyList.SelectedIndex -ge 0) {
         Set-StrategyIndex $script:StrategyList.SelectedIndex
@@ -963,9 +1632,9 @@ $script:AutoUpdateCheck.BackColor = [System.Drawing.Color]::Transparent
 $script:AutoUpdateCheck.Font = [System.Drawing.Font]::new('Segoe UI', 9, [System.Drawing.FontStyle]::Regular)
 [void]$updateCard.Controls.Add($script:AutoUpdateCheck)
 [void](Add-UiLabel $updateCard 'Переключатель меняет наличие utils\check_updates.enabled.' 20 43 790 20 'Muted' 8)
-$saveSettingsButton = Add-UiButton $settingsPage 'Сохранить настройки' 0 547 204 46 'primary'
+$script:SaveSettingsButton = Add-UiButton $settingsPage 'Сохранить настройки' 0 547 204 46 'primary'
 $settingsNote = Add-UiLabel $settingsPage 'Настройки не перезапускают winws.exe автоматически.' 220 550 600 40 'Muted' 9
-$saveSettingsButton.Add_Click({ Save-SettingsFromUi })
+$script:SaveSettingsButton.Add_Click({ Save-SettingsFromUi })
 
 # Службы и помощь
 [void](Add-UiLabel $toolsPage 'Службы и диагностика' 0 0 720 34 'Text' 22 -Bold)
@@ -1031,6 +1700,15 @@ $timer.Add_Tick({
 })
 $timer.Start()
 
+$form.Add_FormClosing({
+    param($sender, $eventArgs)
+    if ($script:AutoPickWorker -and $script:AutoPickWorker.IsBusy) {
+        $script:AutoPickPendingClose = $true
+        $script:AutoPickWorker.CancelAsync()
+        $eventArgs.Cancel = $true
+        $script:ActivityDetailsLabel.Text = 'Завершается текущая проверка и останавливается тестовый winws.exe перед закрытием.'
+    }
+})
 $form.Add_FormClosed({
     $timer.Stop()
     $timer.Dispose()
