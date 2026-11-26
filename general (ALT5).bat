@@ -21,11 +21,19 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --lua-init=@"%LUA%zapret-lib.lua" ^
 --lua-init=@"%LUA%zapret-antidpi.lua" ^
 
+--template=i ^
+--ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--new ^
+
+--template=h ^
+--hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
+--import=i ^
+--new ^
+
 --name="Domain Quic" ^
 --filter-udp=443 ^
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
---hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=h ^
 --payload=quic_initial ^
 --lua-desync=fake:blob=quic_google:repeats=6 ^
 --new ^
@@ -40,7 +48,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --name="TCP" ^
 --filter-l3=ipv4 ^
 --filter-tcp=80,443,2053,2083,2087,2096,8443 ^
---ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=i ^
 --lua-desync=syndata ^
 --payload=tls_client_hello,http_req ^
 --lua-desync=multidisorder ^
@@ -49,7 +57,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --name="GameFilter TCP" ^
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=i ^
 --out-range=-n4 ^
 --lua-desync=syndata ^
 --payload=all ^
@@ -59,8 +67,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --name="IP Quic" ^
 --filter-udp=443 ^
 --ipset="%LISTS%ipset-all.txt" ^
---hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=h ^
 --payload=quic_initial ^
 --lua-desync=fake:blob=quic_google:repeats=6 ^
 --new ^
@@ -68,7 +75,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --name="GameFilter UDP" ^
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=i ^
 --out-range=-n3 ^
 --payload=all ^
 --lua-desync=fake:blob=ACTIVE_GAME:repeats=14:payload=all

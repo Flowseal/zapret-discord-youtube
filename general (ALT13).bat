@@ -20,11 +20,19 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --lua-init=@"%LUA%zapret-lib.lua" ^
 --lua-init=@"%LUA%zapret-antidpi.lua" ^
 
+--template=i ^
+--ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--new ^
+
+--template=h ^
+--hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
+--import=i ^
+--new ^
+
 --name="Domain Quic" ^
 --filter-udp=443 ^
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
---hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=h ^
 --payload=quic_initial ^
 --lua-desync=fake:blob=quic_google:repeats=11 ^
 --new ^
@@ -54,8 +62,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --name="Domain TLS" ^
 --filter-tcp=80,443 ^
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
---hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=h ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5 ^
 --lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=5 ^
@@ -68,8 +75,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --name="IP Quic" ^
 --filter-udp=443 ^
 --ipset="%LISTS%ipset-all.txt" ^
---hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=h ^
 --payload=quic_initial ^
 --lua-desync=fake:blob=quic_google:repeats=11 ^
 --new ^
@@ -77,8 +83,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --name="IP TLS" ^
 --filter-tcp=80,443,8443 ^
 --ipset="%LISTS%ipset-all.txt" ^
---hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt"   --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=h ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5 ^
 --lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=5 ^
@@ -91,7 +96,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --name="GameFilter TCP" ^
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=i ^
 --out-range=-n4 ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=tls_sochi_park:tcp_ts=-600000:repeats=5 ^
@@ -108,7 +113,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --name="GameFilter UDP" ^
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
---ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
+--import=i ^
 --out-range=-n4 ^
 --payload=all ^
 --lua-desync=fake:blob=ACTIVE_GAME:repeats=10:payload=all
