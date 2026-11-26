@@ -896,10 +896,16 @@ try {
         }
     }
 
+    $configsInTestOrder = foreach ($res in $globalResults) {
+        if ($analytics.ContainsKey($res.Config)) {
+            $res.Config
+        }
+    }
+
     Write-Host ""
     Write-Host "=== ANALYTICS ===" -ForegroundColor Cyan
     $maxConfigLen = ($analytics.Keys | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum
-    foreach ($config in $analytics.Keys) {
+    foreach ($config in $configsInTestOrder) {
         $a = $analytics[$config]
         $configPadded = $config.PadRight($maxConfigLen)
         if ($a.ContainsKey('PingOK')) {
@@ -981,7 +987,7 @@ try {
     # Add analytics
     [void]$resultLines.Add("=== ANALYTICS ===")
     $maxConfigLen = ($analytics.Keys | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum
-    foreach ($config in $analytics.Keys) {
+    foreach ($config in $configsInTestOrder) {
         $a = $analytics[$config]
         $configPadded = $config.PadRight($maxConfigLen)
         if ($a.ContainsKey('PingOK')) {
