@@ -37,6 +37,7 @@ jobs:
           mkdir "$NAME"
 
           cp -r bin "$NAME/"
+          cp -r lua "$NAME/"
           cp -r lists "$NAME/"
           cp -r utils "$NAME/"
           cp *.bat "$NAME/"
