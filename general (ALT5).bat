@@ -21,7 +21,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --lua-init=@"%LUA%zapret-lib.lua" ^
 --lua-init=@"%LUA%zapret-antidpi.lua" ^
 
---name="Domain Bypass Quic" ^
+--name="Domain Quic" ^
 --filter-udp=443 ^
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
@@ -37,7 +37,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --lua-desync=fake:blob=ACTIVE_DISCORD:repeats=6 ^
 --new ^
 
---name="TCP Bypass" ^
+--name="TCP" ^
 --filter-l3=ipv4 ^
 --filter-tcp=80,443,2053,2083,2087,2096,8443 ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
@@ -46,7 +46,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --lua-desync=multidisorder ^
 --new ^
 
---name="GameFilter Bypass TCP" ^
+--name="GameFilter TCP" ^
 --filter-tcp=%GameFilterTCP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
@@ -56,7 +56,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --lua-desync=multidisorder:payload=all ^
 --new ^
 
---name="IP Bypass Quic" ^
+--name="IP Quic" ^
 --filter-udp=443 ^
 --ipset="%LISTS%ipset-all.txt" ^
 --hostlist-exclude="%LISTS%list-exclude.txt" --hostlist-exclude="%LISTS%list-exclude-user.txt" ^
@@ -65,7 +65,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --lua-desync=fake:blob=quic_google:repeats=6 ^
 --new ^
 
---name="GameFilter Bypass UDP" ^
+--name="GameFilter UDP" ^
 --filter-udp=%GameFilterUDP% ^
 --ipset="%LISTS%ipset-all.txt" ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
