@@ -267,48 +267,55 @@ if not defined selectedFile (
 )
 
 :: Parsing args
-set "args="
+set "args=--chdir"
 set "capture=0"
-set "BIN=%~dp0bin\"
-set "LISTS=%~dp0lists\"
-set "LUA=%~dp0lua\"
 set QUOTE="
 
-for /f "tokens=*" %%a in ('type "!selectedFile!"') do (
+for /f "usebackq tokens=*" %%a in ("!selectedFile!") do (
     set "line=%%a"
-    if "!line:~-1!"=="^" set "line=!line:~0,-1!"
-    call set "line=%%line:^!=EXCL_MARK%%"
-    call set "line=!line!"
-
-    echo !line! | findstr /i "winws2.exe" >nul
-    if not errorlevel 1 (
-        set "capture=1"
+    if !capture!==0 if /i "!line:~0,6!"=="start " (
+        set "tail=!line:*winws2.exe"=!"
+        if not "!tail!"=="!line!" (
+            set "line=!tail!"
+            set "capture=1"
+        )
     )
 
     if !capture!==1 (
-        if not defined args (
-            set "line=!line:*winws2.exe"=!"
-            set "args= --chdir"
+        if "!line:~-1!"=="^" (
+            set "line=!line:~0,-1!"
+        ) else (
+            set "capture=2"
         )
-        set "temp_args=!line:%QUOTE%=\%QUOTE%!"
+        if "!line:~0,1!"==" " set "line=!line:~1!"
+        if "!line:~-1!"==" " set "line=!line:~0,-1!"
 
-        if not "!temp_args!"=="" (
-            set "args=!args! !temp_args!"
-        )
+        set "line=!line:%%BIN%%=.\!"
+        set "line=!line:%%LISTS%%=..\lists\!"
+        set "line=!line:%%LUA%%=..\lua\!"
+        set "line=!line:%%GameFilter%%=%GameFilter%!"
+        set "line=!line:%%GameFilterTCP%%=%GameFilterTCP%!"
+        set "line=!line:%%GameFilterUDP%%=%GameFilterUDP%!"
+        set "args=!args! !line!"
     )
 )
+
+if not !capture!==2 (
+    echo Could not read the winws2 command from "!selectedFile!".
+    pause
+    goto menu
+)
+set "ARGS=!args:%QUOTE%=\%QUOTE%!"
 
 :: Creating service with parsed args
 call :tcp_enable
 
-set ARGS=%args%
-call set "ARGS=%%ARGS:EXCL_MARK=^!%%"
 echo Final args: !ARGS!
 set SRVCNAME=zapret
 
 net stop %SRVCNAME% >nul 2>&1
 sc delete %SRVCNAME% >nul 2>&1
-sc create %SRVCNAME% binPath= "\"%BIN_PATH%winws2.exe\" !ARGS!" DisplayName= "zapret" start= auto
+sc create %SRVCNAME% binPath= "\"!BIN_PATH!winws2.exe\" !ARGS!" DisplayName= "zapret" start= auto
 sc description %SRVCNAME% "Zapret DPI bypass software"
 sc start %SRVCNAME%
 for %%F in ("!file%choice%!") do (
