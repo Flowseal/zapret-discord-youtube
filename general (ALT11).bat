@@ -34,7 +34,9 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
 --import=h ^
 --payload=quic_initial ^
---lua-desync=fake:blob=quic_google:repeats=11 ^
+--lua-desync=fake:blob=quic_google2:repeats=4 ^
+--lua-desync=fake:blob=quic_google3:repeats=1 ^
+--lua-desync=udplen:increment=32:min=1200:max=1300 ^
 --new ^
 
 --name="Discord Voice" ^
@@ -56,8 +58,8 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --filter-tcp=443 ^
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:tcp_ts=-600000:ip_id=zero:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:ip_id=zero ^
+--lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_seq=-10000:tcp_ack=-66000:ip_id=zero:repeats=11 ^
+--lua-desync=multisplit:pos=sld,sld+3,endhost-1:seqovl=600:seqovl_pattern=tls_google3:ip_id=zero ^
 --new ^
 
 --name="Domain TLS" ^

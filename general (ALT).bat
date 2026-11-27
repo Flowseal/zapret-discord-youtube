@@ -34,7 +34,9 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
 --import=h ^
 --payload=quic_initial ^
---lua-desync=fake:blob=quic_google:repeats=6 ^
+--lua-desync=fake:blob=quic_google2:repeats=4 ^
+--lua-desync=fake:blob=quic_google3:repeats=1 ^
+--lua-desync=send:repeats=1:dir=out ^
 --new ^
 
 --name="Discord Voice" ^
@@ -42,22 +44,27 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --filter-l7=discord,stun ^
 --payload=discord_ip_discovery,stun ^
 --lua-desync=fake:blob=ACTIVE_DISCORD:repeats=6 ^
+--lua-desync=fake:blob=quic_google2:repeats=3 ^
 --new ^
 
 --name="Discord Media" ^
 --filter-tcp=2053,2083,2087,2096,8443 ^
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
---lua-desync=fakedsplit:tcp_ts=-600000:repeats=6 ^
+--lua-desync=tls_client_hello_clone:blob=live_tls:sni_del:sni_first=www.google.com ^
+--lua-desync=fake:blob=live_tls:optional:tcp_ts=-600000:ip_id=zero:repeats=5 ^
+--lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:ip_id=zero:repeats=3 ^
+--lua-desync=fakedsplit:pos=midsld-1:tcp_ts=-600000:ip_id=zero ^
 --new ^
 
 --name="Youtube" ^
 --filter-tcp=443 ^
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=tls_google:tcp_ts=-600000:ip_id=zero:repeats=6 ^
---lua-desync=fakedsplit:tcp_ts=-600000:ip_id=zero:repeats=6 ^
+--lua-desync=tls_client_hello_clone:blob=live_tls:sni_del:sni_first=www.google.com ^
+--lua-desync=fake:blob=live_tls:optional:tcp_ts=-600000:ip_id=zero:repeats=5 ^
+--lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:ip_id=zero:repeats=3 ^
+--lua-desync=fakedsplit:pos=1,sld+1,midsld-1:tcp_ts=-600000:ip_id=zero ^
 --new ^
 
 --name="Domain TLS" ^
@@ -65,8 +72,8 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
 --import=h ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun:tcp_ts=-600000:repeats=6 ^
---lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=6 ^
+--lua-desync=fake:blob=tls_google2:tcp_ts=-600000:repeats=6 ^
 --lua-desync=fakedsplit:tcp_ts=-600000:repeats=6 ^
 --payload=http_req ^
 --lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=6 ^
@@ -86,8 +93,8 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --ipset="%LISTS%ipset-all.txt" ^
 --import=h ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun:tcp_ts=-600000:repeats=6 ^
---lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=6 ^
+--lua-desync=fake:blob=tls_google2:tcp_ts=-600000:repeats=6 ^
 --lua-desync=fakedsplit:tcp_ts=-600000:repeats=6 ^
 --payload=http_req ^
 --lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=6 ^
@@ -100,15 +107,15 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --import=i ^
 --out-range=-n4 ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=stun:tcp_ts=-600000:repeats=6 ^
---lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6 ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=6 ^
+--lua-desync=fake:blob=tls_google2:tcp_ts=-600000:repeats=6 ^
 --lua-desync=fakedsplit:tcp_ts=-600000:repeats=6 ^
 --payload=http_req ^
 --lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=6 ^
 --lua-desync=fakedsplit:tcp_ts=-600000:repeats=6 ^
 --payload=unknown ^
---lua-desync=fake:blob=stun:tcp_ts=-600000:repeats=6:payload=all ^
---lua-desync=fake:blob=tls_google:tcp_ts=-600000:repeats=6:payload=all ^
+--lua-desync=fake:blob=stun2:tcp_ts=-600000:repeats=6:payload=all ^
+--lua-desync=fake:blob=tls_google2:tcp_ts=-600000:repeats=6:payload=all ^
 --lua-desync=fakedsplit:tcp_ts=-600000:repeats=6:payload=all ^
 --new ^
 

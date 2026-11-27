@@ -19,6 +19,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --lua-init=@"%LUA%blobs.lua" ^
 --lua-init=@"%LUA%zapret-lib.lua" ^
 --lua-init=@"%LUA%zapret-antidpi.lua" ^
+--lua-init=@"%LUA%quic-upgrade.lua" ^
 
 --template=i ^
 --ipset-exclude="%LISTS%ipset-exclude.txt" --ipset-exclude="%LISTS%ipset-exclude-user.txt" ^
@@ -34,7 +35,8 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
 --import=h ^
 --payload=quic_initial ^
---lua-desync=fake:blob=quic_google:repeats=11 ^
+--lua-desync=fake:blob=quic_rutube:repeats=5 ^
+--lua-desync=quic_upgrade ^
 --new ^
 
 --name="Discord Voice" ^

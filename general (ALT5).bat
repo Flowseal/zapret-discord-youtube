@@ -16,6 +16,8 @@ set "LUA=%~dp0lua\"
 cd /d %BIN%
 
 start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp-out=443,19294-19344,50000-50100,%GameFilterUDP% ^
+--ipcache-hostname=1 ^
+--ipcache-lifetime=86400 ^
 
 --lua-init=@"%LUA%blobs.lua" ^
 --lua-init=@"%LUA%zapret-lib.lua" ^
@@ -35,7 +37,9 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
 --import=h ^
 --payload=quic_initial ^
---lua-desync=fake:blob=quic_google:repeats=6 ^
+--lua-desync=fake:blob=quic_google2:repeats=5 ^
+--lua-desync=fake:blob=quic_google3:repeats=1 ^
+--lua-desync=udplen:increment=32:min=1200:max=1300 ^
 --new ^
 
 --name="Discord Voice" ^
@@ -43,15 +47,19 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --debug=0 --wf-tcp-out=80,443,2053,2
 --filter-l7=discord,stun ^
 --payload=discord_ip_discovery,stun ^
 --lua-desync=fake:blob=ACTIVE_DISCORD:repeats=6 ^
+--lua-desync=fake:blob=quic_google3:repeats=1 ^
 --new ^
 
---name="TCP" ^
---filter-l3=ipv4 ^
+--name="Domain TLS" ^
 --filter-tcp=80,443,2053,2083,2087,2096,8443 ^
---import=i ^
+--hostlist="%LISTS%list-general.txt" --hostlist="%LISTS%list-general-user.txt" ^
+--hostlist="%LISTS%list-google.txt" ^
+--import=h --import=i ^
 --lua-desync=syndata ^
 --payload=tls_client_hello,http_req ^
---lua-desync=multidisorder ^
+--lua-desync=fake:blob=tls_google3:tls_mod=rnd,dupsid,sni=www.google.com:tcp_seq=-10000:tcp_ack=-66000:ip_id=zero:repeats=7 ^
+--lua-desync=fake:blob=stun2:tcp_seq=-10000:tcp_ack=-66000:ip_id=zero:repeats=3 ^
+--lua-desync=multidisorder:pos=1,midsld:ip_id=zero ^
 --new ^
 
 --name="GameFilter TCP" ^
