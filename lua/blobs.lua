@@ -13,6 +13,8 @@ local blobs = {
 	quic_steamstatic = "quic_initial_steamstatic_com.bin",
 	quic_tencent     = "quic_initial_tencent_com.bin",
 	quic_google      = "quic_initial_www_google_com.bin",
+	quic_google2     = "quic_initial_www_google_com_2.bin",
+	quic_google3     = "quic_initial_www_google_com_3.bin",
 	stun             = "stun.bin",
 	stun2            = "stun2.bin",
 	tls_4pda         = "tls_clienthello_4pda_to.bin",
@@ -24,6 +26,8 @@ local blobs = {
 	tls_steamstatic  = "tls_clienthello_steamstatic_com.bin",
 	tls_teamspeak    = "tls_clienthello_teamspeak_com.bin",
 	tls_google       = "tls_clienthello_www_google_com.bin",
+	tls_google2      = "tls_clienthello_www_google_com_2.bin",
+	tls_google3      = "tls_clienthello_www_google_com_3.bin",
 	tls_sferum       = "tls_clienthello_www_sferum_ru.bin",
 }
 
