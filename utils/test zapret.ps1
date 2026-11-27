@@ -192,6 +192,7 @@ function Invoke-DpiSuite {
 
         foreach ($test in $tests) {
             $curlArgs = @(
+                "-q", "--noproxy", "*",
                 "--range", $rangeSpec,
                 "-m", $TimeoutSeconds,
                 "--connect-timeout", ([Math]::Min(3, $TimeoutSeconds)),
@@ -704,7 +705,7 @@ try {
                     @{ Label = "TLS1.3"; Args = @("--tlsv1.3", "--tls-max", "1.3") }
                 )
 
-                $baseArgs = @("-I", "-s", "-m", $curlTimeoutSeconds, "--connect-timeout", ([Math]::Min(2, $curlTimeoutSeconds)), "-o", "NUL", "-w", "%{http_code}", "--show-error")
+                $baseArgs = @("-q", "--noproxy", "*", "-I", "-s", "-m", $curlTimeoutSeconds, "--connect-timeout", ([Math]::Min(2, $curlTimeoutSeconds)), "-o", "NUL", "-w", "%{http_code}", "--show-error")
                 foreach ($test in $tests) {
                     try {
                         $curlArgs = $baseArgs + $test.Args
