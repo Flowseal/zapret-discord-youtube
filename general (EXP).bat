@@ -45,15 +45,16 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2
 --name="Discord Voice" ^
 --filter-udp=19294-19344,50000-50100 ^
 --filter-l7=discord,stun,unknown ^
+--out-range=a ^
+--payload=discord_ip_discovery,stun ^
+--lua-desync=fake:blob=quic_google2:repeats=6 ^
+--lua-desync=fake:blob=quic_google3:repeats=1 ^
+--lua-desync=udplen:increment=32:min=1200:max=1300 ^
 --out-range=-n4 ^
---payload=discord_ip_discovery ^
---lua-desync=fake:blob=quic_google:repeats=4 ^
---lua-desync=fake:blob=ACTIVE_DISCORD:repeats=4 ^
---payload=stun ^
---lua-desync=fake:blob=ACTIVE_DISCORD:repeats=4 ^
 --payload=unknown ^
---lua-desync=fake:blob=quic_google:repeats=4:payload=all ^
---lua-desync=fake:blob=ACTIVE_DISCORD:repeats=4:payload=all ^
+--lua-desync=fake:blob=quic_google2:repeats=6 ^
+--lua-desync=fake:blob=quic_google3:repeats=1 ^
+--lua-desync=udplen:increment=32:min=1200:max=1300 ^
 --new ^
 
 --name="Discord Media" ^
