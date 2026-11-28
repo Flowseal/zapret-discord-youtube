@@ -1120,7 +1120,6 @@ cls
 set "hostsFile=%SystemRoot%\System32\drivers\etc\hosts"
 set "hostsUrl=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/hosts"
 set "tempFile=%TEMP%\zapret_hosts.txt"
-set "needsUpdate=0"
 
 set "cacheBuster=%RANDOM%%RANDOM%%RANDOM%"
 set "requestUrl=%hostsUrl%?t=%cacheBuster%"
@@ -1143,37 +1142,19 @@ if not exist "%tempFile%" (
     goto menu
 )
 
-set "firstLine="
-set "lastLine="
-for /f "usebackq delims=" %%a in ("%tempFile%") do (
-    if not defined firstLine (
-        set "firstLine=%%a"
-    )
-    set "lastLine=%%a"
-)
-
-findstr /C:"!firstLine!" "%hostsFile%" >nul 2>&1
-if !errorlevel! neq 0 (
-    echo First line from repository not found in hosts file
-    set "needsUpdate=1"
-)
-
-findstr /C:"!lastLine!" "%hostsFile%" >nul 2>&1
-if !errorlevel! neq 0 (
-    echo Last line from repository not found in hosts file
-    set "needsUpdate=1"
-)
-
-if "%needsUpdate%"=="1" (
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0utils\check-hosts.ps1" -HostsFile "%hostsFile%" -ReferenceFile "%tempFile%"
+if "!errorlevel!"=="2" (
     echo:
     call :PrintYellow "Hosts file needs to be updated"
     call :PrintYellow "Please manually copy the content from the downloaded file to your hosts file"
     
     start notepad "%tempFile%"
     explorer /select,"%hostsFile%"
-) else (
+) else if "!errorlevel!"=="0" (
     call :PrintGreen "Hosts file is up to date"
     if exist "%tempFile%" del /f /q "%tempFile%"
+) else (
+    call :PrintRed "Failed to compare hosts files"
 )
 
 echo:
