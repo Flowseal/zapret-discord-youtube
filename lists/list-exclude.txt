@@ -1,5 +1,4 @@
 pusher.com
-twitch.tv
 steampowered.com
 steamcommunity.com
 steamusercontent.com
