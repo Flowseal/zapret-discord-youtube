@@ -529,7 +529,7 @@ if ($mode -eq 'select') {
 }
 
 if ($testType -eq 'dpi') {
-    $dpiTargets = Build-DpiTargets -CustomHost $dpiCustomHost
+    $dpiTargets = @(Build-DpiTargets -CustomHost $dpiCustomHost)
 }
 
 # Load targets once for standard mode
@@ -643,6 +643,54 @@ function Restore-WinwsSnapshot {
     }
 }
 
+function Get-TestReportHeader {
+    param(
+        [string]$ServiceFile,
+        [DateTimeOffset]$StartedAt,
+        [string]$TestType,
+        [string]$IpsetStatus,
+        [int]$TestedConfigCount,
+        [int]$SelectedConfigCount,
+        [int]$TargetCount
+    )
+
+    $zapretVersion = "unknown"
+    try {
+        $versionMatch = Select-String -LiteralPath $ServiceFile -Pattern '^\s*@?set\s+"LOCAL_VERSION=([^"\s]+)"\s*$' -ErrorAction Stop |
+            Select-Object -First 1
+        if ($versionMatch) { $zapretVersion = $versionMatch.Matches[0].Groups[1].Value }
+    } catch { }
+
+    $windows = "unknown"
+    try {
+        $os = Get-CimInstance -ClassName Win32_OperatingSystem -Property Caption, BuildNumber -OperationTimeoutSec 5 -ErrorAction Stop
+        if ($os.Caption) {
+            $windows = $os.Caption.Trim()
+            if ($os.BuildNumber) { $windows += " (build $($os.BuildNumber))" }
+        }
+    } catch { }
+
+    $curlVersion = "unknown"
+    try {
+        $curlVersionOutput = @(& curl.exe --version 2>$null)
+        if ($LASTEXITCODE -eq 0 -and $curlVersionOutput.Count -gt 0 -and $curlVersionOutput[0] -match '^curl\s+(.+)$') {
+            $curlVersion = $Matches[1].Trim()
+        }
+    } catch { }
+
+    "=== ZAPRET TEST REPORT ==="
+    "Zapret     : $zapretVersion"
+    "Started    : $($StartedAt.ToString('yyyy-MM-dd HH:mm:ss zzz', [Globalization.CultureInfo]::InvariantCulture))"
+    "Test type  : $TestType"
+    "IPSet      : $IpsetStatus"
+    "Configs    : $TestedConfigCount of $SelectedConfigCount tested"
+    "Targets    : $TargetCount per config"
+    "Windows    : $windows"
+    "PowerShell : $($PSVersionTable.PSVersion)"
+    "curl       : $curlVersion"
+    ""
+}
+
 $env:NO_UPDATE_CHECK = "1"
 $originalWinws = Get-WinwsSnapshot
 
@@ -654,13 +702,16 @@ Write-Host "                 Total configs: $($batFiles.Count.ToString().PadLeft
 Write-Host "============================================================" -ForegroundColor Cyan
 
 try {
-    # Save original ipset status and switch to 'any' for accurate DPI tests
+    # IPSet setup
     if (($originalIpsetStatus -ne "any") -and ($testType -eq 'dpi')) {
         Write-Host "[WARNING] Ipset is in '$originalIpsetStatus' mode. Switching to 'any' for accurate DPI tests..." -ForegroundColor Yellow
         Set-IpsetMode -mode "any"
-        # Create flag file to indicate ipset was switched
         "" | Out-File -FilePath $ipsetFlagFile -Encoding UTF8
     }
+    $testIpsetStatus = "unknown"
+    try { $testIpsetStatus = Get-IpsetStatus } catch { }
+    $testStartedAt = [DateTimeOffset]::Now
+
     Write-Host "[WARNING] Tests may take several minutes to complete. Please wait..." -ForegroundColor Yellow
 
     $configNum = 0
@@ -945,10 +996,17 @@ try {
     Write-Host "Best config: $bestConfig" -ForegroundColor Green
     Write-Host ""
 
-    # Save to file
+    # Test report
     $dateStr = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
     $resultFile = Join-Path $resultsDir "test_results_$dateStr.txt"
     $resultLines = New-Object System.Collections.Generic.List[string]
+    $targetCount = if ($testType -eq "dpi") { $dpiTargets.Count } else { $targetList.Count }
+    $testedConfigCount = @($globalResults | Where-Object { $_.Results }).Count
+    $reportHeader = Get-TestReportHeader -ServiceFile (Join-Path $rootDir "service.bat") -StartedAt $testStartedAt `
+        -TestType $testType -IpsetStatus $testIpsetStatus -TestedConfigCount $testedConfigCount `
+        -SelectedConfigCount $batFiles.Count -TargetCount $targetCount
+    $resultLines.AddRange([string[]]$reportHeader)
+
     foreach ($res in $globalResults) {
         $config = $res.Config
         $type = $res.Type
