@@ -714,6 +714,7 @@ try {
 
     Write-Host "[WARNING] Tests may take several minutes to complete. Please wait..." -ForegroundColor Yellow
 
+    $failedConfigs = @()
     $configNum = 0
     foreach ($file in $batFiles) {
     $configNum++
@@ -730,9 +731,10 @@ try {
     $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($file.FullName)`"" -WorkingDirectory $targetDir -PassThru -WindowStyle Minimized
     
     # Wait init
-    if (-not (Wait-WinwsReady)) {
+    if (-not $proc -or -not (Wait-WinwsReady)) {
+        $failedConfigs += $file.Name
         Write-Host "  > Strategy failed to start (winws2 process not found). Skipping..." -ForegroundColor Red
-        if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+        if ($proc -and -not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
         continue
     }
     
@@ -1006,6 +1008,12 @@ try {
         -TestType $testType -IpsetStatus $testIpsetStatus -TestedConfigCount $testedConfigCount `
         -SelectedConfigCount $batFiles.Count -TargetCount $targetCount
     $resultLines.AddRange([string[]]$reportHeader)
+
+    if ($failedConfigs.Count -gt 0) {
+        [void]$resultLines.Add("=== STRATEGIES THAT FAILED TO START ===")
+        $resultLines.AddRange([string[]]$failedConfigs)
+        [void]$resultLines.Add("")
+    }
 
     foreach ($res in $globalResults) {
         $config = $res.Config
