@@ -71,7 +71,12 @@ echo.  !CurrentStrategy!
 echo   ----------------------------------------
 echo.
 echo   :: SERVICE
-echo      1. Install Service
+sc query "zapret" >nul 2>&1
+if errorlevel 1 (
+    echo      1. Install Service
+) else (
+    echo      1. Reinstall Service
+)
 echo      2. Remove Services
 echo      3. Check Status
 echo.
@@ -1076,6 +1081,11 @@ cls
 
 set "listFile=%~dp0lists\ipset-all.txt"
 set "url=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/refs/heads/main/.service/ipset-service.txt"
+
+call :ipset_switch_status
+if /i not "!IPsetStatus!"=="loaded" (
+    call :PrintYellow "[WARNING] A successful update will reset the IPSet filter from '!IPsetStatus!' to 'loaded'."
+)
 
 echo Updating ipset-all...
 
