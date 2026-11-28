@@ -60,7 +60,7 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_seq=-10000:tcp_ack=-66000:ip_id=zero:repeats=7 ^
---lua-desync=multidisorder:pos=1,midsld ^
+--lua-desync=multidisorder:pos=1,midsld:ip_id=zero ^
 --new ^
 
 --name="Domain TLS" ^

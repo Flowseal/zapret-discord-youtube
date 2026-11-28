@@ -16,6 +16,8 @@ cd /d %BIN%
 
 start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2096,8443,%GameFilterTCP% --wf-udp-out=443,19294-19344,50000-50100,%GameFilterUDP% ^
 
+--blob=zero4:0x00000000 ^
+
 --lua-init=@"%LUA%blobs.lua" ^
 --lua-init=@"%LUA%zapret-lib.lua" ^
 --lua-init=@"%LUA%zapret-antidpi.lua" ^
@@ -34,7 +36,9 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2
 --hostlist="%LISTS%list-general.txt"         --hostlist="%LISTS%list-general-user.txt" ^
 --import=h ^
 --payload=quic_initial ^
---lua-desync=fake:blob=quic_google:repeats=6 ^
+--lua-desync=fake:blob=quic_google2:repeats=4:ip_id=zero ^
+--lua-desync=fake:blob=quic_google3:repeats=1:ip_id=zero ^
+--lua-desync=send:repeats=1:dir=out:ip_id=zero ^
 --new ^
 
 --name="Discord Voice" ^
@@ -49,6 +53,14 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
 --lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000:repeats=4 ^
+--new ^
+
+--name="Googlevideo" ^
+--filter-tcp=443 ^
+--hostlist-domains=googlevideo.com ^
+--payload=tls_client_hello ^
+--lua-desync=fake:blob=zero4:tcp_ts=-600000:ip_id=zero:repeats=11 ^
+--lua-desync=multisplit:pos=1,midsld-1:seqovl=717:seqovl_pattern=tls_google2:ip_id=zero ^
 --new ^
 
 --name="Youtube" ^

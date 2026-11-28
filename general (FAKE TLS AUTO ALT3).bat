@@ -51,15 +51,15 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2
 --hostlist-domains=discord.media ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
+--lua-desync=multisplit:pos=1,midsld-1,endhost-1:seqovl=717:seqovl_pattern=tls_google2 ^
 --new ^
 
 --name="Youtube" ^
 --filter-tcp=443 ^
 --hostlist="%LISTS%list-google.txt" ^
 --payload=tls_client_hello ^
---lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:ip_id=zero:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:ip_id=zero ^
+--lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:ip_id=zero:repeats=7 ^
+--lua-desync=multisplit:pos=1,midsld-1,endhost-1:seqovl=717:seqovl_pattern=tls_google2:ip_id=zero ^
 --new ^
 
 --name="Domain TLS" ^
@@ -68,10 +68,10 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2
 --import=h ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
+--lua-desync=multisplit:pos=1,midsld-1,endhost-1:seqovl=717:seqovl_pattern=tls_google2 ^
 --payload=http_req ^
 --lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
+--lua-desync=multisplit:pos=1,midsld-1,endhost-1:seqovl=717:seqovl_pattern=tls_google2 ^
 --new ^
 
 --name="IP Quic" ^
@@ -88,10 +88,10 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2
 --import=h ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
+--lua-desync=multisplit:pos=1,midsld-1,endhost-1:seqovl=717:seqovl_pattern=tls_google2 ^
 --payload=http_req ^
 --lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
+--lua-desync=multisplit:pos=1,midsld-1,endhost-1:seqovl=717:seqovl_pattern=tls_google2 ^
 --new ^
 
 --name="GameFilter TCP" ^
@@ -101,13 +101,13 @@ start "zapret: %~n0" /min "%BIN%winws2.exe" --wf-tcp-out=80,443,2053,2083,2087,2
 --out-range=-n4 ^
 --payload=tls_client_hello ^
 --lua-desync=fake:blob=fake_default_tls:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
+--lua-desync=multisplit:pos=1,midsld-1,endhost-1:seqovl=717:seqovl_pattern=tls_google2 ^
 --payload=http_req ^
 --lua-desync=fake:blob=tls_sferum:tcp_ts=-600000:repeats=8 ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google ^
+--lua-desync=multisplit:pos=1,midsld-1,endhost-1:seqovl=717:seqovl_pattern=tls_google2 ^
 --payload=unknown ^
 --lua-desync=fake:blob=tls_sferum:tls_mod=rnd,sni=www.google.com:tcp_ts=-600000:repeats=8:payload=all ^
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:payload=all ^
+--lua-desync=multisplit:pos=1,midsld-1,endhost-1:seqovl=717:seqovl_pattern=tls_google2:payload=all ^
 --new ^
 
 --name="GameFilter UDP" ^
