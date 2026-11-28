@@ -58,3 +58,13 @@ localizeapi.com
 klipy.com
 live-video.net
 googlevideo.com
+awswaf.com
+cloudfront.net
+googleapis.com
+gstatic.com
+recaptcha.net
+recaptcha.google.com
+pndsn.com
+launchdarkly.com
+optimizely.com
+cookielaw.org
